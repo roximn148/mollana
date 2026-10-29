@@ -1,4 +1,11 @@
 # ******************************************************************************
+# Copyright (c) 2026. All rights reserved.
+#
+# This work is licensed under the Creative Commons Attribution 4.0 International License.
+# To view a copy of this license, visit # http://creativecommons.org/licenses/by/4.0/.
+#
+# Author:      RoXimn <roximn@rixir.org>
+# ******************************************************************************
 import re
 import itertools
 
@@ -82,7 +89,7 @@ def replaceEnding(token: str, mapping: dict, n: int) -> str:
 
 
 # ******************************************************************************
-def findVowelCombos(word):
+def findVowelCombos(word) -> list:
     # Convert list to set for O(1) average lookup performance
     VowelPatterns = ["a", "aa", "ai", "au", "ay",
                      "e", "ee", "ei", "ey",
@@ -119,7 +126,7 @@ def findVowelCombos(word):
 
 
 # ******************************************************************************
-def concatenateCombos(subStrings, charset):
+def concatenateCombos(subStrings, charset) -> list:
     """
     Concatenates a list of strings using all combinations of single characters
     from a given set as separators.
@@ -368,7 +375,7 @@ def tafseerUrduAr2Rm(word: str) -> tuple[str, int]:
             if char in Urdu2RomanEncodingMap:
                 romanizedToken = romanizedToken + Urdu2RomanEncodingMap[char]
             else:
-                print(f"'{char}' U+[{ord(char):04X}] in {token}[{word}] has undefined romanization")
+                # print(f"'{char}' U+[{ord(char):04X}] in {token}[{word}] has undefined romanization")
                 romanizedToken = romanizedToken + char
                 undefCount += 11
         romanizedTokens.append(romanizedToken)

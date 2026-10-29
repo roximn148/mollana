@@ -11,15 +11,14 @@
 This module contains assorted helper functions which do not yet have a
 separate module.
 """
+
 # ******************************************************************************
 import re
-from unittest import result
-
-import unicodedata
 import string
+import unicodedata
 import xml.etree.ElementTree as ET
 
-from fast_langdetect import detect
+# from fast_langdetect import detect
 
 
 # ******************************************************************************
@@ -28,16 +27,21 @@ MinimumValidChars: str = "-_.()" + string.ascii_letters + string.digits
 FilenameCharLimit: int = 255
 """Upper limit to filename length."""
 
+
 # ******************************************************************************
-def tms(x: int | float) -> int:
+def tms(x: float) -> int:
     """Convert seconds to milliseconds (int)"""
     return int(x * 1000)
 
 
 # ******************************************************************************
-def hmsTimestamp(milliseconds: int, srtFormat: bool = False,
-                 shorten: bool = False, useDays: bool = False,
-                 fixedPrecision: bool = False) -> str:
+def hmsTimestamp(
+    milliseconds: int,
+    srtFormat: bool = False,
+    shorten: bool = False,
+    useDays: bool = False,
+    fixedPrecision: bool = False,
+) -> str:
     """
     Converts milliseconds to timestamp format (HH:MM:SS,ms).
 
@@ -64,7 +68,7 @@ def hmsTimestamp(milliseconds: int, srtFormat: bool = False,
         days = 0
 
     if shorten:
-        timestamp = ''
+        timestamp = ""
         if days:
             timestamp += f"{days}d "
         if hours:
@@ -102,11 +106,11 @@ def isValidProjectName(name: str) -> bool:
         bool: True if valid, False otherwise.
     """
     assert isinstance(name, str)
-    return bool(re.search('^[A-Za-z0-9 _-]+$', name.strip()))
+    return bool(re.search("^[A-Za-z0-9 _-]+$", name.strip()))
 
 
 # ******************************************************************************
-def slugify(name: str, whitelist: str = MinimumValidChars, replace: str = ' ') -> str:
+def slugify(name: str, whitelist: str = MinimumValidChars, replace: str = " ") -> str:
     """Reduce given string to acceptable set of characters
 
     .. note::
@@ -126,16 +130,17 @@ def slugify(name: str, whitelist: str = MinimumValidChars, replace: str = ' ') -
     """
     # replace spaces
     for r in replace:
-        name = name.replace(r, '-')
+        name = name.replace(r, "-")
 
     # keep only valid ascii chars
-    slug = unicodedata.normalize('NFKD', name).encode('ASCII', 'ignore').decode()
+    slug = unicodedata.normalize("NFKD", name).encode("ASCII", "ignore").decode()
 
     # keep only whitelisted chars
-    slug = ''.join(c for c in slug if c in whitelist)
+    slug = "".join(c for c in slug if c in whitelist)
 
     # Truncate to maximum allowed characters
     return slug[:FilenameCharLimit]
+
 
 # ******************************************************************************
 def extractUrduText(xmlInputPath, txtOutputPath):
@@ -158,19 +163,22 @@ def extractUrduText(xmlInputPath, txtOutputPath):
 
                 # Use fast-langdetect to identify the language
                 # Returns 'ur' for Urdu
-                result = detect(cleanText, model='full')
+                # result = detect(cleanText, model="full")
 
-                if result:
-                    for lang in result:
-                        if lang.get('lang') == 'ur':
-                            urduSentences.append(cleanText)
+                # if result:
+                #     for lang in result:
+                #         if lang.get("lang") == "ur":
+                #             urduSentences.append(cleanText)
+
+                urduSentences.append(cleanText)
 
         # Write to a UTF-8 encoded text file
-        with open(txtOutputPath, 'w', encoding='utf-8') as f:
-            for line in urduSentences:
-                f.write(line + '\n')
+        with open(txtOutputPath, "w", encoding="utf-8") as f:
+            f.writelines(line + "\n" for line in urduSentences)
 
-        print(f"Successfully extracted {len(urduSentences)} Urdu entries to {txtOutputPath}")
+        print(
+            f"Successfully extracted {len(urduSentences)} Urdu entries to {txtOutputPath}"
+        )
 
     except ET.ParseError as e:
         print(f"Error parsing XML: {e}")
