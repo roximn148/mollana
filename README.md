@@ -9,7 +9,7 @@ Unicode Text Editor
 
 License
 -------
-Creative Commons Attribution License
+MIT License
 
 Features
 --------

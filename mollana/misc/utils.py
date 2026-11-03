@@ -1,10 +1,10 @@
 # ******************************************************************************
-# Copyright (c) 202. All rights reserved.
+# Copyright (c) 2026. All rights reserved.
 #
-# This work is licensed under the Creative Commons Attribution 4.0 International License.
-# To view a copy of this license, visit # http://creativecommons.org/licenses/by/4.0/.
+# This work is licensed under the MIT License.
+# To view a copy of this license, visit https://opensource.org/license/mit.
 #
-# Author:      RoXimn <roximn@rixir.org>
+# Author:      RoXimn <roximn148@gmail.com>
 # ******************************************************************************
 """Collection of miscellaneous helper functions.
 
