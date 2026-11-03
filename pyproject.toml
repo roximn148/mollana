@@ -1,6 +1,6 @@
 [project]
 name = "mollana"
-version = "0.1.3"
+version = "0.2.0a0"
 license = "MIT"
 license-files = ["LICENSE"]
 description = "Urdu Roman-script transliterated Unicode text editor"

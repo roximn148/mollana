@@ -122,7 +122,7 @@ class RConstants:
     @property
     def ApplicationVersion(self) -> RVersion:
         """Application version"""
-        return RVersion(major=0, minor=1, patch=3, phase='Alpha')
+        return RVersion(major=0, minor=2, patch=0, phase='Alpha')
 
     @property
     def AuthorName(self) -> str:
