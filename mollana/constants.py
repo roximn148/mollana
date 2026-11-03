@@ -132,12 +132,12 @@ class RConstants:
     @property
     def AuthorEmail(self) -> str:
         """Application author email"""
-        return 'roximn@rixir.org'
+        return 'roximn148@gmail.com'
 
     @property
     def Copyright(self) -> str:
         """Application copyright text"""
-        return '(C) RoXimn 2025'
+        return '(C) RoXimn 2013'
 
     @property
     def Licence(self) -> str:
