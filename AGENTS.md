@@ -5,39 +5,65 @@ Guidance for AI agents (and humans) working in this repository.
 ## Project overview
 
 Mollana is an Urdu Unicode text editor built on one idea: **type in Roman, read in Urdu**.
-It is a Python/PySide6 desktop application (alpha, `0.2.0a0`) in a flat layout — package
-`mollana/`, launched as a script.
+It is a Python/PySide6 desktop application (alpha, `0.2.0a1`) in a `src/` layout.
 
-The repository is mid-reconstruction: the editor pilot (`texteditor.py`, `mapping.py`,
-`tafseer.py`) is being **replaced** by the `pyraya` widget and the `romanalfaz` predictive
-transliterator. Both began here as this pilot and are now separate PyPI packages — they are
-the canonical implementation. Mollana keeps the application shell: main window, settings,
-theming, packaging. **Do not extend the pilot**; new editor or transliteration behavior
-belongs upstream, and this repo consumes it.
+The editor widget and the transliteration engine are separate PyPI packages: `pyraya`
+(`PyRaya`) and `romanalfaz` (`RomanAlfaz`, `Vocabulary`). They began here and are now the
+canonical implementations. This repository is the **application shell**: window, file tree,
+projects, preferences, dictionaries, theming, packaging. Editor or transliteration behavior
+belongs upstream; do not reimplement it here.
+
+## Layers
+
+`ui → editor → infra`. The direction is enforced by `tests/test_architecture.py`.
+
+| Layer    | Holds                                                        | May import        |
+| -------- | ------------------------------------------------------------ | ----------------- |
+| `ui`     | `MainWindow`, explorer, editor tabs, theme, resources        | `editor`, `infra` |
+| `editor` | documents, sessions, projects, dictionaries, recent files     | `infra`           |
+| `infra`  | identity (`meta`), `paths`, `logging`, `settings`             | stdlib + PyPI     |
+
+- `editor` **never** imports PySide6. It is driveable from a headless test; the tab layer
+  translates between these types and widgets.
+- `infra` never imports `editor` or `ui`.
+- `MainWindow` wires and hosts; it does not own document, project, or transliteration logic.
 
 ## Repository layout
 
 ```
-mollana/
-├── main.py                 # RApplication (QApplication + logger/theme), main()
-├── mainwindow.py           # QMainWindow shell; wires menus/actions
-├── mainwindow.ui           # Qt Designer source; _ui.py generated + gitignored
-├── constants.py            # Rx singleton: name, version, paths, copyright
-├── settings.py             # confz/pydantic prefs -> preferences.toml
-├── texteditor.py           # LEGACY pilot editor (scheduled for removal)
-├── mapping.py              # LEGACY symspellpy lookup (replaced by RomanAlfaz)
-├── tafseer.py              # LEGACY roman permutation engine
-├── lafz-shanaas.py         # standalone vocab tool, not imported by the app
-├── misc/utils.py           # helpers (slugify, ...)
-├── data/, *.dict, *.csv, *.sym   # data, not code (corpora, vocabularies)
-├── images/, mollana.qrc    # resources; mollana_rc.py generated + gitignored
-pyproject.toml              # uv project, deps, ruff/pyrefly/pytest config
-uv.lock                     # lockfile — never hand-edit
-docs/                       # legacy user guide and cheat sheet
-installer/                  # stale C++-era NSIS script (see Gotchas)
-scripts/compileUI.py        # regenerate *_ui.py / *_rc.py
-scripts/generate-win-setup.bat  # packaging chain, currently incomplete
+src/mollana/
+├── __init__.py             # __version__ from installed metadata
+├── __main__.py             # python -m mollana
+├── app.py                  # RApplication + main(); the composition root
+├── editor/
+│   ├── document.py         # identity, dirty flag, encoding/newline; never the text
+│   ├── session.py          # open documents + active index; optional Project
+│   ├── project.py          # .mollana/workspace.toml — deliberate conversion
+│   ├── dictionaries.py     # user dictionary store + catalogue
+│   └── recent.py           # bounded MRU list
+├── infra/
+│   ├── meta.py             # Rx: name, title, version, author, licence, UUID
+│   ├── paths.py            # platformdirs; ensure() is the only mkdir
+│   ├── logging.py          # setup() / getLogger() / runtime() / shutdown()
+│   └── settings.py         # confz/pydantic prefs -> preferences.toml
+└── ui/
+    ├── mainwindow.py       # menu/action wiring, save/close/dictionary flush
+    ├── mainwindow.ui       # Qt Designer source
+    ├── explorer.py         # FileExplorer (QTreeView over QFileSystemModel)
+    ├── editor_pane.py      # EditorPane (QTabWidget of PyRaya)
+    ├── theme.py            # palette application
+    └── resources/          # mollana.qrc + images/
+data/                       # corpora and notebooks — data, not code
+tests/                      # pytest; conftest sets QT_QPA_PLATFORM=offscreen
+scripts/compileUI.py        # uic/rcc build step
+docs/                       # legacy user guide (describes the pilot)
+installer/                  # stale C++-era packaging (see Gotchas)
 ```
+
+Generated and **gitignored**, written next to the UI modules:
+
+- `src/mollana/ui/mainwindow_ui.py`
+- `src/mollana/ui/mollana_rc.py`
 
 ## Environment and commands
 
@@ -46,84 +72,101 @@ Python **3.13**, managed with **uv**. Always go through `uv`.
 | Action                  | Command                                     |
 | ----------------------- | ------------------------------------------- |
 | Sync deps               | `uv sync`                                   |
-| Run the app             | `cd mollana && uv run python main.py`       |
+| Build generated UI      | `uv run python scripts/compileUI.py`        |
+| Run the app             | `uv run mollana` or `uv run python -m mollana` |
 | Lint                    | `uv run ruff check .`                       |
 | Format                  | `uv run ruff format`                        |
 | Type-check              | `uv run pyrefly check`                      |
-| Tests                   | `uv run pytest` (no `tests/` yet → exits 5) |
-| Regenerate UI/resources | `uv run python scripts/compileUI.py`        |
+| Layer contracts         | `uv run lint-imports`                       |
+| Tests                   | `uv run pytest`                             |
 
-No console-script entry exists; the app runs as a script and **must be started from
-`mollana/`** (see Gotchas).
+The console script and `-m` entry work from any directory. The generated UI modules are not
+committed, so a fresh clone needs `compileUI.py` before the first launch.
 
 ## Conventions
 
 - **Qt naming, not PEP 8**: `camelCase` for locals, functions, methods, and signals;
   `PascalCase` for classes, enum members, and constants.
 - Every source file starts with the MIT copyright banner; keep it first.
-- `mollana.*` is the namespace for new code. The generated UI and legacy modules use flat
-  imports (`from texteditor import ...`); do not add more.
+- `mollana.*` namespaced imports only; no flat imports.
 - Type hints and docstrings on public functions/classes.
-- Ruff: line length 100, rules `E,F,W,I,UP,B`; imports sorted.
-- The version lives in `pyproject.toml`, `Rx.ApplicationVersion` (`constants.py`),
-  `installer/mollana.nsi`, `README.md`, and `CHANGELOG.md`. Move them together.
-- Commit titles: one line, conventional prefix (`feat:`, `fix:`, `ref:`, `chore:`, `docs:`,
-  `ver:`), imperative summary.
+- Ruff: line length 100, rules `E,F,W,I,UP,B`, `src = ["src"]`, `data/` excluded.
 - `CHANGELOG.md` follows Keep a Changelog + SemVer; add user-visible changes under
   `## [Unreleased]` in the same commit.
+- Commit titles: one line, conventional prefix (`feat:`, `fix:`, `ref:`, `chore:`, `docs:`,
+  `ver:`), imperative summary.
+- `uv.lock` is regenerated with `uv lock`, never hand-edited.
 
-## Migration in progress
+### Version
 
-Target: `MainWindow` hosts `pyraya.PyRaya`; transliteration runs through
-`romanalfaz.RomanAlfaz` + `Vocabulary`. The pilot's `SuggestionPopup`, `Highlighter`, and
-line-number plumbing are superseded by pyraya's overlay, tinting, and spell-check surfaces.
+The version is written in `pyproject.toml` and read from installed distribution metadata
+(`mollana.__version__`, `Rx.ApplicationVersion`). Keep it in step with `README.md`,
+`CHANGELOG.md`, and `installer/mollana.nsi`. Bumps stay in the `X.X.XaN` series.
 
-- Read the upstream `AGENTS.md` files in `pyraya/` and `romanalfaz/` before changing editor
-  or transliteration behavior; their suites pin the contracts.
-- When a pilot module is retired, delete it, drop dependencies only it used, and record the
-  removal under `[Unreleased]`.
-- Keep `MainWindow` free of transliteration logic: configure and host the widget, do not
-  reimplement it or duplicate pyraya internals "temporarily".
+### State tiers
+
+| State                  | Location                                              |
+| ---------------------- | ----------------------------------------------------- |
+| Project manifest       | `<project>/.mollana/workspace.toml`                   |
+| Preferences, session   | `platformdirs` config dir (`preferences.toml`, …)     |
+| Dictionaries, logs, recovery | `platformdirs` data dir (`dictionaries/`, `.log`) |
+
+A folder is a project **only** when that manifest exists; nothing writes into a folder that
+has not been deliberately converted. The manifest never names the active dictionary — that
+is one global, per-process choice stored in the dictionary catalogue.
 
 ## Definition of done
 
-- The app launches with `cd mollana && uv run python main.py`.
-- `uv run ruff check .` and `uv run pyrefly check` report **no new findings in the files you
-  touched**. The repo-wide baseline is red (≈77 ruff, ≈143 pyrefly, concentrated in the
-  pilot modules) — a ratchet, not a cleanup plan.
-- Tests, once `tests/` exists, run headless (`QT_QPA_PLATFORM=offscreen`) and pass.
-- User-visible change is recorded under `[Unreleased]`; `uv.lock` is regenerated with
-  `uv lock`, never hand-edited.
+- `uv run mollana` launches, from the repo or elsewhere.
+- `uv run ruff check .` passes (baseline: clean).
+- `uv run pyrefly check` reports **no new findings in the files you touched**. The baseline
+  is 12 errors, all tomlkit/confz typing limits in `infra/settings.py` — a ratchet, not a
+  cleanup plan.
+- `uv run lint-imports` keeps both contracts, and `uv run pytest` passes headless with
+  `tests/test_architecture.py` still holding the layer line.
+- User-visible change is recorded under `[Unreleased]`.
 
 ## Gotchas
 
-- **The app only runs from `mollana/`.** Data files load by relative path
-  (`RomanizedUrduWords150k.dict`), and the generated UI does a flat
-  `from texteditor import TextEditor`. `mollana.*` imports work anywhere because `uv sync`
-  installs the package editable (`mollana.pth`); the data path and flat UI import do not.
-- `mainwindow_ui.py` and `mollana_rc.py` are **generated and gitignored**. Never edit or
-  commit them; change the `.ui`/`.qrc` and rerun `scripts/compileUI.py`.
-- `qApp.logger` exists only on `RApplication`. A plain `QApplication` in a test raises
-  `AttributeError` as soon as a menu action fires.
-- `pytest` uses `pythonpath = ["mollana"]`, which satisfies flat imports but **not**
-  `import mollana.x`. `tests/` does not exist yet, so `uv run pytest` exits 5.
-- `lafz-shanaas.py` is a standalone vocabulary tool, never imported by the app. It imports
-  `spacy`, `selectolax`, and `pylatexenc` — no longer dependencies — so pyrefly reports
-  missing imports there. Leave it unless asked to retire it; do not re-add those deps.
+- **Generated UI location is deliberate.** `pyside6-uic --from-imports` emits
+  `from . import mollana_rc`, so `compileUI.py` writes the compiled resource module into
+  `src/mollana/ui/`, not `ui/resources/`. Do not "tidy" it.
+- The `.ui` file references resources as `resources/mollana.qrc`. Change the `.ui`/`.qrc` and
+  rerun `scripts/compileUI.py`; never edit or commit the generated modules.
+- `RSettings()` looks argument-less but confz supplies `Main` from `TomlSource`. Pyrefly
+  reports `missing-argument`; the single suppression in `app.py` is intentional.
+- A frozen build must ship distribution metadata (`copy_metadata("mollana")` in
+  PyInstaller), or `ApplicationVersion` falls back to `0.0.0+unknown`.
+- Logging is `mollana.infra.logging.getLogger`, not an attribute of `QApplication`. A plain
+  `QApplication` in a test is fine.
+- `PyRaya` persists learned words only when the host asks:
+  `localDictionary().isModified()` then `.save(path)`. `MainWindow.flushDictionaries()`
+  does this on close, against the active dictionary.
 - `symspellpy` and `unicodedataplus` are **transitive** via `romanalfaz`. Importing them
-  directly from mollana is a smell; the pilot's `mapping.py` does, and goes away with it.
-- Use **`pyside6-essentials`**, not the `pyside6` metapackage; Mollana only needs
+  directly from mollana is a smell.
+- Use **`pyside6-essentials`**, not the `pyside6` metapackage; Mollana needs only
   QtCore/QtGui/QtWidgets.
+- `data/` is data: corpora, notebooks, and vocabulary fixtures. Do not reformat, normalize,
+  or "clean" it, and do not add `__init__.py` — it is not a package.
 - `installer/` is C++-era and does not describe this app: Qt 5.0.2 paths, TECkit DLLs, and a
   `..\LICENSE` page (the file is now `LICENSE.txt`). The PyInstaller/Inno chain references a
   missing `mollana.app.spec` and `installer/mollana-installer.iss`. Not the shipping path.
-- Data directories and `.dict`/`.csv`/`.sym` files are **data**: do not reformat, normalize,
-  or "clean" them.
-- The copyright year has two sources (`LICENSE.txt` says 2026; `constants.py`/`README.md`
+- `docs/` still describes the pilot editor (TECkit, twin panes, line numbers). Treat it as
+  stale until rewritten.
+- The copyright year has two sources (`LICENSE.txt` says 2026; `README.md`/`CHANGELOG.md`
   say 2013). Unresolved — do not silently change one without the other.
+
+## Open work
+
+Deliberately left for later; do not treat these as missing pieces of a finished feature:
+
+- Session restore for ad-hoc folders (keyed `_default`), alongside the project manifest.
+- Manifest curation UI (adding/removing declared documents).
+- Dictionary management dialog; v1 ships the store and default only.
+- Packaging chain: PyInstaller spec, Inno Setup script, `copy_metadata`, frozen-build test.
+- Rewriting `docs/` for the PyRaya editor.
 
 ## Self-maintenance
 
 Update this file in the same commit as the behavior, command, or layout change it describes.
-The pyraya swap will invalidate the layout, migration section, and several gotchas at once —
-rewrite them when it lands. Keep this file a scannable map, not a design document.
+Keep it a scannable map, not a design document.

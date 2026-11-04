@@ -2,7 +2,7 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "Mollana"
-!define PRODUCT_VERSION "v0.2.0a0"
+!define PRODUCT_VERSION "v0.2.0a1"
 !define PRODUCT_PUBLISHER "RoXimn"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\mollana.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"

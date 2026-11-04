@@ -15,18 +15,18 @@ All settings have a default value, and are recreated if missing from the source.
 import logging
 from dataclasses import dataclass
 from enum import auto
-from typing import List, Any
 from pathlib import Path
+from typing import Any
 
 import tomlkit
-from tomlkit.exceptions import TOMLKitError
-from strenum import StrEnum
-from confz import BaseConfig
-from pydantic import Field, BaseModel, FilePath, PositiveInt, ValidationError, DirectoryPath
-from confz import ConfigSource
+from confz import BaseConfig, ConfigSource
 from confz.loaders import Loader, register_loader
+from pydantic import BaseModel, DirectoryPath, Field, FilePath, PositiveInt, ValidationError
+from strenum import StrEnum
+from tomlkit.exceptions import TOMLKitError
 
-from mollana.constants import Rx
+from mollana.infra import paths
+from mollana.infra.meta import Rx
 
 
 # ******************************************************************************
@@ -69,7 +69,7 @@ class MainConfig(BaseModel):
         description="Maximum number of recent files to keep track of [1 - 25]. "
                     "Default is 10",
     )
-    RecentFiles: List[FilePath] = Field(
+    RecentFiles: list[FilePath] = Field(
         default=[],
         description="List of recent files"
     )
@@ -101,7 +101,7 @@ def _createConfigToml() -> tomlkit.TOMLDocument:
     main = tomlkit.table()
     for fieldName, fieldInfo in (MainConfig.model_fields.items()):
         (main
-         .add(tomlkit.comment(fieldInfo.description))
+         .add(tomlkit.comment(fieldInfo.description or ''))
          .add(fieldName, fieldInfo.default)
          .add(tomlkit.nl()))
     tdoc['Main'] = main
@@ -125,21 +125,23 @@ class TomlLoader(Loader):
         log = logging.getLogger(Rx.ApplicationName)
         if not tomlSource.tomlFile.is_file():
             log.debug(f'{tomlSource.tomlFile} not found. Creating de novo config file...')
+            tomlSource.tomlFile.parent.mkdir(parents=True, exist_ok=True)
             tomlSource.tomlFile.write_text(tomlkit.dumps(_createConfigToml()))
 
         try:
-            tdoc: tomlkit.TOMLDocument = tomlkit.loads(tomlSource.tomlFile.read_text(encoding='utf-8'))
+            content = tomlSource.tomlFile.read_text(encoding='utf-8')
+            tdoc: tomlkit.TOMLDocument = tomlkit.loads(content)
         except TOMLKitError as e:
             log.warning(f'Error decoding {tomlSource.tomlFile!s}: {e!s}')
             log.debug('Resetting the toml document...')
             tdoc = _createConfigToml()
 
         if 'Main' not in tdoc:
-            log.warning(f'"Main" section missing from config TOML')
+            log.warning('"Main" section missing from config TOML')
             main = tomlkit.table()
             for fieldName, fieldInfo in (MainConfig.model_fields.items()):
                 (main
-                 .add(tomlkit.comment(fieldInfo.description))
+                 .add(tomlkit.comment(fieldInfo.description or ''))
                  .add(fieldName, fieldInfo.default)
                  .add(tomlkit.nl()))
             tdoc['Main'] = main
@@ -189,7 +191,7 @@ tomlkit.register_encoder(_encoder)
 class RSettings(BaseConfig):
     Main: MainConfig
 
-    CONFIG_SOURCES = TomlSource(tomlFile=Rx.ConfigPath / CONFIG_FILENAME)
+    CONFIG_SOURCES = TomlSource(tomlFile=paths.configDir() / CONFIG_FILENAME)
 
     class Config:
         use_enum_values = True
@@ -207,7 +209,7 @@ class RSettings(BaseConfig):
                 `denovo` is `False`.
         """
         log = logging.getLogger(Rx.ApplicationName)
-        filePath = Rx.ConfigPath / CONFIG_FILENAME
+        filePath = paths.configDir() / CONFIG_FILENAME
         try:
             tdoc: tomlkit.TOMLDocument = tomlkit.loads(filePath.read_text(encoding='utf-8'))
         except TOMLKitError as e:
@@ -217,23 +219,12 @@ class RSettings(BaseConfig):
 
         # Main
         main = tdoc['Main']
-        for fieldName, fieldInfo in self.Main.model_fields.items():
+        for fieldName in self.Main.model_fields:
             main[fieldName] = getattr(self.Main, fieldName)
 
         # Write toml file
+        filePath.parent.mkdir(parents=True, exist_ok=True)
         filePath.write_text(tomlkit.dumps(tdoc))  # TODO: Error handling
         log.debug(f'Preferences saved. ({filePath.resolve()!s})')
 
-
 # ******************************************************************************
-if __name__ == '__main__':
-    from pathlib import Path
-
-    # Write config file
-    if not Path(CONFIG_FILENAME).is_file():
-        print(f"Creating config file: {CONFIG_FILENAME}")
-        RSettings.create()
-
-    # Read the config file
-    appConfig = RSettings()
-    print(appConfig.model_dump_json())

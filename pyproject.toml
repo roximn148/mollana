@@ -1,6 +1,6 @@
 [project]
 name = "mollana"
-version = "0.2.0a0"
+version = "0.2.0a1"
 description = "Urdu Roman-script transliterated Unicode text editor"
 
 readme = "README.md"
@@ -20,13 +20,17 @@ classifiers = [
 requires-python = ">=3.13"
 dependencies = [
     "confz>=2.1.0",
+    "platformdirs>=4.5.0",
     "pydantic>=2.12.5",
     "pyraya>=0.1.0a11",
     "pyside6-essentials>=6.12.0",
-    "romanalfaz>=0.1.0a11",
+    "romanalfaz>=0.1.0a12",
     "strenum>=0.4.15",
     "tomlkit>=0.13.3",
 ]
+
+[project.scripts]
+mollana = "mollana.app:main"
 
 [build-system]
 requires = ["uv_build>=0.13.7,<0.14.0"]
@@ -34,10 +38,11 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-name = "mollana"
-module-root = ""
+module-root = "src"
 
 [dependency-groups]
 dev = [
+    "import-linter>=2.15",
     "pyinstaller>=6.17.0",
     "pyrefly>=1.4.0",
     "pytest>=9.1.1",
@@ -47,7 +52,8 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py313"
-src = ["mollana"]
+src = ["src"]
+extend-exclude = ["data"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]
@@ -55,10 +61,28 @@ select = ["E", "F", "W", "I", "UP", "B"]
 [tool.ruff.lint.isort]
 known-first-party = ["mollana"]
 
+[tool.importlinter]
+root_packages = ["mollana"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Layers: ui -> editor -> infra"
+type = "layers"
+layers = [
+    "mollana.ui",
+    "mollana.editor",
+    "mollana.infra",
+]
+
+[[tool.importlinter.contracts]]
+name = "Editor stays headless"
+type = "forbidden"
+source_modules = ["mollana.editor"]
+forbidden_modules = ["PySide6"]
+
 [tool.pyrefly]
-project-includes = ["mollana"]
+project-includes = ["src"]
 python-version = "3.13"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["mollana"]

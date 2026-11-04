@@ -4,100 +4,96 @@
 # LICENSE.txt file in the root directory of this source tree.
 # ******************************************************************************
 
-import os
-import site
-import subprocess
+"""Compile the Qt design and resource files into importable Python modules.
+
+Run through uv so the virtual environment's ``uic``/``rcc`` are used::
+
+    uv run python scripts/compileUI.py
+
+The generated modules are not committed; this script is a build step, and must
+run before a wheel is built or the application is frozen.
+"""
 
 # ******************************************************************************
-UIC = os.path.join(site.getsitepackages()[1], 'PySide6/uic.exe')
-RCC = os.path.join(site.getsitepackages()[1], 'PySide6/rcc.exe')
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+# ******************************************************************************
+UI_SOURCES: tuple[str, ...] = ('src/mollana/ui/mainwindow',)
+"""UI files to compile, as paths without the ``.ui`` extension."""
+
+RC_SOURCES: tuple[str, ...] = ('src/mollana/ui/resources/mollana',)
+"""Resource files to compile, as paths without the ``.qrc`` extension."""
+
+RC_OUTPUT_DIR: str = 'src/mollana/ui'
+"""Where generated resource modules go, beside the UI that imports them.
+
+``uic --from-imports`` emits ``from . import <name>_rc`` for the compiled
+resources, so the generated module has to sit in the same package as the
+generated UI file.
+"""
+
+
+# ******************************************************************************
+def _tool(name: str) -> str:
+    """Locate a Qt command-line tool next to the running interpreter."""
+    candidate = Path(sys.executable).parent / f'{name}.exe'
+    if candidate.is_file():
+        return str(candidate)
+    found = shutil.which(name)
+    if found:
+        return found
+    raise FileNotFoundError(f'Cannot find {name}; run this script through uv.')
 
 
 # ******************************************************************************
 def compileUI(filename: str) -> None:
-    """Compile Qt UI file to python code.
-
-    Compile time conversion of the UI design files into python code to be
-    integrated into Qt applications.
-
-    Only filename with full path should be given, without file extension. The
-    `.ui` extension is added to read the file and `_ui.py` suffix is added to
-    the output file. For example to convert `c:\\path\\to\\interface-file.ui`,
-    provide `c:\\path\\to\\interface-file` without the `.ui` suffix.
-
-    Args:
-        filename (str): Filename of the UI file with full path *without*
-            file extension.
-
-    Output:
-        The `PySide2/uic` is used to compile the provided UI file to
-        python file and adds a `_ui.py` suffix to the output file.
-    """
-    inFile, outFile = filename + '.ui', filename + '_ui.py'
+    """Compile ``<filename>.ui`` into ``<filename>_ui.py``."""
+    inFile, outFile = f'{filename}.ui', f'{filename}_ui.py'
     try:
-        subprocess.run([UIC,
-                        '--generator', 'python',
-                        '--from-imports',
-                        '--output', outFile,
-                        inFile],
-                       capture_output=True, check=True)
-    except subprocess.CalledProcessError as e:
-        print('Unsuccessful compilation of UI', inFile, '->', outFile)
-        print(f'*** Err# {e.returncode}:{e.stderr.decode("utf-8")}\n')
-    else:
-        print('Compiled UI', inFile, '->', outFile)
+        subprocess.run(
+            [_tool('pyside6-uic'), '--generator', 'python', '--from-imports',
+             '--output', outFile, inFile],
+            capture_output=True, check=True,
+        )
+    except subprocess.CalledProcessError as error:
+        print(f'Unsuccessful compilation of UI {inFile} -> {outFile}')
+        print(f'*** Err# {error.returncode}:{error.stderr.decode("utf-8")}\n')
+        raise
+    print(f'Compiled UI {inFile} -> {outFile}')
 
 
 # ******************************************************************************
 def compileRC(filename: str) -> None:
-    """Compile Qt RCC file to python code.
-
-    Compile time conversion of the resource files into python code to be
-    integrated into Qt applications.
-
-    Only filename with full path should be given, without file extension. The
-    `.ui` extension is added to read the file and `_ui.py` suffix is added to
-    the output file. For example to convert `c:\\path\\to\\interface-file.ui`,
-    provide `c:\\path\\to\\interface-file` without the `.ui` suffix.
-
-    Args:
-        filename (str): Filename of the UI file with full path *without*
-            file extension.
-
-    Output:
-        The `PySide2/uic` is used to compile the provided UI file to
-        python file and adds a `_ui.py` suffix to the output file.
-    """
-    inFile, outFile = filename + '.qrc', filename + '_rc.py'
-
+    """Compile ``<filename>.qrc`` into ``<output dir>/<name>_rc.py``."""
+    inFile = f'{filename}.qrc'
+    outFile = str(Path(RC_OUTPUT_DIR) / f'{Path(filename).name}_rc.py')
     try:
-        subprocess.run([RCC, '-g', 'python', '-o', outFile, inFile],
-                       capture_output=True, check=True)
-    except subprocess.CalledProcessError as e:
-        print('Unsuccessful compilation of QRC', inFile, '->', outFile)
-        print(f'*** Err# {e.returncode}:{e.output.decode("utf-8")}\n')
-    else:
-        print('Compiled QRC', inFile, '->', outFile)
+        subprocess.run(
+            [_tool('pyside6-rcc'), '-g', 'python', '-o', outFile, inFile],
+            capture_output=True, check=True,
+        )
+    except subprocess.CalledProcessError as error:
+        print(f'Unsuccessful compilation of QRC {inFile} -> {outFile}')
+        print(f'*** Err# {error.returncode}:{error.stderr.decode("utf-8")}\n')
+        raise
+    print(f'Compiled QRC {inFile} -> {outFile}')
+
+
+# ******************************************************************************
+def main() -> int:
+    """Compile every declared UI and resource file."""
+    for filename in UI_SOURCES:
+        compileUI(filename)
+    for filename in RC_SOURCES:
+        compileRC(filename)
+    return 0
 
 
 # ******************************************************************************
 if __name__ == '__main__':
-    commonFiles = []
-
-    # Compile User Interface files
-    uiFiles = commonFiles[:]
-    uiFiles.extend([
-        'mollana/mainwindow',
-    ])
-    for filename in uiFiles:
-        compileUI(filename)
-
-    # Compile Resource files
-    rcFiles = commonFiles[:]
-    rcFiles.extend([
-        'mollana/mollana',
-    ])
-    for filename in rcFiles:
-        compileRC(filename)
+    raise SystemExit(main())
 
 # ******************************************************************************
