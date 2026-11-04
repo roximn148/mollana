@@ -1,11 +1,9 @@
 # ******************************************************************************
-# Copyright (c) 2026. All rights reserved.
-#
-# This work is licensed under the MIT License.
-# To view a copy of this license, visit https://opensource.org/license/mit.
-#
-# Author:      RoXimn <roximn148@gmail.com>
+# Copyright (c) 2026 RoXimn <roximn148@gmail.com>
+# This source code is licensed under the MIT license found in the
+# LICENSE.txt file in the root directory of this source tree.
 # ******************************************************************************
+
 """Collection of miscellaneous helper functions.
 
 This module contains assorted helper functions which do not yet have a
