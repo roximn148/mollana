@@ -57,8 +57,11 @@ data/                       # corpora and notebooks — data, not code
 tests/                      # pytest; conftest sets QT_QPA_PLATFORM=offscreen
 scripts/compileUI.py        # uic/rcc build step
 scripts/generate-win-setup.bat  # compileUI -> PyInstaller -> Inno Setup
+scripts/winget_manifest.py  # winget-pkgs manifest generator + --check
 mollana.spec                # PyInstaller definition (onedir + version resource)
-installer/mollana.iss       # Inno Setup 6 installer
+installer/mollana.iss       # Inno Setup 6 per-user installer
+.github/workflows/windows-release.yml  # tag push -> build, verify, publish Release
+winget/                     # committed winget-pkgs manifests (RoXimn.Mollana/<version>/)
 docs/                       # legacy user guide (describes the pilot)
 ```
 
@@ -114,12 +117,32 @@ The same commit must:
 1. Set `project.version` in `pyproject.toml`.
 2. Add `## [X.X.XaN] - YYYY-MM-DD` to `CHANGELOG.md`, move the entries from
    `[Unreleased]` under it, and leave a fresh empty `[Unreleased]` above it.
-3. Update the README's `Alpha, …` line to name the same version.
+3. Update the README's Status line (`alpha phase (version …)`) to name the same
+   version, including the version badge at the top of the file.
 4. Pass `tests/test_release_metadata.py`, which fails when the current version has no
    dated changelog section or when the README disagrees.
 
 Do not tag or publish until the tree is green. Never leave `pyproject.toml` ahead of
 `CHANGELOG.md`.
+
+### Release checklist
+
+When the user asks for a version bump, present this checklist before starting and
+follow it explicitly, in order:
+
+1. **Green gates** — `uv run pytest`, `uv run ruff check .`, `uv run pyrefly check`,
+   `uv run lint-imports` all pass.
+2. **Atomic release commit** — `pyproject.toml` version + dated `## [X.Y.Z]`
+   `CHANGELOG.md` section + README `Alpha, …` line, in one commit (rule above).
+3. **Build + verify** — `scripts\generate-win-setup.bat`; then install per-user,
+   launch, and uninstall `dist\Mollana-<version>-win64-setup.exe`.
+4. **Winget manifest** — `uv run python scripts/winget_manifest.py` writes
+   `winget/RoXimn.Mollana/<version>/`; review the three files (version, sha256,
+   date, asset URL) and commit. The manifest is not part of the PyInstaller
+   bundle, so it cannot change installer bytes.
+5. **Tag + push** — clean tree, then `git tag vX.Y.Z` and `git push --tags`;
+   CI rebuilds, asserts the manifest sha256 matches, smoke-tests, and publishes
+   the Release with notes from the changelog section.
 
 ### State tiers
 
@@ -170,9 +193,18 @@ is one global, per-process choice stored in the dictionary catalogue.
   `QT_QPA_PLATFORM=offscreen`; use the venv for headless tests.
 - The retained Qt image plugins are ICO, JPEG, and SVG; PNG is built into QtGui. Add a
   plugin before relying on another format at runtime.
-- `installer/mollana.iss` requires Inno Setup 6 and admin rights (installs under Program
-  Files). It does not delete `%LOCALAPPDATA%\mollana` on uninstall — that holds user
-  preferences and dictionaries.
+- `installer/mollana.iss` is a per-user installer: `PrivilegesRequired=lowest` installs
+  into `%LOCALAPPDATA%\Mollana` without elevation, and
+  `PrivilegesRequiredOverridesAllowed=dialog` lets the wizard offer an elevated
+  all-users install. The uninstall entry lands in HKCU under the AppId plus `_is1`. It
+  does not delete `%LOCALAPPDATA%\mollana` on uninstall — that holds user preferences
+  and dictionaries.
+- Inno Setup 6 is not preinstalled on GitHub runners; the release workflow installs it
+  with `winget install -e --id JRSoftware.InnoSetup`. `generate-win-setup.bat` locates
+  ISCC itself, so no PATH refresh is needed.
+- The winget manifests are **not** part of the PyInstaller bundle; the release workflow
+  runs `scripts/winget_manifest.py --check` after building and fails when the committed
+  manifest's sha256 does not match the freshly built installer.
 - Logging is `mollana.infra.logging.getLogger`, not an attribute of `QApplication`. A plain
   `QApplication` in a test is fine.
 - `PyRaya` persists learned words only when the host asks:
@@ -194,7 +226,7 @@ Deliberately left for later; do not treat these as missing pieces of a finished 
 - Session restore for ad-hoc folders (keyed `_default`), alongside the project manifest.
 - Manifest curation UI (adding/removing declared documents).
 - Dictionary management dialog; v1 ships the store and default only.
-- Code signing for the frozen EXE and installer, and a reproducible CI packaging job.
+- Code signing for the frozen EXE and installer.
 - Rewriting `docs/` for the PyRaya editor.
 
 ## Self-maintenance

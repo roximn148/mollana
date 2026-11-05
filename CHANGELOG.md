@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Per-user Windows installer: installs into `%LOCALAPPDATA%\Mollana` without
+  elevation, with an optional elevated all-users install from the wizard.
+- Windows release workflow: pushing a `v*` tag builds the installer, runs the
+  test suite, smoke-tests the frozen application, and publishes the GitHub
+  Release with notes from the dated changelog section.
+- Winget manifest tooling: `scripts/winget_manifest.py` generates the
+  `microsoft/winget-pkgs` manifest set for `RoXimn.Mollana`, with a `--check`
+  mode the release workflow runs against the freshly built installer; the
+  `0.2.0a1` manifest set is committed under `winget/`.
+
 ## [0.2.0a1] - 2026-11-05
 
 ### Added
