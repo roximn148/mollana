@@ -88,7 +88,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the file when it has been deleted.
 - Filesystem paths are encoded as regular TOML strings instead of literal strings, so a
   path containing an apostrophe round-trips correctly.
-- Incorrect copyright year in the `mollana/misc/utils.py` header.
+- Incorrect copyright year in the application metadata (`src/mollana/infra/meta.py`)
+  and README.
 
 ## [0.2.0a0] - 2026-11-03
 

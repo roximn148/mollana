@@ -186,8 +186,6 @@ is one global, per-process choice stored in the dictionary catalogue.
   or "clean" it, and do not add `__init__.py` — it is not a package.
 - `docs/` still describes the pilot editor (TECkit, twin panes, line numbers). Treat it as
   stale until rewritten.
-- The copyright year has two sources (`LICENSE.txt` says 2026; `README.md`/`CHANGELOG.md`
-  say 2013). Unresolved — do not silently change one without the other.
 
 ## Open work
 
