@@ -66,6 +66,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Preferences now survive a missing, unreadable, or corrupt `preferences.toml`: the
+  document is recreated, a missing `[Main]` table is rebuilt, invalid scalars are reset to
+  their defaults, and recent files that no longer exist are dropped.
+- Saving preferences writes back to the source the settings were loaded from, and creates
+  the file when it has been deleted.
+- Filesystem paths are encoded as regular TOML strings instead of literal strings, so a
+  path containing an apostrophe round-trips correctly.
 - Incorrect copyright year in the `mollana/misc/utils.py` header.
 
 ## [0.2.0a0] - 2026-11-03

@@ -4,27 +4,27 @@
 # LICENSE.txt file in the root directory of this source tree.
 # ******************************************************************************
 
-"""This module manages application wide settings with singleton object,
-persisted as a TOML file.
+"""Application-wide settings, persisted as a TOML file.
 
-It uses pydantic based confz library for the actual work.
-
-All settings have a default value, and are recreated if missing from the source.
+Preferences are modelled with pydantic through confz. Every field has a default:
+a missing or corrupt file is recreated, and individual invalid values are reset
+to their defaults on load.
 """
 
 # ******************************************************************************
 import logging
 from dataclasses import dataclass
 from enum import auto
-from pathlib import Path
-from typing import Any
+from pathlib import Path, PurePath
+from typing import Any, cast
 
 import tomlkit
 from confz import BaseConfig, ConfigSource
 from confz.loaders import Loader, register_loader
 from pydantic import BaseModel, DirectoryPath, Field, FilePath, PositiveInt, ValidationError
 from strenum import StrEnum
-from tomlkit.exceptions import TOMLKitError
+from tomlkit.exceptions import ConvertError, TOMLKitError
+from tomlkit.items import String, Table
 
 from mollana.infra import paths
 from mollana.infra.meta import Rx
@@ -32,7 +32,7 @@ from mollana.infra.meta import Rx
 
 # ******************************************************************************
 class LogLevels(StrEnum):
-    """Python log levels"""
+    """Python log levels."""
 
     CRITICAL = auto()
     WARNING = auto()
@@ -40,9 +40,9 @@ class LogLevels(StrEnum):
     DEBUG = auto()
 
 
-# **************************************************************************
+# ******************************************************************************
 class Themes(StrEnum):
-    """Application themes"""
+    """Application themes."""
 
     Light = auto()
     Dark = auto()
@@ -51,19 +51,18 @@ class Themes(StrEnum):
 
 # ******************************************************************************
 class MainConfig(BaseModel):
-    """Main configuration options"""
+    """Main configuration options."""
 
     LogLevel: LogLevels = Field(
         default=LogLevels.DEBUG,
-        description="Verbosity of the log output "
-        f"({'|'.join([e for e in LogLevels])}). Default is DEBUG",
+        description=f"Verbosity of the log output ({'|'.join(LogLevels)}). Default is DEBUG",
     )
     Theme: Themes = Field(
         default=Themes.Light,
-        description=f"Application theme ({'|'.join([e for e in Themes])}). Default is Light",
+        description=f"Application theme ({'|'.join(Themes)}). Default is Light",
     )
     ProjectBaseDirectory: DirectoryPath = Field(
-        default="",
+        default=Path("."),
         description="Default base directory in which project folders are created",
     )
     RecentMaxCount: PositiveInt = Field(
@@ -71,7 +70,10 @@ class MainConfig(BaseModel):
         le=25,
         description="Maximum number of recent files to keep track of [1 - 25]. Default is 10",
     )
-    RecentFiles: list[FilePath] = Field(default=[], description="List of recent files")
+    RecentFiles: list[FilePath] = Field(
+        default_factory=list,
+        description="List of recent files",
+    )
     AutoSaveInterval: PositiveInt = Field(
         default=5, description="Interval in minutes for autosave. Default is 5"
     )
@@ -79,154 +81,188 @@ class MainConfig(BaseModel):
 
 # ******************************************************************************
 CONFIG_FILENAME: str = "preferences.toml"
-"""Filename of the configurations file"""
+"""Filename of the configurations file."""
 
 
-# **************************************************************************
-def _createConfigToml() -> tomlkit.TOMLDocument:
-    """Create a de novo configuration document in TOML format"""
-    tdoc = tomlkit.TOMLDocument()
-    seperator = tomlkit.comment("*" * 78)
-
-    # Header Section
-    (
-        tdoc.add(seperator)
-        .add(tomlkit.comment(f"{Rx.ApplicationName} Preferences"))
-        .add(tomlkit.comment(f"Application version: {Rx.ApplicationVersion!s}"))
-        .add(tomlkit.nl())
-    )
-
-    # Main
+# ******************************************************************************
+def _defaultMainTable() -> Table:
+    """Build a ``[Main]`` table holding every field's commented default."""
     main = tomlkit.table()
     for fieldName, fieldInfo in MainConfig.model_fields.items():
-        (
-            main.add(tomlkit.comment(fieldInfo.description or ""))
-            .add(fieldName, fieldInfo.default)
-            .add(tomlkit.nl())
-        )
-    tdoc["Main"] = main
+        main.add(tomlkit.comment(fieldInfo.description or ""))
+        main.add(fieldName, fieldInfo.get_default(call_default_factory=True))
+        main.add(tomlkit.nl())
+    return main
 
-    # Footer
-    tdoc.add(seperator)
+
+# ******************************************************************************
+def _createConfigToml() -> tomlkit.TOMLDocument:
+    """Create a preference document populated with defaults."""
+    tdoc = tomlkit.TOMLDocument()
+    separator = tomlkit.comment("*" * 78)
+
+    tdoc.add(separator)
+    tdoc.add(tomlkit.comment(f"{Rx.ApplicationName} Preferences"))
+    tdoc.add(tomlkit.comment(f"Application version: {Rx.ApplicationVersion!s}"))
+    tdoc.add(tomlkit.nl())
+    tdoc["Main"] = _defaultMainTable()
+    tdoc.add(separator)
 
     return tdoc
 
 
 # ******************************************************************************
+def _mainTable(tdoc: tomlkit.TOMLDocument) -> dict[str, Any]:
+    """Return ``tdoc``'s ``[Main]`` table, creating it when absent."""
+    if "Main" not in tdoc:
+        tdoc["Main"] = _defaultMainTable()
+    return cast(dict[str, Any], tdoc["Main"])
+
+
+# ******************************************************************************
 @dataclass
 class TomlSource(ConfigSource):
+    """A TOML file used as a configuration source."""
+
     tomlFile: Path
 
 
+# ******************************************************************************
 class TomlLoader(Loader):
-    """Loader class to load configuration from a TOML file"""
+    """Load preferences from a TOML file, repairing it when necessary."""
 
+    # **************************************************************************
     @classmethod
-    def populate_config(cls, config: dict, tomlSource: TomlSource):
+    def populate_config(cls, config: dict, config_source: TomlSource) -> None:
+        """Populate ``config`` from ``config_source``."""
         log = logging.getLogger(Rx.ApplicationName)
-        if not tomlSource.tomlFile.is_file():
-            log.debug(f"{tomlSource.tomlFile} not found. Creating de novo config file...")
-            tomlSource.tomlFile.parent.mkdir(parents=True, exist_ok=True)
-            tomlSource.tomlFile.write_text(tomlkit.dumps(_createConfigToml()))
+        tomlFile = config_source.tomlFile
+
+        if not tomlFile.is_file():
+            log.debug(f"{tomlFile} not found. Creating de novo config file...")
+            tomlFile.parent.mkdir(parents=True, exist_ok=True)
+            tomlFile.write_text(tomlkit.dumps(_createConfigToml()), encoding="utf-8")
 
         try:
-            content = tomlSource.tomlFile.read_text(encoding="utf-8")
-            tdoc: tomlkit.TOMLDocument = tomlkit.loads(content)
-        except TOMLKitError as e:
-            log.warning(f"Error decoding {tomlSource.tomlFile!s}: {e!s}")
+            tdoc: tomlkit.TOMLDocument = tomlkit.loads(tomlFile.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, TOMLKitError) as error:
+            log.warning(f"Cannot read {tomlFile}: {error}")
             log.debug("Resetting the toml document...")
             tdoc = _createConfigToml()
 
         if "Main" not in tdoc:
             log.warning('"Main" section missing from config TOML')
-            main = tomlkit.table()
-            for fieldName, fieldInfo in MainConfig.model_fields.items():
-                (
-                    main.add(tomlkit.comment(fieldInfo.description or ""))
-                    .add(fieldName, fieldInfo.default)
-                    .add(tomlkit.nl())
-                )
-            tdoc["Main"] = main
+        mainTable = _mainTable(tdoc)
 
-        configUpdate = {}
         try:
-            mainConfig = MainConfig.model_validate(tdoc["Main"])
-            configUpdate["Main"] = mainConfig
-        except ValidationError as ve:
-            log.warning(f'{ve.error_count()} error(s) found in preferences "Main" section')
-            recentFiles = {i: v for i, v in enumerate(tdoc["Main"]["RecentFiles"])}
-            for e in ve.errors():
-                field = e["loc"][0]
-                log.warning(f'{field}="{e["input"]}": {e["msg"]}')
-                if field == "RecentFiles" and e["type"] == "path_not_file":
-                    i: int = e["loc"][1]
-                    log.debug(f"Removing file[{i}]:{e['input']} value of {field}")
-                    recentFiles.pop(i)
-                else:
-                    log.debug(f'Resetting {field}="{e["input"]}" to default')
-                    tdoc["Main"][field] = MainConfig.model_fields[field].default
+            mainConfig = MainConfig.model_validate(mainTable)
+        except ValidationError as error:
+            mainConfig = cls._repairMainSection(mainTable, error, log)
 
-            tdoc["Main"]["RecentFiles"] = list(recentFiles.values())
-            # Re-attempt validating patched config
-            mainConfig = MainConfig.model_validate(tdoc["Main"])
-            configUpdate["Main"] = mainConfig
-
+        configUpdate: dict[str, Any] = {"Main": mainConfig}
         cls.update_dict_recursively(config, configUpdate)
 
+    # **************************************************************************
+    @classmethod
+    def _repairMainSection(
+        cls, mainTable: dict[str, Any], error: ValidationError, log: logging.Logger
+    ) -> MainConfig:
+        """Reset invalid values, drop stale recent files, and validate again."""
+        log.warning(f'{error.error_count()} error(s) found in preferences "Main" section')
 
+        recentValues = mainTable.get("RecentFiles", [])
+        recentFiles = dict(enumerate(recentValues)) if isinstance(recentValues, list) else {}
+        recentFilesChanged = False
+
+        for detail in error.errors():
+            location = detail["loc"]
+            field = str(location[0]) if location else ""
+            log.warning(f'{field}="{detail["input"]}": {detail["msg"]}')
+
+            if field == "RecentFiles":
+                recentFilesChanged = True
+                index = location[1] if len(location) > 1 else None
+                if detail["type"] == "path_not_file" and isinstance(index, int):
+                    log.debug(f"Removing file[{index}]:{detail['input']} value of {field}")
+                    recentFiles.pop(index, None)
+                else:
+                    recentFiles = {}
+            elif field in MainConfig.model_fields:
+                log.debug(f'Resetting {field}="{detail["input"]}" to default')
+                fieldInfo = MainConfig.model_fields[field]
+                mainTable[field] = fieldInfo.get_default(call_default_factory=True)
+
+        if recentFilesChanged:
+            mainTable["RecentFiles"] = list(recentFiles.values())
+
+        return MainConfig.model_validate(mainTable)
+
+
+# ******************************************************************************
 register_loader(TomlSource, TomlLoader)
 
 
 # ******************************************************************************
-def _encoder(item: Any) -> str:
-    if isinstance(item, Path):
-        return tomlkit.string(str(item), literal=True)
-    else:
-        print(f"_encoder: {item}[{type(item)}]")
-        raise TOMLKitError()
+def _encodePath(value: Any) -> String:
+    """Encode a filesystem path as a TOML string for tomlkit."""
+    if isinstance(value, PurePath):
+        return tomlkit.string(str(value))
+    raise ConvertError(f"Cannot encode {type(value).__name__} as a TOML item")
 
 
-tomlkit.register_encoder(_encoder)
+# ******************************************************************************
+tomlkit.register_encoder(_encodePath)
 
 
 # ******************************************************************************
 class RSettings(BaseConfig):
+    """Application preferences, loaded from ``preferences.toml``."""
+
     Main: MainConfig
 
     CONFIG_SOURCES = TomlSource(tomlFile=paths.configDir() / CONFIG_FILENAME)
 
-    class Config:
-        use_enum_values = True
-        frozen = False
+    # **************************************************************************
+    @classmethod
+    def _configPath(cls) -> Path:
+        """Return the preferences file backing this configuration."""
+        sources = cls.CONFIG_SOURCES
+        if isinstance(sources, TomlSource):
+            return sources.tomlFile
+        if isinstance(sources, list):
+            for source in sources:
+                if isinstance(source, TomlSource):
+                    return source.tomlFile
+        return paths.configDir() / CONFIG_FILENAME
 
     # **************************************************************************
-    def save(self):
-        """Write current configuration to file.
+    def save(self) -> None:
+        """Write the current configuration to the backing TOML file.
 
-        The current configuration file is loaded and updated. The overhead of loading
-        everytime for saving should be small.
+        The file is re-read first so that comments and unknown keys survive. A
+        missing or unreadable file is recreated from defaults.
 
         Raises:
-            ValueError: If the configuration file does not exist and
-                `denovo` is `False`.
+            OSError: the preferences file cannot be written.
         """
         log = logging.getLogger(Rx.ApplicationName)
-        filePath = paths.configDir() / CONFIG_FILENAME
+        filePath = self._configPath()
+
         try:
-            tdoc: tomlkit.TOMLDocument = tomlkit.loads(filePath.read_text(encoding="utf-8"))
-        except TOMLKitError as e:
-            log.warning(f"Error decoding {filePath!s}: {e!s}")
+            tdoc = tomlkit.loads(filePath.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            tdoc = _createConfigToml()
+        except (OSError, UnicodeDecodeError, TOMLKitError) as error:
+            log.warning(f"Cannot read {filePath}: {error}")
             log.debug("Resetting the toml document...")
             tdoc = _createConfigToml()
 
-        # Main
-        main = tdoc["Main"]
-        for fieldName in self.Main.model_fields:
-            main[fieldName] = getattr(self.Main, fieldName)
+        mainTable = _mainTable(tdoc)
+        for fieldName in MainConfig.model_fields:
+            mainTable[fieldName] = getattr(self.Main, fieldName)
 
-        # Write toml file
         filePath.parent.mkdir(parents=True, exist_ok=True)
-        filePath.write_text(tomlkit.dumps(tdoc))  # TODO: Error handling
+        filePath.write_text(tomlkit.dumps(tdoc), encoding="utf-8")
         log.debug(f"Preferences saved. ({filePath.resolve()!s})")
 
 

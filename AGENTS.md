@@ -119,9 +119,9 @@ is one global, per-process choice stored in the dictionary catalogue.
 
 - `uv run mollana` launches, from the repo or elsewhere.
 - `uv run ruff check .` passes (baseline: clean).
-- `uv run pyrefly check` reports **no new findings in the files you touched**. The baseline
-  is 12 errors, all tomlkit/confz typing limits in `infra/settings.py` — a ratchet, not a
-  cleanup plan.
+- `uv run pyrefly check` reports **0 errors**. The two remaining suppressions are confz's
+  source-populated `RSettings()` argument in `app.py` and a narrowed return in
+  `editor/dictionaries.py`.
 - `uv run lint-imports` keeps both contracts, and `uv run pytest` passes headless with
   `tests/test_architecture.py` still holding the layer line.
 - User-visible change is recorded under `[Unreleased]`.
@@ -135,6 +135,8 @@ is one global, per-process choice stored in the dictionary catalogue.
   rerun `scripts/compileUI.py`; never edit or commit the generated modules.
 - `RSettings()` looks argument-less but confz supplies `Main` from `TomlSource`. Pyrefly
   reports `missing-argument`; the single suppression in `app.py` is intentional.
+- `TomlLoader.populate_config` must keep confz's `config_source` parameter name, and the
+  `[Main]` table is cast to a plain mapping because tomlkit types every lookup as `Item`.
 - A frozen build must ship distribution metadata (`copy_metadata("mollana")` in
   PyInstaller), or `ApplicationVersion` falls back to `0.0.0+unknown`.
 - Logging is `mollana.infra.logging.getLogger`, not an attribute of `QApplication`. A plain
