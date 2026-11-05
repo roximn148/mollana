@@ -48,7 +48,9 @@ def test_readmeNamesTheCurrentVersion() -> None:
     version = projectVersion()
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
-    assert f"Alpha, `{version}`." in readme, f"README.md must name the current version, {version}"
+    assert f"alpha phase (version {version})" in readme, (
+        f"README.md must name the current version, {version}"
+    )
 
 
 # ******************************************************************************
