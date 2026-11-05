@@ -36,6 +36,22 @@ Either form works from any directory. Development commands:
 | Tests                   | `uv run pytest`                      |
 | Regenerate UI/resources | `uv run python scripts/compileUI.py` |
 
+Packaging
+---------
+
+Windows builds use PyInstaller (onedir) and Inno Setup 6. Build in this order:
+the installer includes version defines that the freeze step generates from
+`pyproject.toml`.
+
+```bash
+uv run python scripts/compileUI.py
+uv run pyinstaller --clean --noconfirm mollana.spec
+```
+
+Then compile `installer/mollana.iss` with Inno Setup, or run
+`scripts\generate-win-setup.bat` to do all three steps. The frozen app lands in
+`dist\Mollana\` and the installer in `dist\Mollana-<version>-win64-setup.exe`.
+
 Features
 --------
 

@@ -56,8 +56,10 @@ src/mollana/
 data/                       # corpora and notebooks — data, not code
 tests/                      # pytest; conftest sets QT_QPA_PLATFORM=offscreen
 scripts/compileUI.py        # uic/rcc build step
+scripts/generate-win-setup.bat  # compileUI -> PyInstaller -> Inno Setup
+mollana.spec                # PyInstaller definition (onedir + version resource)
+installer/mollana.iss       # Inno Setup 6 installer
 docs/                       # legacy user guide (describes the pilot)
-installer/                  # stale C++-era packaging (see Gotchas)
 ```
 
 Generated and **gitignored**, written next to the UI modules:
@@ -74,6 +76,8 @@ Python **3.13**, managed with **uv**. Always go through `uv`.
 | Sync deps               | `uv sync`                                   |
 | Build generated UI      | `uv run python scripts/compileUI.py`        |
 | Run the app             | `uv run mollana` or `uv run python -m mollana` |
+| Freeze the app          | `uv run pyinstaller --clean --noconfirm mollana.spec` |
+| Build the installer     | `scripts\generate-win-setup.bat` (needs Inno Setup 6) |
 | Lint                    | `uv run ruff check .`                       |
 | Format                  | `uv run ruff format`                        |
 | Type-check              | `uv run pyrefly check`                      |
@@ -100,8 +104,10 @@ committed, so a fresh clone needs `compileUI.py` before the first launch.
 ### Version
 
 The version is written in `pyproject.toml` and read from installed distribution metadata
-(`mollana.__version__`, `Rx.ApplicationVersion`). Keep it in step with `README.md`,
-`CHANGELOG.md`, and `installer/mollana.nsi`. Bumps stay in the `X.X.XaN` series.
+(`mollana.__version__`, `Rx.ApplicationVersion`). Keep it in step with `README.md` and
+`CHANGELOG.md`. `mollana.spec` derives `build/version_info.txt` and `build/version.iss` from
+`pyproject.toml`, so the Windows EXE and installer versions are not edited by hand. Bumps
+stay in the `X.X.XaN` series.
 
 ### State tiers
 
@@ -138,7 +144,21 @@ is one global, per-process choice stored in the dictionary catalogue.
 - `TomlLoader.populate_config` must keep confz's `config_source` parameter name, and the
   `[Main]` table is cast to a plain mapping because tomlkit types every lookup as `Item`.
 - A frozen build must ship distribution metadata (`copy_metadata("mollana")` in
-  PyInstaller), or `ApplicationVersion` falls back to `0.0.0+unknown`.
+  `mollana.spec`), or `ApplicationVersion` falls back to `0.0.0+unknown`. The spec also
+  collects `pyraya/qamoos.sym` and `romanalfaz/UrduWords5k.sym`; both packages load them
+  from beside their modules.
+- The frozen app is a PyInstaller **onedir** at `dist/Mollana`; the installer packs that
+  tree. Build order is generated UI → PyInstaller → Inno Setup, because the installer
+  `#include`s `build/version.iss`, written by the spec during the freeze.
+- `mollana.spec` trims unused Qt payload on purpose: translations, `opengl32sw.dll`,
+  QtNetwork and its TLS plugins, non-Windows platform plugins, and unused image formats.
+  Only `qwindows.dll` remains, so the frozen app cannot be launched with
+  `QT_QPA_PLATFORM=offscreen`; use the venv for headless tests.
+- The retained Qt image plugins are ICO, JPEG, and SVG; PNG is built into QtGui. Add a
+  plugin before relying on another format at runtime.
+- `installer/mollana.iss` requires Inno Setup 6 and admin rights (installs under Program
+  Files). It does not delete `%LOCALAPPDATA%\mollana` on uninstall — that holds user
+  preferences and dictionaries.
 - Logging is `mollana.infra.logging.getLogger`, not an attribute of `QApplication`. A plain
   `QApplication` in a test is fine.
 - `PyRaya` persists learned words only when the host asks:
@@ -150,9 +170,6 @@ is one global, per-process choice stored in the dictionary catalogue.
   QtCore/QtGui/QtWidgets.
 - `data/` is data: corpora, notebooks, and vocabulary fixtures. Do not reformat, normalize,
   or "clean" it, and do not add `__init__.py` — it is not a package.
-- `installer/` is C++-era and does not describe this app: Qt 5.0.2 paths, TECkit DLLs, and a
-  `..\LICENSE` page (the file is now `LICENSE.txt`). The PyInstaller/Inno chain references a
-  missing `mollana.app.spec` and `installer/mollana-installer.iss`. Not the shipping path.
 - `docs/` still describes the pilot editor (TECkit, twin panes, line numbers). Treat it as
   stale until rewritten.
 - The copyright year has two sources (`LICENSE.txt` says 2026; `README.md`/`CHANGELOG.md`
@@ -165,7 +182,7 @@ Deliberately left for later; do not treat these as missing pieces of a finished 
 - Session restore for ad-hoc folders (keyed `_default`), alongside the project manifest.
 - Manifest curation UI (adding/removing declared documents).
 - Dictionary management dialog; v1 ships the store and default only.
-- Packaging chain: PyInstaller spec, Inno Setup script, `copy_metadata`, frozen-build test.
+- Code signing for the frozen EXE and installer, and a reproducible CI packaging job.
 - Rewriting `docs/` for the PyRaya editor.
 
 ## Self-maintenance

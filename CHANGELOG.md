@@ -27,6 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `platformdirs` for correct data, config, and cache locations.
 - `pyraya` and `romanalfaz` (PyPI) as the editor-widget and
   transliteration stack.
+- A Windows packaging chain: `mollana.spec` freezes a PyInstaller onedir build,
+  `installer/mollana.iss` wraps it in an Inno Setup 6 installer, and
+  `scripts/generate-win-setup.bat` runs the generated UI, freeze, and installer
+  steps in order.
+- The frozen executable carries a real Windows version resource, and the
+  installer takes its display and numeric versions from `pyproject.toml`
+  through `build/version.iss`, generated during the freeze.
 
 ### Changed
 
@@ -49,6 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `uv_build` raised to the 0.13 series.
 - Re-licensed from Creative Commons Attribution to MIT, with the license
   standardized as `LICENSE.txt`.
+- The frozen build ships the distribution metadata and both transliteration
+  vocabularies, and excludes unused Qt payload (translations, software OpenGL,
+  QtNetwork, non-Windows platform plugins) plus development-only modules
+  reached through optional imports.
 
 ### Removed
 
@@ -63,6 +74,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   transitively by `romanalfaz`.
 - The stray banner-only `mollana/data/__init__.py`; `data/` is corpora, not a
   package.
+- The stale C++-era NSIS installer and its release notes. The shipping path is
+  now PyInstaller plus Inno Setup 6.
 
 ### Fixed
 
