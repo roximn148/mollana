@@ -303,7 +303,7 @@ class MainWindow(QMainWindow):
         """Attach a project to the session and open its declared documents."""
         try:
             project = Project.create(root) if create else Project.open(root)
-        except (OSError, ValueError, FileNotFoundError) as error:
+        except (OSError, ValueError) as error:
             QMessageBox.warning(self, "Project", f"Cannot open {root}:\n{error}")
             return
 
