@@ -1,0 +1,9 @@
+PackageIdentifier: RoXimn.Mollana
+PackageVersion: 0.2.0a1
+InstallerType: exe
+ReleaseDate: 2026-11-05
+Installers:
+- Architecture: x64
+  Scope: user
+  InstallerUrl: https://github.com/roximn148/mollana/releases/download/v0.2.0a1/Mollana-0.2.0a1-win64-setup.exe
+  InstallerSha256: EE19CE390BC6E839077BA9876CBB1F190CBCA9A92956D17399EF2E8392111E71
