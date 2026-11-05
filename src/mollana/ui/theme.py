@@ -31,7 +31,7 @@ def applyTheme(app: QApplication, theme: Themes) -> None:
     default; only the dark palette is defined.
     """
     if theme == Themes.Dark:
-        app.setStyle(QStyleFactory.create('Fusion'))
+        app.setStyle(QStyleFactory.create("Fusion"))
         palette = QPalette()
         palette.setColor(QPalette.ColorRole.Window, DARK_WINDOW)
         palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.white)
@@ -48,7 +48,8 @@ def applyTheme(app: QApplication, theme: Themes) -> None:
         palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.black)
         app.setPalette(palette)
         app.setStyleSheet(
-            'QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }'
+            "QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }"
         )
+
 
 # ******************************************************************************

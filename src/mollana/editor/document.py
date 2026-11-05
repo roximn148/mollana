@@ -17,17 +17,17 @@ from pathlib import Path
 from uuid import uuid4
 
 # ******************************************************************************
-DEFAULT_ENCODING: str = 'utf-8'
+DEFAULT_ENCODING: str = "utf-8"
 """Encoding used for new documents and for reading existing ones."""
 
-DEFAULT_NEWLINE: str = '\n'
+DEFAULT_NEWLINE: str = "\n"
 """Newline written for new documents."""
 
 
 # ******************************************************************************
 def detectNewline(raw: bytes) -> str:
     """Return the newline convention of ``raw``, defaulting to ``'\\n'``."""
-    return '\r\n' if b'\r\n' in raw[:8192] else DEFAULT_NEWLINE
+    return "\r\n" if b"\r\n" in raw[:8192] else DEFAULT_NEWLINE
 
 
 # ******************************************************************************
@@ -46,7 +46,7 @@ class Document:
     def displayName(self) -> str:
         """Name shown on the tab: the file name, or ``Untitled`` when unsaved."""
         if self.path is None:
-            return 'Untitled'
+            return "Untitled"
         return self.path.name or str(self.path)
 
     # **************************************************************************
@@ -57,7 +57,7 @@ class Document:
 
     # **************************************************************************
     @classmethod
-    def fromPath(cls, path: Path | str) -> 'Document':
+    def fromPath(cls, path: Path | str) -> "Document":
         """Create a document for an existing file, detecting its newline style."""
         filePath = Path(path)
         newline = detectNewline(filePath.read_bytes())
@@ -72,7 +72,7 @@ class Document:
             UnicodeDecodeError: the file is not valid in ``self.encoding``.
         """
         if self.path is None:
-            return ''
+            return ""
         return self.path.read_text(encoding=self.encoding)
 
     # **************************************************************************
@@ -92,15 +92,16 @@ class Document:
         """
         target = Path(path) if path is not None else self.path
         if target is None:
-            raise ValueError('Cannot save an untitled document without a path.')
+            raise ValueError("Cannot save an untitled document without a path.")
 
-        payload = text.replace('\r\n', '\n')
-        if self.newline != '\n':
-            payload = payload.replace('\n', self.newline)
+        payload = text.replace("\r\n", "\n")
+        if self.newline != "\n":
+            payload = payload.replace("\n", self.newline)
 
-        target.write_text(payload, encoding=self.encoding, newline='')
+        target.write_text(payload, encoding=self.encoding, newline="")
         self.path = target
         self.dirty = False
         return target
+
 
 # ******************************************************************************

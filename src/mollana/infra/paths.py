@@ -19,7 +19,7 @@ from platformdirs import user_cache_dir, user_config_dir, user_data_dir
 from mollana.infra.meta import Rx
 
 # ******************************************************************************
-DICTIONARIES_DIRNAME: str = 'dictionaries'
+DICTIONARIES_DIRNAME: str = "dictionaries"
 """Folder, inside the data directory, holding user dictionaries."""
 
 
@@ -50,7 +50,7 @@ def dictionariesDir() -> Path:
 # ******************************************************************************
 def logFile() -> Path:
     """Path of the application log file."""
-    return dataDir() / f'{Rx.ApplicationName}.log'
+    return dataDir() / f"{Rx.ApplicationName}.log"
 
 
 # ******************************************************************************
@@ -58,5 +58,6 @@ def ensure(directory: Path) -> Path:
     """Create ``directory`` and its parents if missing, and return it."""
     directory.mkdir(parents=True, exist_ok=True)
     return directory
+
 
 # ******************************************************************************

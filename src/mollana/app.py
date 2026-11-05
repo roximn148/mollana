@@ -51,29 +51,29 @@ def main() -> int:
     dataPath = paths.ensure(paths.dataDir())
     paths.ensure(paths.configDir())
     log = appLogging.setup(dataPath)
-    appLogging.runtime(log, f'Initializing {Rx.ApplicationTitle} {Rx.ApplicationVersion}...')
+    appLogging.runtime(log, f"Initializing {Rx.ApplicationTitle} {Rx.ApplicationVersion}...")
 
     settings = RSettings()  # type: ignore[missing-argument]  # filled by confz sources
-    log.debug('Preferences loaded')
+    log.debug("Preferences loaded")
     log.setLevel(settings.Main.LogLevel)
     applyTheme(app, settings.Main.Theme)
 
     store = DictionaryStore(paths.ensure(paths.dictionariesDir()))
     store.ensureDefault()
-    log.debug(f'Active dictionary: {store.activeId()}')
+    log.debug(f"Active dictionary: {store.activeId()}")
 
     window = MainWindow(Session(), store, settings)
     window.show()
-    log.info('Ready')
+    log.info("Ready")
 
     result = app.exec()
-    appLogging.runtime(log, f'{Rx.ApplicationTitle} exiting')
+    appLogging.runtime(log, f"{Rx.ApplicationTitle} exiting")
     appLogging.shutdown()
     return result
 
 
 # ******************************************************************************
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())
 
 # ******************************************************************************

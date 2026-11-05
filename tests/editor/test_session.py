@@ -86,7 +86,8 @@ def test_dirtyDocumentsOnlyReportsModifiedOnes() -> None:
 # ******************************************************************************
 def test_findReturnsNoneForUnknownId() -> None:
     session = Session()
-    assert session.find('missing') is None
-    assert session.indexOf('missing') == -1
+    assert session.find("missing") is None
+    assert session.indexOf("missing") == -1
+
 
 # ******************************************************************************

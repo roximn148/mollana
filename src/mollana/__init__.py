@@ -14,9 +14,9 @@ from importlib.metadata import PackageNotFoundError, version
 
 # ******************************************************************************
 try:
-    __version__: str = version('mollana')
+    __version__: str = version("mollana")
 except PackageNotFoundError:  # pragma: no cover - source tree without install
-    __version__ = '0.0.0+unknown'
+    __version__ = "0.0.0+unknown"
 
 # ******************************************************************************
-__all__ = ['__version__']
+__all__ = ["__version__"]

@@ -29,16 +29,16 @@ from pathlib import Path
 import tomlkit
 
 # ******************************************************************************
-INDEX_FILENAME: str = 'dictionaries.toml'
+INDEX_FILENAME: str = "dictionaries.toml"
 """Catalogue of the dictionaries in the store."""
 
-DEFAULT_ID: str = 'default'
+DEFAULT_ID: str = "default"
 """Identifier of the dictionary that always exists."""
 
-DEFAULT_NAME: str = 'Default'
+DEFAULT_NAME: str = "Default"
 """Display name of the dictionary that always exists."""
 
-SUFFIX: str = '.sym'
+SUFFIX: str = ".sym"
 """Extension of a SymSpell vocabulary file (``word$frequency`` per line)."""
 
 
@@ -50,8 +50,8 @@ class DictionaryEntry:
     id: str
     name: str
     filename: str
-    description: str = ''
-    modified: str = ''
+    description: str = ""
+    modified: str = ""
 
 
 # ******************************************************************************
@@ -60,9 +60,9 @@ def parseVocabulary(text: str) -> dict[str, int]:
     words: dict[str, int] = {}
     for line in text.splitlines():
         line = line.strip()
-        if not line or '$' not in line:
+        if not line or "$" not in line:
             continue
-        word, _, frequency = line.rpartition('$')
+        word, _, frequency = line.rpartition("$")
         try:
             value = int(frequency)
         except ValueError:
@@ -75,7 +75,7 @@ def parseVocabulary(text: str) -> dict[str, int]:
 # ******************************************************************************
 def formatVocabulary(words: Mapping[str, int]) -> str:
     """Render ``words`` as ``word$frequency`` lines, sorted by word."""
-    return ''.join(f'{word}${words[word]}\n' for word in sorted(words))
+    return "".join(f"{word}${words[word]}\n" for word in sorted(words))
 
 
 # ******************************************************************************
@@ -96,7 +96,7 @@ class DictionaryStore:
     def pathOf(self, dictionaryId: str) -> Path:
         """Path of the vocabulary file for ``dictionaryId``."""
         entry = self.find(dictionaryId)
-        filename = entry.filename if entry is not None else f'{dictionaryId}{SUFFIX}'
+        filename = entry.filename if entry is not None else f"{dictionaryId}{SUFFIX}"
         return self.root / filename
 
     # **************************************************************************
@@ -104,16 +104,18 @@ class DictionaryStore:
         """Every catalogued dictionary, in catalogue order."""
         if not self.indexPath.is_file():
             return []
-        data = tomllib.loads(self.indexPath.read_text(encoding='utf-8'))
+        data = tomllib.loads(self.indexPath.read_text(encoding="utf-8"))
         entries = []
-        for item in data.get('dictionaries', []):
-            entries.append(DictionaryEntry(
-                id=str(item.get('id', '')),
-                name=str(item.get('name', '')),
-                filename=str(item.get('filename', '')),
-                description=str(item.get('description', '')),
-                modified=str(item.get('modified', '')),
-            ))
+        for item in data.get("dictionaries", []):
+            entries.append(
+                DictionaryEntry(
+                    id=str(item.get("id", "")),
+                    name=str(item.get("name", "")),
+                    filename=str(item.get("filename", "")),
+                    description=str(item.get("description", "")),
+                    modified=str(item.get("modified", "")),
+                )
+            )
         return entries
 
     # **************************************************************************
@@ -129,8 +131,8 @@ class DictionaryStore:
         """Identifier of the active dictionary, defaulting to the default one."""
         if not self.indexPath.is_file():
             return DEFAULT_ID
-        data = tomllib.loads(self.indexPath.read_text(encoding='utf-8'))
-        return str(data.get('active', DEFAULT_ID))
+        data = tomllib.loads(self.indexPath.read_text(encoding="utf-8"))
+        return str(data.get("active", DEFAULT_ID))
 
     # **************************************************************************
     def setActive(self, dictionaryId: str) -> None:
@@ -140,7 +142,7 @@ class DictionaryStore:
             KeyError: no such dictionary exists.
         """
         if self.find(dictionaryId) is None:
-            raise KeyError(f'No such dictionary: {dictionaryId}')
+            raise KeyError(f"No such dictionary: {dictionaryId}")
         self._writeIndex(entries=self.entries(), active=dictionaryId)
 
     # **************************************************************************
@@ -150,30 +152,30 @@ class DictionaryStore:
         if self.find(DEFAULT_ID) is None:
             self.create(DEFAULT_ID, DEFAULT_NAME)
         elif not self.pathOf(DEFAULT_ID).is_file():
-            self.pathOf(DEFAULT_ID).write_text('', encoding='utf-8', newline='')
+            self.pathOf(DEFAULT_ID).write_text("", encoding="utf-8", newline="")
         return self.find(DEFAULT_ID)  # type: ignore[return-value]
 
     # **************************************************************************
-    def create(self, dictionaryId: str, name: str, description: str = '') -> DictionaryEntry:
+    def create(self, dictionaryId: str, name: str, description: str = "") -> DictionaryEntry:
         """Add a named dictionary, creating its (empty) vocabulary file.
 
         Raises:
             ValueError: the identifier is empty or already catalogued.
         """
         if not dictionaryId:
-            raise ValueError('A dictionary needs a non-empty identifier.')
+            raise ValueError("A dictionary needs a non-empty identifier.")
         if self.find(dictionaryId) is not None:
-            raise ValueError(f'Dictionary already exists: {dictionaryId}')
+            raise ValueError(f"Dictionary already exists: {dictionaryId}")
 
         self.root.mkdir(parents=True, exist_ok=True)
         entry = DictionaryEntry(
             id=dictionaryId,
             name=name,
-            filename=f'{dictionaryId}{SUFFIX}',
+            filename=f"{dictionaryId}{SUFFIX}",
             description=description,
-            modified=datetime.now().isoformat(timespec='seconds'),
+            modified=datetime.now().isoformat(timespec="seconds"),
         )
-        self.pathOf(entry.id).write_text('', encoding='utf-8', newline='')
+        self.pathOf(entry.id).write_text("", encoding="utf-8", newline="")
         self._writeIndex(entries=[*self.entries(), entry], active=self.activeId())
         return entry
 
@@ -183,7 +185,7 @@ class DictionaryStore:
         path = self.pathOf(dictionaryId)
         if not path.is_file():
             return {}
-        return parseVocabulary(path.read_text(encoding='utf-8'))
+        return parseVocabulary(path.read_text(encoding="utf-8"))
 
     # **************************************************************************
     def write(self, dictionaryId: str, words: Mapping[str, int]) -> None:
@@ -194,7 +196,7 @@ class DictionaryStore:
 
         path = self.pathOf(dictionaryId)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(formatVocabulary(merged), encoding='utf-8', newline='')
+        path.write_text(formatVocabulary(merged), encoding="utf-8", newline="")
         self._touch(dictionaryId)
 
     # **************************************************************************
@@ -209,14 +211,14 @@ class DictionaryStore:
         """
         for dictionaryId in (sourceId, targetId):
             if self.find(dictionaryId) is None:
-                raise KeyError(f'No such dictionary: {dictionaryId}')
+                raise KeyError(f"No such dictionary: {dictionaryId}")
 
         source = self.read(sourceId)
         target = self.read(targetId)
         for word, frequency in source.items():
             target[word] = target.get(word, 0) + frequency
 
-        self.pathOf(targetId).write_text(formatVocabulary(target), encoding='utf-8', newline='')
+        self.pathOf(targetId).write_text(formatVocabulary(target), encoding="utf-8", newline="")
         self._touch(targetId)
         return len(target)
 
@@ -226,7 +228,7 @@ class DictionaryStore:
         entries = self.entries()
         for entry in entries:
             if entry.id == dictionaryId:
-                entry.modified = datetime.now().isoformat(timespec='seconds')
+                entry.modified = datetime.now().isoformat(timespec="seconds")
         self._writeIndex(entries=entries, active=self.activeId())
 
     # **************************************************************************
@@ -234,17 +236,18 @@ class DictionaryStore:
         """Write the catalogue file."""
         self.root.mkdir(parents=True, exist_ok=True)
         document = tomlkit.document()
-        document['active'] = active
+        document["active"] = active
         catalogue = tomlkit.aot()
         for entry in entries:
             item = tomlkit.table()
-            item['id'] = entry.id
-            item['name'] = entry.name
-            item['filename'] = entry.filename
-            item['description'] = entry.description
-            item['modified'] = entry.modified
+            item["id"] = entry.id
+            item["name"] = entry.name
+            item["filename"] = entry.filename
+            item["description"] = entry.description
+            item["modified"] = entry.modified
             catalogue.append(item)
-        document['dictionaries'] = catalogue
-        self.indexPath.write_text(tomlkit.dumps(document), encoding='utf-8', newline='')
+        document["dictionaries"] = catalogue
+        self.indexPath.write_text(tomlkit.dumps(document), encoding="utf-8", newline="")
+
 
 # ******************************************************************************

@@ -34,7 +34,7 @@ class RecentFiles:
         candidate = Path(path)
         self._paths = [item for item in self._paths if item != candidate]
         self._paths.insert(0, candidate)
-        del self._paths[self.limit:]
+        del self._paths[self.limit :]
 
     # **************************************************************************
     def remove(self, path: Path | str) -> None:
@@ -51,5 +51,6 @@ class RecentFiles:
     def existing(self) -> list[Path]:
         """The entries that still exist on disk, most recent first."""
         return [path for path in self._paths if path.is_file()]
+
 
 # ******************************************************************************

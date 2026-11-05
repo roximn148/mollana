@@ -18,7 +18,7 @@ from uuid import NAMESPACE_DNS, UUID, uuid5
 from zoneinfo import ZoneInfo
 
 # ******************************************************************************
-DISTRIBUTION_NAME: str = 'mollana'
+DISTRIBUTION_NAME: str = "mollana"
 """Name of the installed distribution (not the application title)."""
 
 
@@ -28,7 +28,7 @@ def _installedVersion() -> str:
     try:
         return version(DISTRIBUTION_NAME)
     except PackageNotFoundError:
-        return '0.0.0+unknown'
+        return "0.0.0+unknown"
 
 
 # ******************************************************************************
@@ -47,7 +47,7 @@ class Meta:
     @property
     def ApplicationTitle(self) -> str:
         """Application name as displayed to the user."""
-        return 'Mollana'
+        return "Mollana"
 
     @property
     def ApplicationVersion(self) -> str:
@@ -57,23 +57,25 @@ class Meta:
     @property
     def AuthorName(self) -> str:
         """Application author name/alias."""
-        return 'RoXimn'
+        return "RoXimn"
 
     @property
     def AuthorEmail(self) -> str:
         """Application author email."""
-        return 'roximn148@gmail.com'
+        return "roximn148@gmail.com"
 
     @property
     def Copyright(self) -> str:
         """Application copyright text."""
-        return '(C) RoXimn 2013'
+        return "(C) RoXimn 2026"
 
     @property
     def Licence(self) -> str:
         """Application usage licence text."""
-        return ('This work is licensed under the MIT License. To view a '
-                'copy of this license, visit https://opensource.org/license/mit.')
+        return (
+            "This work is licensed under the MIT License. To view a "
+            "copy of this license, visit https://opensource.org/license/mit."
+        )
 
     @property
     def ApplicationUUID(self) -> UUID:
@@ -83,7 +85,7 @@ class Meta:
     @property
     def Timezone(self) -> ZoneInfo:
         """Default time zone for the application."""
-        return ZoneInfo('Asia/Riyadh')
+        return ZoneInfo("Asia/Riyadh")
 
 
 # ******************************************************************************

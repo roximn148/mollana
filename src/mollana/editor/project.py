@@ -20,10 +20,10 @@ from pathlib import Path
 import tomlkit
 
 # ******************************************************************************
-MANIFEST_DIRNAME: str = '.mollana'
+MANIFEST_DIRNAME: str = ".mollana"
 """Folder, inside a project root, holding project metadata."""
 
-MANIFEST_FILENAME: str = 'workspace.toml'
+MANIFEST_FILENAME: str = "workspace.toml"
 """File that marks a folder as a project."""
 
 MANIFEST_VERSION: int = 1
@@ -60,7 +60,7 @@ class Project:
 
     # **************************************************************************
     @classmethod
-    def create(cls, root: Path | str, name: str | None = None) -> 'Project':
+    def create(cls, root: Path | str, name: str | None = None) -> "Project":
         """Convert ``root`` into a project and write its manifest.
 
         This is the only method that creates a manifest, and it is called from an
@@ -73,7 +73,7 @@ class Project:
 
     # **************************************************************************
     @classmethod
-    def open(cls, root: Path | str) -> 'Project':
+    def open(cls, root: Path | str) -> "Project":
         """Read an existing project manifest.
 
         Raises:
@@ -83,20 +83,20 @@ class Project:
         folder = Path(root)
         manifest = folder / MANIFEST_DIRNAME / MANIFEST_FILENAME
         if not manifest.is_file():
-            raise FileNotFoundError(f'Not a project: {folder}')
+            raise FileNotFoundError(f"Not a project: {folder}")
 
-        data = tomllib.loads(manifest.read_text(encoding='utf-8'))
-        section = data.get('workspace')
+        data = tomllib.loads(manifest.read_text(encoding="utf-8"))
+        section = data.get("workspace")
         if not isinstance(section, dict):
-            raise ValueError(f'Missing [workspace] section in {manifest}')
+            raise ValueError(f"Missing [workspace] section in {manifest}")
 
-        documents = section.get('documents', [])
+        documents = section.get("documents", [])
         if not isinstance(documents, list) or not all(isinstance(d, str) for d in documents):
             raise ValueError(f'"documents" must be a list of strings in {manifest}')
 
         return cls(
             root=folder,
-            name=str(section.get('name') or folder.name),
+            name=str(section.get("name") or folder.name),
             documents=[str(relative) for relative in documents],
         )
 
@@ -128,13 +128,14 @@ class Project:
         manifest.parent.mkdir(parents=True, exist_ok=True)
 
         section = tomlkit.table()
-        section['version'] = MANIFEST_VERSION
-        section['name'] = self.name
-        section['updated'] = datetime.now().isoformat(timespec='seconds')
-        section['documents'] = list(self.documents)
+        section["version"] = MANIFEST_VERSION
+        section["name"] = self.name
+        section["updated"] = datetime.now().isoformat(timespec="seconds")
+        section["documents"] = list(self.documents)
 
         document = tomlkit.document()
-        document['workspace'] = section
-        manifest.write_text(tomlkit.dumps(document), encoding='utf-8', newline='')
+        document["workspace"] = section
+        manifest.write_text(tomlkit.dumps(document), encoding="utf-8", newline="")
+
 
 # ******************************************************************************

@@ -18,7 +18,7 @@ from PySide6.QtWidgets import QPlainTextEdit, QTabWidget
 from mollana.editor.document import Document
 
 # ******************************************************************************
-DOCUMENT_ID_PROPERTY: str = 'documentId'
+DOCUMENT_ID_PROPERTY: str = "documentId"
 """Dynamic property linking a tab's widget to its document."""
 
 
@@ -34,7 +34,7 @@ class EditorPane(QTabWidget):
         self.setDocumentMode(True)
 
     # **************************************************************************
-    def bind(self, document: Document, text: str = '') -> PyRaya:
+    def bind(self, document: Document, text: str = "") -> PyRaya:
         """Open a tab for ``document`` and return its editor."""
         editor = PyRaya(self)
         editor.setProperty(DOCUMENT_ID_PROPERTY, document.id)
@@ -42,7 +42,7 @@ class EditorPane(QTabWidget):
         editor.document().setModified(False)
 
         index = self.addTab(editor, document.displayName)
-        self.setTabToolTip(index, str(document.path) if document.path else 'Untitled')
+        self.setTabToolTip(index, str(document.path) if document.path else "Untitled")
         self.setCurrentIndex(index)
         return editor
 
@@ -74,7 +74,8 @@ class EditorPane(QTabWidget):
     def editors(self) -> list[PyRaya]:
         """Every open editor, in tab order."""
         return [
-            widget for index in range(self.count())
+            widget
+            for index in range(self.count())
             if isinstance(widget := self.widget(index), PyRaya)
         ]
 
@@ -92,8 +93,8 @@ class EditorPane(QTabWidget):
         editor = self.editorFor(document.id)
         if editor is None:
             return
-        marker = '*' if document.dirty else ''
-        self.setTabText(self.indexOf(editor), f'{marker}{document.displayName}')
+        marker = "*" if document.dirty else ""
+        self.setTabText(self.indexOf(editor), f"{marker}{document.displayName}")
 
     # **************************************************************************
     def setSpellCheckEnabled(self, enabled: bool) -> None:
@@ -111,5 +112,6 @@ class EditorPane(QTabWidget):
         )
         for editor in self.editors():
             editor.setLineWrapMode(mode)
+
 
 # ******************************************************************************

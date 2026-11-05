@@ -56,4 +56,4 @@ License
 
 MIT. See `LICENSE.txt`.
 
-(c) Copyright RoXimn 2013. All rights reserved.
+(c) Copyright RoXimn 2026. All rights reserved.

@@ -9,7 +9,7 @@
 # ******************************************************************************
 import os
 
-os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 # ******************************************************************************
 import pytest  # noqa: E402
@@ -17,12 +17,13 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 
 # ******************************************************************************
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def qapp() -> QApplication:
     """One ``QApplication`` for the whole test session."""
     application = QApplication.instance()
     if application is None:
         application = QApplication([])
     return application  # type: ignore[return-value]
+
 
 # ******************************************************************************

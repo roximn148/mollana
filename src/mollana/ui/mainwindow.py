@@ -27,10 +27,10 @@ from mollana.infra.settings import RSettings
 from mollana.ui.mainwindow_ui import Ui_MainWindow
 
 # ******************************************************************************
-FILE_FILTER: str = 'Text files (*.txt *.md *.tex *.csv *.json *.toml);;All files (*)'
+FILE_FILTER: str = "Text files (*.txt *.md *.tex *.csv *.json *.toml);;All files (*)"
 """Filter offered by the open and save dialogs."""
 
-RECENT_MENU_TITLE: str = 'Recent Files'
+RECENT_MENU_TITLE: str = "Recent Files"
 
 
 # ******************************************************************************
@@ -52,7 +52,7 @@ class MainWindow(QMainWindow):
         self.session = session
         self.store = store
         self.settings = settings
-        self.log = getLogger('ui')
+        self.log = getLogger("ui")
 
         self.recent = RecentFiles(
             paths=self.settings.Main.RecentFiles,
@@ -83,12 +83,12 @@ class MainWindow(QMainWindow):
         ui.actionQuit.triggered.connect(self.close)
         ui.actionAbout.triggered.connect(self.onAbout)
 
-        ui.actionUndo.triggered.connect(lambda: self._callEditor('undo'))
-        ui.actionRedo.triggered.connect(lambda: self._callEditor('redo'))
-        ui.actionCut.triggered.connect(lambda: self._callEditor('cut'))
-        ui.actionCopy.triggered.connect(lambda: self._callEditor('copy'))
-        ui.actionPaste.triggered.connect(lambda: self._callEditor('paste'))
-        ui.actionSelectAll.triggered.connect(lambda: self._callEditor('selectAll'))
+        ui.actionUndo.triggered.connect(lambda: self._callEditor("undo"))
+        ui.actionRedo.triggered.connect(lambda: self._callEditor("redo"))
+        ui.actionCut.triggered.connect(lambda: self._callEditor("cut"))
+        ui.actionCopy.triggered.connect(lambda: self._callEditor("copy"))
+        ui.actionPaste.triggered.connect(lambda: self._callEditor("paste"))
+        ui.actionSelectAll.triggered.connect(lambda: self._callEditor("selectAll"))
 
         ui.actionWordWrap.toggled.connect(self.onWordWrap)
         ui.actionSpellChecker.toggled.connect(self.onSpellChecker)
@@ -100,7 +100,7 @@ class MainWindow(QMainWindow):
     # **************************************************************************
     # Documents
     # **************************************************************************
-    def openDocument(self, document: Document, text: str = '') -> Document:
+    def openDocument(self, document: Document, text: str = "") -> Document:
         """Add ``document`` to the session and open its tab."""
         self.session.add(document)
         editor = self.ui.tbwEditors.bind(document, text)
@@ -124,7 +124,7 @@ class MainWindow(QMainWindow):
             document = Document.fromPath(filePath)
             text = document.read()
         except (OSError, UnicodeDecodeError) as error:
-            QMessageBox.warning(self, 'Open', f'Cannot open {filePath}:\n{error}')
+            QMessageBox.warning(self, "Open", f"Cannot open {filePath}:\n{error}")
             return None
 
         self.openDocument(document, text)
@@ -149,18 +149,18 @@ class MainWindow(QMainWindow):
     # **************************************************************************
     def onOpen(self) -> None:
         """Ask for files and open each of them."""
-        files, _ = QFileDialog.getOpenFileNames(self, 'Open', '', FILE_FILTER)
+        files, _ = QFileDialog.getOpenFileNames(self, "Open", "", FILE_FILTER)
         for fileName in files:
             self.openPath(fileName)
 
     # **************************************************************************
     def onOpenFolder(self) -> None:
         """Browse a folder without converting it into a project."""
-        folder = QFileDialog.getExistingDirectory(self, 'Open Folder')
+        folder = QFileDialog.getExistingDirectory(self, "Open Folder")
         if not folder:
             return
         self.ui.trvExplorer.setRoot(folder)
-        self.statusBar().showMessage(f'Browsing {folder}', 4000)
+        self.statusBar().showMessage(f"Browsing {folder}", 4000)
 
     # **************************************************************************
     def onFileActivated(self, path: str) -> None:
@@ -185,7 +185,7 @@ class MainWindow(QMainWindow):
         if document is None:
             return
         suggested = str(document.path) if document.path else document.displayName
-        fileName, _ = QFileDialog.getSaveFileName(self, 'Save As', suggested, FILE_FILTER)
+        fileName, _ = QFileDialog.getSaveFileName(self, "Save As", suggested, FILE_FILTER)
         if not fileName:
             return
         self.saveDocument(document, Path(fileName))
@@ -199,14 +199,14 @@ class MainWindow(QMainWindow):
         try:
             written = document.save(editor.toPlainText(), path)
         except (OSError, ValueError) as error:
-            QMessageBox.warning(self, 'Save', f'Cannot save:\n{error}')
+            QMessageBox.warning(self, "Save", f"Cannot save:\n{error}")
             return False
 
         self.ui.tbwEditors.refreshTitle(document)
         self._updateTitle()
         self.recent.add(written)
         self._rebuildRecentMenu()
-        self.statusBar().showMessage(f'Saved {written}', 4000)
+        self.statusBar().showMessage(f"Saved {written}", 4000)
         return True
 
     # **************************************************************************
@@ -255,8 +255,8 @@ class MainWindow(QMainWindow):
 
         answer = QMessageBox.question(
             self,
-            'Close',
-            f'{document.displayName} has unsaved changes.',
+            "Close",
+            f"{document.displayName} has unsaved changes.",
             QMessageBox.StandardButton.Save
             | QMessageBox.StandardButton.Discard
             | QMessageBox.StandardButton.Cancel,
@@ -272,12 +272,12 @@ class MainWindow(QMainWindow):
     # **************************************************************************
     def onNewProject(self) -> None:
         """Convert a chosen folder into a project."""
-        folder = QFileDialog.getExistingDirectory(self, 'Choose a folder to convert into a project')
+        folder = QFileDialog.getExistingDirectory(self, "Choose a folder to convert into a project")
         if not folder:
             return
         root = Path(folder)
         if Project.isProject(root):
-            QMessageBox.information(self, 'New Project', f'{root} is already a project.')
+            QMessageBox.information(self, "New Project", f"{root} is already a project.")
             self.openProject(root)
             return
         self.openProject(root, create=True)
@@ -285,15 +285,15 @@ class MainWindow(QMainWindow):
     # **************************************************************************
     def onOpenProject(self) -> None:
         """Open a folder that already declares itself a project."""
-        folder = QFileDialog.getExistingDirectory(self, 'Open Project')
+        folder = QFileDialog.getExistingDirectory(self, "Open Project")
         if not folder:
             return
         root = Path(folder)
         if not Project.isProject(root):
             QMessageBox.warning(
                 self,
-                'Open Project',
-                f'{root} is not a project.\nUse File > New Project to convert it.',
+                "Open Project",
+                f"{root} is not a project.\nUse File > New Project to convert it.",
             )
             return
         self.openProject(root)
@@ -304,7 +304,7 @@ class MainWindow(QMainWindow):
         try:
             project = Project.create(root) if create else Project.open(root)
         except (OSError, ValueError, FileNotFoundError) as error:
-            QMessageBox.warning(self, 'Project', f'Cannot open {root}:\n{error}')
+            QMessageBox.warning(self, "Project", f"Cannot open {root}:\n{error}")
             return
 
         self.session.project = project
@@ -313,7 +313,7 @@ class MainWindow(QMainWindow):
             if path.is_file():
                 self.openPath(path)
         self._updateTitle()
-        self.statusBar().showMessage(f'Project {project.name}', 4000)
+        self.statusBar().showMessage(f"Project {project.name}", 4000)
 
     # **************************************************************************
     # View and edit
@@ -344,9 +344,9 @@ class MainWindow(QMainWindow):
             parts.append(self.session.project.name)
         document = self.session.active
         if document is not None:
-            marker = '*' if document.dirty else ''
-            parts.append(f'{marker}{document.displayName}')
-        self.setWindowTitle(' - '.join(parts))
+            marker = "*" if document.dirty else ""
+            parts.append(f"{marker}{document.displayName}")
+        self.setWindowTitle(" - ".join(parts))
 
     # **************************************************************************
     def _rebuildRecentMenu(self) -> None:
@@ -354,14 +354,14 @@ class MainWindow(QMainWindow):
         self.recentMenu.clear()
         paths = self.recent.existing()
         if not paths:
-            empty = self.recentMenu.addAction('No recent files')
+            empty = self.recentMenu.addAction("No recent files")
             empty.setEnabled(False)
             return
         for path in paths:
             action = self.recentMenu.addAction(str(path))
             action.triggered.connect(lambda checked=False, target=path: self.openPath(target))
         self.recentMenu.addSeparator()
-        self.recentMenu.addAction('Clear Recent', self.onClearRecent)
+        self.recentMenu.addAction("Clear Recent", self.onClearRecent)
 
     # **************************************************************************
     def onClearRecent(self) -> None:
@@ -374,16 +374,16 @@ class MainWindow(QMainWindow):
         """Show the about box."""
         QMessageBox.about(
             self,
-            f'{Rx.ApplicationTitle} - About',
-            f'<h4>{Rx.ApplicationTitle} <tt>{Rx.ApplicationVersion}</tt><br>'
-            f'{Rx.Copyright}</h4>'
-            f'<p>{Rx.Licence}</p>'
-            '<h4>Attributions</h4>'
-            '<ul>'
+            f"{Rx.ApplicationTitle} - About",
+            f"<h4>{Rx.ApplicationTitle} <tt>{Rx.ApplicationVersion}</tt><br>"
+            f"{Rx.Copyright}</h4>"
+            f"<p>{Rx.Licence}</p>"
+            "<h4>Attributions</h4>"
+            "<ul>"
             '<li>Some icons by <a href="https://github.com/KDE/oxygen-icons5">Oxygen Icons</a>, '
             'licensed under <a href="https://www.gnu.org/licenses/lgpl-3.0.en.html">'
-            'GNU Lesser General Public License v3.0</a> License.</li>'
-            '</ul>',
+            "GNU Lesser General Public License v3.0</a> License.</li>"
+            "</ul>",
         )
 
     # **************************************************************************
@@ -394,7 +394,7 @@ class MainWindow(QMainWindow):
         dictionaryId = self.store.activeId()
         target = self.store.pathOf(dictionaryId)
         for editor in self.ui.tbwEditors.editors():
-            getDictionary = getattr(editor, 'localDictionary', None)
+            getDictionary = getattr(editor, "localDictionary", None)
             if getDictionary is None:
                 continue
             dictionary = getDictionary()
@@ -403,9 +403,9 @@ class MainWindow(QMainWindow):
             try:
                 dictionary.save(str(target))
             except Exception as error:  # noqa: BLE001 - third-party persistence
-                self.log.warning(f'Could not save dictionary {dictionaryId}: {error}')
+                self.log.warning(f"Could not save dictionary {dictionaryId}: {error}")
             else:
-                self.log.info(f'Saved dictionary {dictionaryId} to {target}')
+                self.log.info(f"Saved dictionary {dictionaryId} to {target}")
             break
 
     # **************************************************************************
@@ -421,5 +421,6 @@ class MainWindow(QMainWindow):
         self.settings.save()
         self.flushDictionaries()
         event.accept()
+
 
 # ******************************************************************************

@@ -24,7 +24,7 @@ RUNTIME_LEVEL: int = 99
 
 
 # ******************************************************************************
-def setup(logDirectory: Path, level: str = 'DEBUG') -> logging.Logger:
+def setup(logDirectory: Path, level: str = "DEBUG") -> logging.Logger:
     """Configure logging once, for the whole process.
 
     Args:
@@ -34,44 +34,46 @@ def setup(logDirectory: Path, level: str = 'DEBUG') -> logging.Logger:
     Returns:
         The application logger.
     """
-    logging.config.dictConfig(config={
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters': {
-            'simple': {
-                'format': '[{levelname}] {message}',
-                'style': '{',
+    logging.config.dictConfig(
+        config={
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "simple": {
+                    "format": "[{levelname}] {message}",
+                    "style": "{",
+                },
+                "debuggingDetail": {
+                    "format": "{asctime} [{levelname}] {module}.{funcName}[{lineno}]: {message}",
+                    "datefmt": "%Y-%b-%dT%H:%M:%S%z",
+                    "style": "{",
+                },
             },
-            'debuggingDetail': {
-                'format': '{asctime} [{levelname}] {module}.{funcName}[{lineno}]: {message}',
-                'datefmt': '%Y-%b-%dT%H:%M:%S%z',
-                'style': '{',
+            "handlers": {
+                "stdout": {
+                    "class": "logging.StreamHandler",
+                    "level": "INFO",
+                    "formatter": "simple",
+                    "stream": "ext://sys.stdout",
+                },
+                "file": {
+                    "class": "logging.handlers.RotatingFileHandler",
+                    "filename": str(logDirectory / f"{Rx.ApplicationName}.log"),
+                    "level": "NOTSET",
+                    "formatter": "debuggingDetail",
+                    "maxBytes": 1_048_576,  # 1 MiB
+                    "backupCount": 10,
+                },
             },
-        },
-        'handlers': {
-            'stdout': {
-                'class': 'logging.StreamHandler',
-                'level': 'INFO',
-                'formatter': 'simple',
-                'stream': 'ext://sys.stdout',
+            "loggers": {
+                "root": {
+                    "level": "NOTSET",
+                    "handlers": ["file", "stdout"],
+                },
             },
-            'file': {
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': str(logDirectory / f'{Rx.ApplicationName}.log'),
-                'level': 'NOTSET',
-                'formatter': 'debuggingDetail',
-                'maxBytes': 1_048_576,  # 1 MiB
-                'backupCount': 10,
-            },
-        },
-        'loggers': {
-            'root': {
-                'level': 'NOTSET',
-                'handlers': ['file', 'stdout'],
-            },
-        },
-    })
-    logging.addLevelName(RUNTIME_LEVEL, 'RUNTIME')
+        }
+    )
+    logging.addLevelName(RUNTIME_LEVEL, "RUNTIME")
 
     logger = logging.getLogger(Rx.ApplicationName)
     logger.setLevel(level)
@@ -83,7 +85,7 @@ def getLogger(name: str | None = None) -> logging.Logger:
     """Return the application logger, or a named child of it."""
     if not name:
         return logging.getLogger(Rx.ApplicationName)
-    return logging.getLogger(f'{Rx.ApplicationName}.{name}')
+    return logging.getLogger(f"{Rx.ApplicationName}.{name}")
 
 
 # ******************************************************************************

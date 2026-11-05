@@ -33,9 +33,7 @@ class FileExplorer(QTreeView):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._model = QFileSystemModel(self)
-        self._model.setFilter(
-            QDir.Filter.AllDirs | QDir.Filter.Files | QDir.Filter.NoDotAndDotDot
-        )
+        self._model.setFilter(QDir.Filter.AllDirs | QDir.Filter.Files | QDir.Filter.NoDotAndDotDot)
         self._model.setReadOnly(True)
         self.setModel(self._model)
         self.setHeaderHidden(True)
@@ -72,5 +70,6 @@ class FileExplorer(QTreeView):
         """Report a double-clicked file; folders expand as usual."""
         if index.isValid() and not self._model.isDir(index):
             self.fileActivated.emit(self._model.filePath(index))
+
 
 # ******************************************************************************

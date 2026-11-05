@@ -15,14 +15,14 @@ import ast
 from pathlib import Path
 
 # ******************************************************************************
-PACKAGE_ROOT: Path = Path(__file__).resolve().parents[1] / 'src' / 'mollana'
+PACKAGE_ROOT: Path = Path(__file__).resolve().parents[1] / "src" / "mollana"
 """Root of the package under test."""
 
 
 # ******************************************************************************
 def _importedModules(path: Path) -> set[str]:
     """Return every absolute module name imported by ``path``."""
-    tree = ast.parse(path.read_text(encoding='utf-8'))
+    tree = ast.parse(path.read_text(encoding="utf-8"))
     modules: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -34,17 +34,18 @@ def _importedModules(path: Path) -> set[str]:
 
 # ******************************************************************************
 def _modulesIn(folder: str) -> list[Path]:
-    return sorted((PACKAGE_ROOT / folder).glob('*.py'))
+    return sorted((PACKAGE_ROOT / folder).glob("*.py"))
 
 
 # ******************************************************************************
 def test_editorImportsNoQt() -> None:
     offenders = {
         path.name: sorted(
-            module for module in _importedModules(path)
-            if module == 'PySide6' or module.startswith('PySide6.')
+            module
+            for module in _importedModules(path)
+            if module == "PySide6" or module.startswith("PySide6.")
         )
-        for path in _modulesIn('editor')
+        for path in _modulesIn("editor")
     }
     assert not {name: hits for name, hits in offenders.items() if hits}
 
@@ -53,10 +54,9 @@ def test_editorImportsNoQt() -> None:
 def test_editorKnowsNothingAboutTheViews() -> None:
     offenders = {
         path.name: sorted(
-            module for module in _importedModules(path)
-            if module.startswith('mollana.ui')
+            module for module in _importedModules(path) if module.startswith("mollana.ui")
         )
-        for path in _modulesIn('editor')
+        for path in _modulesIn("editor")
     }
     assert not {name: hits for name, hits in offenders.items() if hits}
 
@@ -65,11 +65,13 @@ def test_editorKnowsNothingAboutTheViews() -> None:
 def test_infraKnowsNothingAboutTheApp() -> None:
     offenders = {
         path.name: sorted(
-            module for module in _importedModules(path)
-            if module.startswith(('mollana.ui', 'mollana.editor'))
+            module
+            for module in _importedModules(path)
+            if module.startswith(("mollana.ui", "mollana.editor"))
         )
-        for path in _modulesIn('infra')
+        for path in _modulesIn("infra")
     }
     assert not {name: hits for name, hits in offenders.items() if hits}
+
 
 # ******************************************************************************
