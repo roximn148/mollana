@@ -5,7 +5,7 @@ Guidance for AI agents (and humans) working in this repository.
 ## Project overview
 
 Mollana is an Urdu Unicode text editor built on one idea: **type in Roman, read in Urdu**.
-It is a Python/PySide6 desktop application (alpha, `0.2.0a1`) in a `src/` layout.
+It is a Python/PySide6 desktop application (alpha) in a `src/` layout.
 
 The editor widget and the transliteration engine are separate PyPI packages: `pyraya`
 (`PyRaya`) and `romanalfaz` (`RomanAlfaz`, `Vocabulary`). They began here and are now the
@@ -103,11 +103,23 @@ committed, so a fresh clone needs `compileUI.py` before the first launch.
 
 ### Version
 
-The version is written in `pyproject.toml` and read from installed distribution metadata
-(`mollana.__version__`, `Rx.ApplicationVersion`). Keep it in step with `README.md` and
-`CHANGELOG.md`. `mollana.spec` derives `build/version_info.txt` and `build/version.iss` from
-`pyproject.toml`, so the Windows EXE and installer versions are not edited by hand. Bumps
-stay in the `X.X.XaN` series.
+`pyproject.toml` is the only source of the version. `mollana.__version__` and
+`Rx.ApplicationVersion` read it from installed distribution metadata, and `mollana.spec`
+derives `build/version_info.txt` and `build/version.iss` from it, so the Windows EXE and
+installer versions are never edited by hand. Bumps stay in the `X.X.XaN` series.
+
+**A version bump and its changelog record are one atomic change, never separate commits.**
+The same commit must:
+
+1. Set `project.version` in `pyproject.toml`.
+2. Add `## [X.X.XaN] - YYYY-MM-DD` to `CHANGELOG.md`, move the entries from
+   `[Unreleased]` under it, and leave a fresh empty `[Unreleased]` above it.
+3. Update the README's `Alpha, …` line to name the same version.
+4. Pass `tests/test_release_metadata.py`, which fails when the current version has no
+   dated changelog section or when the README disagrees.
+
+Do not tag or publish until the tree is green. Never leave `pyproject.toml` ahead of
+`CHANGELOG.md`.
 
 ### State tiers
 
@@ -130,6 +142,8 @@ is one global, per-process choice stored in the dictionary catalogue.
   `editor/dictionaries.py`.
 - `uv run lint-imports` keeps both contracts, and `uv run pytest` passes headless with
   `tests/test_architecture.py` still holding the layer line.
+- The version in `pyproject.toml`, a dated `## [version]` section in `CHANGELOG.md`, and
+  the README's `Alpha, …` line agree (`tests/test_release_metadata.py`).
 - User-visible change is recorded under `[Unreleased]`.
 
 ## Gotchas
