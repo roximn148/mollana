@@ -59,7 +59,9 @@ jobs:
         run: uv run pytest
 
       - name: Install Inno Setup
-        run: winget install -e --id JRSoftware.InnoSetup
+        # Pinned: the installer bytes depend on the Inno Setup version, and the
+        # winget manifest's InstallerSha256 is generated with the pinned version.
+        run: winget install -e --id JRSoftware.InnoSetup --version 6.7.3
 
       - name: Build the application and installer
         shell: pwsh

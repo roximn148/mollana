@@ -200,11 +200,21 @@ is one global, per-process choice stored in the dictionary catalogue.
   does not delete `%LOCALAPPDATA%\mollana` on uninstall — that holds user preferences
   and dictionaries.
 - Inno Setup 6 is not preinstalled on GitHub runners; the release workflow installs it
-  with `winget install -e --id JRSoftware.InnoSetup`. `generate-win-setup.bat` locates
-  ISCC itself, so no PATH refresh is needed.
+  with `winget install -e --id JRSoftware.InnoSetup --version 6.7.3` — the version is
+  pinned because the installer bytes depend on it (see the reproducibility gotcha
+  below). `generate-win-setup.bat` locates ISCC itself, so no PATH refresh is needed.
 - The winget manifests are **not** part of the PyInstaller bundle; the release workflow
   runs `scripts/winget_manifest.py --check` after building and fails when the committed
   manifest's sha256 does not match the freshly built installer.
+- The installer build is **reproducible**, and the manifest's `InstallerSha256`
+  depends on it. `generate-win-setup.bat` sets `SOURCE_DATE_EPOCH` (PyInstaller stamps
+  the EXE's PE header with the build time unless it is set) and `PYTHONHASHSEED` (the
+  module-graph traversal that orders `base_library.zip` is hash-seed dependent; the
+  PYZ is sorted for reproducible builds, the zip is not), and
+  `scripts/normalize-mtimes.py` pins mtimes before PyInstaller and Inno Setup (Inno
+  embeds the packed files' mtimes). The Python patch version is pinned in
+  `.python-version` and the Inno version in the workflow; a new Python or Inno release
+  changes the bytes and requires regenerating the manifest.
 - Logging is `mollana.infra.logging.getLogger`, not an attribute of `QApplication`. A plain
   `QApplication` in a test is fine.
 - `PyRaya` persists learned words only when the host asks:

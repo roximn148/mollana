@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   mode the release workflow runs against the freshly built installer; the
   `0.2.0a1` manifest set is committed under `winget/`.
 
+### Changed
+
+- The Windows installer build is now reproducible: `scripts/generate-win-setup.bat`
+  pins `SOURCE_DATE_EPOCH` and `PYTHONHASHSEED` for PyInstaller and pins file
+  mtimes with `scripts/normalize-mtimes.py` before PyInstaller and Inno Setup,
+  so consecutive builds produce byte-identical installers whose SHA matches
+  the committed winget manifest.
+
 ## [0.2.0a1] - 2026-11-05
 
 ### Added

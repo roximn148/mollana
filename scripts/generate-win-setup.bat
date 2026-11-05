@@ -15,15 +15,27 @@ if not exist "%ISCC%" (
     exit /b 1
 )
 
+:: Reproducible build: PyInstaller stamps the EXE's PE header with the current
+:: build time unless SOURCE_DATE_EPOCH is set, and the module graph traversal
+:: (which orders base_library.zip's entries) is hash-seed dependent, so pin
+:: PYTHONHASHSEED. Both values must stay in sync with the winget manifest's
+:: InstallerSha256, which is generated from a build with these settings.
+set "SOURCE_DATE_EPOCH=1700000000"
+set "PYTHONHASHSEED=42"
+
 echo [1/3] Compiling Qt UI and resources...
 uv run python scripts\compileUI.py
 if errorlevel 1 exit /b 1
 
 echo [2/3] Freezing the application with PyInstaller...
+uv run python scripts\normalize-mtimes.py .venv src data
+if errorlevel 1 exit /b 1
 uv run pyinstaller --clean --noconfirm mollana.spec
 if errorlevel 1 exit /b 1
 
 echo [3/3] Building the Windows installer with Inno Setup...
+uv run python scripts\normalize-mtimes.py dist build installer LICENSE.txt
+if errorlevel 1 exit /b 1
 "%ISCC%" "installer\mollana.iss"
 if errorlevel 1 exit /b 1
 

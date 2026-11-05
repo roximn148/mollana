@@ -1,0 +1,7 @@
+# The Windows build tools consume CRLF line endings (cmd batch files, Inno
+# Setup scripts), so force CRLF in the working tree for them regardless of
+# platform. Everything else follows the platform default (CRLF on Windows,
+# LF elsewhere) via text=auto, which also normalizes check-ins to LF.
+* text=auto
+*.bat eol=crlf
+*.iss eol=crlf

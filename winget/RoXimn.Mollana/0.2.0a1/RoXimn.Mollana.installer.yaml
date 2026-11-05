@@ -6,4 +6,4 @@ Installers:
 - Architecture: x64
   Scope: user
   InstallerUrl: https://github.com/roximn148/mollana/releases/download/v0.2.0a1/Mollana-0.2.0a1-win64-setup.exe
-  InstallerSha256: EE19CE390BC6E839077BA9876CBB1F190CBCA9A92956D17399EF2E8392111E71
+  InstallerSha256: EFE86C7C0560BEC23778557D7A51981BFDC8D9FB94D58078C352AE3313BB1F83
