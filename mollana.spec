@@ -14,6 +14,7 @@ is written in one place only.
 
 # ******************************************************************************
 import re
+import sys
 import tomllib
 from pathlib import Path
 
@@ -113,9 +114,16 @@ excludes = [
 ]
 
 # The version is read from installed metadata, and the transliteration stack
-# loads its vocabularies from files beside its modules.
+# loads its vocabularies from files beside its modules. Only METADATA is shipped
+# from the dist-info: RECORD, INSTALLER, direct_url.json, uv_cache.json and
+# friends describe the build machine (an editable install path, cache
+# timestamps), and copying them makes every build's bytes differ.
 datas = [
-    *copy_metadata("mollana"),
+    *(
+        entry
+        for entry in copy_metadata("mollana")
+        if Path(entry[0].replace("\\", "/")).name == "METADATA"
+    ),
     *collect_data_files("pyraya", includes=["*.sym"]),
     *collect_data_files("romanalfaz", includes=["*.sym"]),
     (str(ROOT / "LICENSE.txt"), "."),
@@ -172,6 +180,36 @@ def isHostApiSet(destination: str) -> bool:
 
 
 # ******************************************************************************
+def isHostResolved(name: str) -> bool:
+    """Return whether a bundled file must come from the interpreter, not the host.
+
+    ``ucrtbase.dll`` is a Windows 10+ system component, so bundling the copy that
+    happens to sit on the build machine is pointless. OpenSSL is linked by
+    ``_ssl.pyd`` and must match the interpreter, but PyInstaller resolves it
+    through the DLL search path, where an unrelated install can shadow it; those
+    two are excluded here and re-added from the interpreter further down.
+    """
+    return Path(name.replace("\\", "/")).name.lower() in {
+        "ucrtbase.dll",
+        "libssl-3-x64.dll",
+        "libcrypto-3-x64.dll",
+    }
+
+
+# ******************************************************************************
+def isHostMetadata(destination: str) -> bool:
+    """Return whether a bundled file describes the build host, not the app.
+
+    Mollana's own dist-info carries an editable-install path
+    (``direct_url.json``), cache timestamps (``uv_cache.json``), and a RECORD, so
+    only METADATA — the one file the app reads at runtime — may be shipped.
+    """
+    parts = Path(destination.replace("\\", "/")).parts
+    own = any(part.startswith("mollana-") and part.endswith(".dist-info") for part in parts)
+    return own and parts[-1] != "METADATA"
+
+
+# ******************************************************************************
 a = Analysis(
     [str(PACKAGE / "__main__.py")],
     pathex=[str(ROOT / "src")],
@@ -189,9 +227,20 @@ a = Analysis(
 a.binaries = [
     entry for entry in a.binaries if not isUnusedQtFile(entry[0]) and not isHostApiSet(entry[0])
 ]
-a.datas = [
-    entry for entry in a.datas if not isUnusedQtFile(entry[0]) and not isHostApiSet(entry[0])
-]
+a.datas = [entry for entry in a.datas if not isUnusedQtFile(entry[0]) and not isHostApiSet(entry[0])]
+
+# The dist-info filter has to run on the analysed list as well: PyInstaller adds
+# package metadata on its own, not only from the datas argument above.
+a.binaries = [entry for entry in a.binaries if not isHostMetadata(entry[0])]
+a.datas = [entry for entry in a.datas if not isHostMetadata(entry[0])]
+
+# OpenSSL comes from the interpreter that PyInstaller just analysed, never from
+# whatever else the build machine's DLL search path drags in.
+a.binaries = [entry for entry in a.binaries if not isHostResolved(entry[0])]
+for _dll in ("libssl-3-x64.dll", "libcrypto-3-x64.dll"):
+    _path = Path(sys.base_prefix) / "DLLs" / _dll
+    if _path.is_file():
+        a.binaries.append((_dll, str(_path), "BINARY"))
 
 pyz = PYZ(a.pure)
 
