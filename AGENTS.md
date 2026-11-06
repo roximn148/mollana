@@ -227,7 +227,10 @@ is one global, per-process choice stored in the dictionary catalogue.
   `scripts/normalize-mtimes.py` pins mtimes before PyInstaller and Inno Setup (Inno
   embeds the packed files' mtimes). The Python patch version is pinned in
   `.python-version` and the Inno version in the workflow; a new Python or Inno release
-  changes the bytes and requires regenerating the manifest.
+  changes the bytes and requires regenerating the manifest. The bundle must also not
+  depend on the build host: `mollana.spec` drops `api-ms-win-*.dll` because PyInstaller
+  copies whichever API sets the build machine exposes, and Windows editions differ —
+  that one difference alone made a runner build and a workstation build disagree.
 - Logging is `mollana.infra.logging.getLogger`, not an attribute of `QApplication`. A plain
   `QApplication` in a test is fine.
 - `PyRaya` persists learned words only when the host asks:

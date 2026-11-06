@@ -158,6 +158,20 @@ def isUnusedQtFile(destination: str) -> bool:
 
 
 # ******************************************************************************
+def isHostApiSet(destination: str) -> bool:
+    """Return whether a bundled file is a Windows API-set stub.
+
+    API sets (``api-ms-win-*.dll``) ship with Windows 10 and later, so bundling
+    them adds nothing. PyInstaller copies whichever ones the build machine
+    happens to expose, and that set differs between Windows editions, which
+    would make the bundle — and with it the installer hash — depend on the host
+    instead of on the source.
+    """
+    name = Path(destination.replace("\\", "/")).name.lower()
+    return name.startswith("api-ms-win-")
+
+
+# ******************************************************************************
 a = Analysis(
     [str(PACKAGE / "__main__.py")],
     pathex=[str(ROOT / "src")],
@@ -172,8 +186,12 @@ a = Analysis(
     optimize=0,
 )
 
-a.binaries = [entry for entry in a.binaries if not isUnusedQtFile(entry[0])]
-a.datas = [entry for entry in a.datas if not isUnusedQtFile(entry[0])]
+a.binaries = [
+    entry for entry in a.binaries if not isUnusedQtFile(entry[0]) and not isHostApiSet(entry[0])
+]
+a.datas = [
+    entry for entry in a.datas if not isUnusedQtFile(entry[0]) and not isHostApiSet(entry[0])
+]
 
 pyz = PYZ(a.pure)
 
