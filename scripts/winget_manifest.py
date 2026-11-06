@@ -62,12 +62,16 @@ def renderManifest(version: str, sha256: str, releaseDate: str) -> dict[str, str
     """Render the three manifest documents for one released version.
 
     Returns a mapping of file name to full file content, using the
-    winget-pkgs layout for ``RoXimn.Mollana``.
+    winget-pkgs layout for ``RoXimn.Mollana``. Every document carries its
+    ``$schema`` header and ends with its ``ManifestType`` footer: without
+    the footer winget misreads the file as a standalone singleton manifest
+    and rejects the whole set.
     """
     assetName = f"Mollana-{version}-win64-setup.exe"
     installerUrl = f"{REPO_URL}/releases/download/v{version}/{assetName}"
 
     versionFile = (
+        f"# yaml-language-server: $schema=https://aka.ms/winget-manifest.version.{MANIFEST_VERSION}.schema.json\n"
         f"PackageIdentifier: {IDENTIFIER}\n"
         f"PackageVersion: {version}\n"
         "DefaultLocale: en-US\n"
@@ -77,6 +81,7 @@ def renderManifest(version: str, sha256: str, releaseDate: str) -> dict[str, str
     )
 
     localeFile = (
+        f"# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.{MANIFEST_VERSION}.schema.json\n"
         f"PackageIdentifier: {IDENTIFIER}\n"
         f"PackageVersion: {version}\n"
         "PackageLocale: en-US\n"
@@ -90,18 +95,24 @@ def renderManifest(version: str, sha256: str, releaseDate: str) -> dict[str, str
         "ShortDescription: Urdu text editor with live Roman-to-Urdu transliteration\n"
         "Description: Mollana is an Urdu Unicode text editor. Type in Roman, read in Urdu.\n"
         f"ReleaseNotesUrl: {REPO_URL}/releases/tag/v{version}\n"
+        f"ReleaseDate: {releaseDate}\n"
+        f"ManifestType: defaultLocale\n"
+        f"ManifestVersion: {MANIFEST_VERSION}\n"
     )
 
     installerFile = (
+        f"# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.{MANIFEST_VERSION}.schema.json\n"
         f"PackageIdentifier: {IDENTIFIER}\n"
         f"PackageVersion: {version}\n"
-        "InstallerType: exe\n"
-        f"ReleaseDate: {releaseDate}\n"
+        "InstallerType: inno\n"
         "Installers:\n"
         "- Architecture: x64\n"
         "  Scope: user\n"
         f"  InstallerUrl: {installerUrl}\n"
         f"  InstallerSha256: {sha256}\n"
+        "UpgradeBehavior: install\n"
+        f"ManifestType: installer\n"
+        f"ManifestVersion: {MANIFEST_VERSION}\n"
     )
 
     return {
@@ -125,22 +136,25 @@ def writeManifests(version: str, sha256: str, releaseDate: str, wingetRoot: Path
 def checkManifests(version: str, installer: Path, wingetRoot: Path) -> int:
     """Verify the committed manifest against the built installer.
 
-    The committed installer document supplies the release date and the
-    expected SHA-256. The check fails when the installer's actual digest
-    differs from the committed one, or when any committed file drifts from
-    a re-render. Returns 0 when everything matches, else 1.
+    The committed installer document supplies the expected SHA-256 and the
+    committed locale document the release date. The check fails when the
+    installer's actual digest differs from the committed one, or when any
+    committed file drifts from a re-render. Returns 0 when everything
+    matches, else 1.
     """
     versionDir = wingetRoot / IDENTIFIER / version
     installerPath = versionDir / f"{IDENTIFIER}.installer.yaml"
-    if not installerPath.is_file():
-        print(f"no committed manifest at {installerPath}")
+    localePath = versionDir / f"{IDENTIFIER}.locale.en-US.yaml"
+    if not installerPath.is_file() or not localePath.is_file():
+        print(f"no committed manifest at {versionDir}")
         return 1
 
-    committed = installerPath.read_text(encoding="utf-8")
-    dateMatch = re.search(r"^ReleaseDate: (\d{4}-\d{2}-\d{2})$", committed, re.MULTILINE)
-    shaMatch = re.search(r"^  InstallerSha256: ([0-9A-F]{64})$", committed, re.MULTILINE)
+    committedInstaller = installerPath.read_text(encoding="utf-8")
+    shaMatch = re.search(r"^  InstallerSha256: ([0-9A-F]{64})$", committedInstaller, re.MULTILINE)
+    committedLocale = localePath.read_text(encoding="utf-8")
+    dateMatch = re.search(r"^ReleaseDate: (\d{4}-\d{2}-\d{2})$", committedLocale, re.MULTILINE)
     if dateMatch is None or shaMatch is None:
-        print(f"{installerPath} is not the manifest this script renders")
+        print(f"{versionDir} is not the manifest this script renders")
         return 1
 
     actual = sha256Of(installer)

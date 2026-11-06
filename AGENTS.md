@@ -146,12 +146,19 @@ follow it explicitly, in order:
    --sha256 <hash>` writes `winget/RoXimn.Mollana/<version>/`. The `<hash>` is the
    installer sha256 **the runner builds**, not the workstation's: tag once, read the
    hash CI reports, then record and re-tag (or ask for it in a `workflow_dispatch`
-   run). Review the three files (version, sha256, date, asset URL) and commit. The
-   manifest is not part of the PyInstaller bundle, so it cannot change installer
-   bytes.
+   run). Validate the set with `winget validate --manifest
+   winget/RoXimn.Mollana/<version>` (the directory — see the gotcha below), review
+   the three files (version, sha256, date, asset URL), and commit. The manifest is
+   not part of the PyInstaller bundle, so it cannot change installer bytes.
 5. **Tag + push** — clean tree, then `git tag vX.Y.Z` and `git push --tags`;
-   CI rebuilds, asserts the manifest sha256 matches, smoke-tests, and publishes
-   the Release with notes from the changelog section.
+   CI rebuilds, asserts the manifest sha256 matches, validates the manifest schema,
+   smoke-tests, and publishes the Release with notes from the changelog section.
+6. **Winget community submission** (manual) — fork `microsoft/winget-pkgs`, copy
+   `winget/RoXimn.Mollana/<version>/` to `manifests/r/RoXimn/Mollana/<version>/`,
+   and open one PR per version, titled `Adding RoXimn.Mollana version <version>`.
+   The winget pipelines validate the PR and a maintainer merges it; respond to
+   their bot comments. First-time submitters also sign the Microsoft CLA when the
+   bot asks.
 
 ### State tiers
 
@@ -222,6 +229,15 @@ is one global, per-process choice stored in the dictionary catalogue.
 - The winget manifests are **not** part of the PyInstaller bundle; the release workflow
   runs `scripts/winget_manifest.py --check` after building and fails when the committed
   manifest's sha256 does not match the freshly built installer.
+- The winget manifest set is validated as a whole, and three rules come out of that:
+  every file must end with its `ManifestType` footer (`version`, `defaultLocale`,
+  `installer`) plus the `$schema` header comment, or winget misreads the file as a
+  singleton manifest and rejects the set; a field such as `ReleaseDate` may appear in
+  only one file of the set (the locale file here) or the assembled manifest fails with
+  "Duplicate field"; and validation must target the **directory**
+  (`winget validate --manifest winget/RoXimn.Mollana/<version>`) — pointing the
+  command at the version *file* reports a misleading "multi file manifest is
+  incomplete" even when the set is valid.
 - The installer build is **reproducible on a given machine**, and the manifest's
   `InstallerSha256` depends on it. `generate-win-setup.bat` sets `SOURCE_DATE_EPOCH`
   (PyInstaller stamps

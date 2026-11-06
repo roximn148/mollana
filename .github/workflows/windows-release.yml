@@ -91,6 +91,11 @@ jobs:
       - name: Check the committed winget manifest
         run: uv run python scripts/winget_manifest.py --check
 
+      - name: Validate the winget manifest schema
+        # The committed manifests must stay schema-valid so the winget-pkgs
+        # submission PR passes its validation pipeline untouched.
+        run: winget validate --manifest "winget/RoXimn.Mollana/$($env:VERSION)"
+
       - name: Smoke test the frozen application
         shell: pwsh
         run: |

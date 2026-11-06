@@ -85,6 +85,9 @@ def test_localeFileCarriesPublisherLicenseAndUrls() -> None:
         "License: MIT",
         "https://github.com/roximn148/mollana",
         "releases/tag/v0.2.0a1",
+        f"ReleaseDate: {DATE}",
+        "ManifestType: defaultLocale",
+        "ManifestVersion: 1.12.0",
     ):
         assert expected in locale
 
@@ -96,7 +99,12 @@ def test_installerFileCarriesSha256AndAssetUrl() -> None:
 
     assert f"InstallerSha256: {SHA}" in installer
     assert "Mollana-0.2.0a1-win64-setup.exe" in installer
-    assert f"ReleaseDate: {DATE}" in installer
+    assert "Architecture: x64" in installer
+    assert "InstallerType: inno" in installer
+    assert "ManifestType: installer" in installer
+    assert "ManifestVersion: 1.12.0" in installer
+    assert "winget-manifest.installer.1.12.0.schema.json" in installer
+    assert "ReleaseDate" not in installer  # belongs in the locale file; winget rejects a duplicate
 
 
 def test_writeCreatesTheManifestSet(tmp_path: Path) -> None:
