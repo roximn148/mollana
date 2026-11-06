@@ -193,9 +193,7 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="installer EXE (default: dist/Mollana-<version>-win64-setup.exe)",
     )
-    parser.add_argument(
-        "--date", default=None, help="release date, YYYY-MM-DD (default: today)"
-    )
+    parser.add_argument("--date", default=None, help="release date, YYYY-MM-DD (default: today)")
     parser.add_argument(
         "--sha256",
         default=None,

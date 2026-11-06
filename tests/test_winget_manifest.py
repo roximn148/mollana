@@ -115,10 +115,14 @@ def test_writeCreatesTheManifestSet(tmp_path: Path) -> None:
     wingetDir = tmp_path / "winget"
 
     args = [
-        "--dir", str(wingetDir),
-        "--version", "0.9.9z0",
-        "--installer", str(exe),
-        "--date", DATE,
+        "--dir",
+        str(wingetDir),
+        "--version",
+        "0.9.9z0",
+        "--installer",
+        str(exe),
+        "--date",
+        DATE,
     ]
     exitCode = module.main(args)
 
@@ -134,16 +138,26 @@ def test_checkPassesWhenCommittedFilesMatch(tmp_path: Path) -> None:
     exe = tmp_path / "Mollana-0.9.9z0-win64-setup.exe"
     exe.write_bytes(b"installer-bytes")
     wingetDir = tmp_path / "winget"
-    module.main([
-        "--dir", str(wingetDir),
-        "--version", "0.9.9z0",
-        "--installer", str(exe),
-        "--date", DATE,
-    ])
+    module.main(
+        [
+            "--dir",
+            str(wingetDir),
+            "--version",
+            "0.9.9z0",
+            "--installer",
+            str(exe),
+            "--date",
+            DATE,
+        ]
+    )
     checkArgs = [
-        "--check", "--dir", str(wingetDir),
-        "--version", "0.9.9z0",
-        "--installer", str(exe),
+        "--check",
+        "--dir",
+        str(wingetDir),
+        "--version",
+        "0.9.9z0",
+        "--installer",
+        str(exe),
     ]
     assert module.main(checkArgs) == 0
 
@@ -153,17 +167,27 @@ def test_checkFailsOnShaDrift(tmp_path: Path) -> None:
     exe = tmp_path / "Mollana-0.9.9z0-win64-setup.exe"
     exe.write_bytes(b"installer-bytes")
     wingetDir = tmp_path / "winget"
-    module.main([
-        "--dir", str(wingetDir),
-        "--version", "0.9.9z0",
-        "--installer", str(exe),
-        "--date", DATE,
-    ])
+    module.main(
+        [
+            "--dir",
+            str(wingetDir),
+            "--version",
+            "0.9.9z0",
+            "--installer",
+            str(exe),
+            "--date",
+            DATE,
+        ]
+    )
     exe.write_bytes(b"different-bytes")
 
     checkArgs = [
-        "--check", "--dir", str(wingetDir),
-        "--version", "0.9.9z0",
-        "--installer", str(exe),
+        "--check",
+        "--dir",
+        str(wingetDir),
+        "--version",
+        "0.9.9z0",
+        "--installer",
+        str(exe),
     ]
     assert module.main(checkArgs) == 1
