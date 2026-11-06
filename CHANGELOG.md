@@ -67,7 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   transliteration and predictive word suggestions, and adds a dockable
   on-screen keyboard, a vocabulary editor, basic spell checking, and themes.
 
-## [0.1.3a] - 2013-06-18
+## [0.1.2a] - 2013-06-18
 
 ### Added
 
