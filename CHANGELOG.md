@@ -7,15 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- Per-user Windows installer: installs Mollana into `%LOCALAPPDATA%\Mollana`
-  without administrator rights, with an optional all-users install offered
-  from the wizard.
-- The uninstaller now offers to remove Mollana's user data (preferences,
-  dictionaries, and logs), via a checkbox that is unchecked by default.
-
-## [0.2.0a1] - 2026-11-05
+## [0.2.0a1] - 2026-11-06
 
 ### Added
 
@@ -29,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preferences, dictionaries, and logs now live in the platform-standard data
   and configuration folders.
 - The Windows executable and installer carry the real version number.
+- Per-user Windows installer: installs Mollana into `%LOCALAPPDATA%\Mollana`
+  without administrator rights, with an optional all-users install offered
+  from the wizard.
+- The uninstaller now offers to remove Mollana's user data (preferences,
+  dictionaries, and logs), via a checkbox that is unchecked by default.
 
 ### Changed
 
