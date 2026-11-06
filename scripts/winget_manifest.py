@@ -105,6 +105,13 @@ def renderManifest(version: str, sha256: str, releaseDate: str) -> dict[str, str
         f"PackageIdentifier: {IDENTIFIER}\n"
         f"PackageVersion: {version}\n"
         "InstallerType: inno\n"
+        # PrivilegesRequiredOverridesAllowed=dialog raises the "Select Setup
+        # Install Mode" prompt even in silent installs unless an override
+        # switch is given, which would hang winget's silent install and the
+        # winget-pkgs validation pipeline.
+        "InstallerSwitches:\n"
+        "  Silent: /VERYSILENT /CURRENTUSER\n"
+        "  SilentWithProgress: /SILENT /CURRENTUSER\n"
         "Installers:\n"
         "- Architecture: x64\n"
         "  Scope: user\n"

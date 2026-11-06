@@ -101,6 +101,7 @@ def test_installerFileCarriesSha256AndAssetUrl() -> None:
     assert "Mollana-0.2.0a1-win64-setup.exe" in installer
     assert "Architecture: x64" in installer
     assert "InstallerType: inno" in installer
+    assert "/CURRENTUSER" in installer  # silent installs otherwise hang on the Install Mode dialog
     assert "ManifestType: installer" in installer
     assert "ManifestVersion: 1.12.0" in installer
     assert "winget-manifest.installer.1.12.0.schema.json" in installer
