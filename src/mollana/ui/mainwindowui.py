@@ -72,6 +72,7 @@ class MainWindowUi:
         window.setMinimumSize(QSize(480, 320))
         window.setWindowIcon(icon("mollana64.png"))
         window.setIconSize(QSize(24, 24))
+        # The title is owned by MainWindow._updateTitle(), not the view.
 
         self._buildActions(window)
         self._buildCentralWidget(window)

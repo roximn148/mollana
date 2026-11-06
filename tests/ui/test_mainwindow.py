@@ -13,13 +13,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QKeySequence
-from PySide6.QtWidgets import QApplication, QSplitter
+from PySide6.QtGui import QIcon, QKeySequence
+from PySide6.QtWidgets import QApplication, QMenu, QSplitter
 
 from mollana.editor.dictionaries import DictionaryStore
 from mollana.editor.session import Session
 from mollana.ui.editor_pane import EditorPane
 from mollana.ui.explorer import FileExplorer
+from mollana.ui.icons import icon, imagesDir
 from mollana.ui.mainwindow import MainWindow
 
 
@@ -147,26 +148,31 @@ EXPECTED_TOOLTIPS: dict[str, str] = {
     "actionSpellChecker": "Underline words the dictionary does not know",
 }
 
-ICON_ACTIONS: tuple[str, ...] = (
-    "actionNew",
-    "actionOpen",
-    "actionOpenFolder",
-    "actionNewProject",
-    "actionOpenProject",
-    "actionSave",
-    "actionSaveAs",
-    "actionQuit",
-    "actionUndo",
-    "actionRedo",
-    "actionAbout",
-)
+ICON_FILES: dict[str, str] = {
+    "actionNew": "new.png",
+    "actionOpen": "add_to_open_folder.png",
+    "actionOpenFolder": "open_folder_info.png",
+    "actionNewProject": "add_page.png",
+    "actionOpenProject": "office_folders.png",
+    "actionSave": "save.png",
+    "actionSaveAs": "transfer.png",
+    "actionQuit": "shut_down.png",
+    "actionUndo": "blue_arrow_down.png",
+    "actionRedo": "blue_arrow_up.png",
+    "actionAbout": "help_balloon.png",
+}
 
 
 # ******************************************************************************
-def test_windowImportsWithoutGeneratedUiModules() -> None:
-    """The window must import without uic or rcc output."""
+def test_windowBuildsWithoutGeneratedUiModules() -> None:
+    """The window must build without uic or rcc output."""
     script = """
+import os
 import sys
+import tempfile
+from pathlib import Path
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 
 class BlockGeneratedModules:
@@ -177,7 +183,31 @@ class BlockGeneratedModules:
 
 
 sys.meta_path.insert(0, BlockGeneratedModules())
-import mollana.ui.mainwindow
+
+from PySide6.QtWidgets import QApplication
+from mollana.editor.dictionaries import DictionaryStore
+from mollana.editor.session import Session
+from mollana.ui.mainwindow import MainWindow
+
+
+class StubMain:
+    LogLevel = "DEBUG"
+    RecentFiles = []
+    RecentMaxCount = 10
+
+
+class StubSettings:
+    Main = StubMain()
+
+    def save(self):
+        pass
+
+
+app = QApplication([])
+store = DictionaryStore(Path(tempfile.mkdtemp()) / "dictionaries")
+store.ensureDefault()
+window = MainWindow(Session(), store, StubSettings())
+assert window.ui.actionNew.shortcut().toString() == "Ctrl+N"
 print("ok")
 """
     result = subprocess.run(
@@ -241,6 +271,26 @@ def test_actionsKeepTheirContract(qapp: QApplication, tmp_path: Path) -> None:
 
 
 # ******************************************************************************
+def _menuEntries(menu: QMenu) -> list[str]:
+    """Return object names, texts for unnamed actions, and ``-`` separators."""
+    entries: list[str] = []
+    for action in menu.actions():
+        if action.isSeparator():
+            entries.append("-")
+        elif action.objectName():
+            entries.append(action.objectName())
+        else:
+            entries.append(action.text())
+    return entries
+
+
+# ******************************************************************************
+def _iconPixels(source: QIcon) -> bytes:
+    """Return the rendered pixels of an icon so two icons can be compared."""
+    return bytes(source.pixmap(24, 24).toImage().constBits())
+
+
+# ******************************************************************************
 def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) -> None:
     window = _window(tmp_path)
 
@@ -248,43 +298,48 @@ def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) ->
     assert window.ui.menuEdit.title() == "&Edit"
     assert window.ui.menuFormat.title() == "F&ormat"
     assert window.ui.menuHelp.title() == "&Help"
+    assert [action.text() for action in window.ui.menuBar.actions()] == [
+        "&File",
+        "&Edit",
+        "F&ormat",
+        "&Help",
+    ]
 
-    def names(menu) -> list[str]:
-        return [
-            action.objectName()
-            for action in menu.actions()
-            if not action.isSeparator() and action.objectName()
-        ]
-
-    assert names(window.ui.menuFile) == [
+    assert _menuEntries(window.ui.menuFile) == [
         "actionNew",
         "actionOpen",
         "actionOpenFolder",
+        "-",
         "actionNewProject",
         "actionOpenProject",
+        "-",
         "actionSave",
         "actionSaveAs",
         "actionCloseTab",
+        "-",
+        "Recent Files",
         "actionQuit",
     ]
-    assert names(window.ui.menuEdit) == [
+    assert _menuEntries(window.ui.menuEdit) == [
         "actionUndo",
         "actionRedo",
+        "-",
         "actionCut",
         "actionCopy",
         "actionPaste",
+        "-",
         "actionSelectAll",
     ]
-    assert names(window.ui.menuFormat) == ["actionWordWrap", "actionSpellChecker"]
-    assert names(window.ui.menuHelp) == ["actionAbout"]
+    assert _menuEntries(window.ui.menuFormat) == ["actionWordWrap", "actionSpellChecker"]
+    assert _menuEntries(window.ui.menuHelp) == ["actionAbout"]
     assert window.ui.menuFile.actions()[-1] is window.ui.actionQuit
-    assert any(action.text() == "Recent Files" for action in window.ui.menuFile.actions())
 
     assert window.ui.mainToolBar.actions() == [
         window.ui.actionNew,
         window.ui.actionOpen,
         window.ui.actionSave,
     ]
+    assert window.toolBarArea(window.ui.mainToolBar) == Qt.ToolBarArea.TopToolBarArea
     assert not window.ui.mainToolBar.isMovable()
     assert window.ui.mainToolBar.toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonTextUnderIcon
     assert window.ui.mainToolBar.windowTitle() == "Standard"
@@ -293,15 +348,21 @@ def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) ->
 
 # ******************************************************************************
 def test_iconsLoadFromTheImageFolder(qapp: QApplication, tmp_path: Path) -> None:
-    from mollana.ui.icons import icon
-
     assert not icon("new.png").isNull()
 
     window = _window(tmp_path)
-    assert not window.windowIcon().isNull()
-    for name in ICON_ACTIONS:
-        assert not getattr(window.ui, name).icon().isNull()
+    assert _iconPixels(window.windowIcon()) == _iconPixels(icon("mollana64.png"))
+    for name, filename in ICON_FILES.items():
+        action = getattr(window.ui, name)
+        assert not action.icon().isNull()
+        assert _iconPixels(action.icon()) == _iconPixels(icon(filename))
     window.close()
+
+
+# ******************************************************************************
+def test_imagesDirUsesMeipass(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
+    assert imagesDir() == tmp_path / "mollana" / "ui" / "resources" / "images"
 
 
 # ******************************************************************************
