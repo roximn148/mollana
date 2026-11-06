@@ -25,7 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without administrator rights, with an optional all-users install offered
   from the wizard.
 - The uninstaller now offers to remove Mollana's user data (preferences,
-  dictionaries, and logs), via a checkbox that is unchecked by default.
+  dictionaries, and logs), via a checkbox that is unchecked by default, and
+  warns that the saved dictionaries cannot be recovered afterwards.
 
 ### Changed
 

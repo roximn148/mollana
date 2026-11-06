@@ -74,14 +74,22 @@ Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#AppName}}"; F
 // uninstaller has finished deleting the application files. Silent uninstalls
 // (/SILENT, /VERYSILENT) never see the dialog.
 
+//
+// Layout notes: the dialog is built with CreateCustomForm so it inherits Inno's
+// DPI-aware dialog font, and every coordinate goes through ScaleX/ScaleY.
+// TLabel.AutoSize defaults to True, which discards an explicit Width and
+// collapses WordWrap text into a narrow column, so it must be turned off before
+// the bounds are set.
+
 var
   DeleteUserData: Boolean;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   dataDir: String;
-  form: TForm;
-  captionLabel: TLabel;
+  form: TSetupForm;
+  questionLabel: TLabel;
+  warningLabel: TLabel;
   checkBox: TCheckBox;
   okButton: TButton;
   cancelButton: TButton;
@@ -93,42 +101,56 @@ begin
     dataDir := ExpandConstant('{localappdata}\mollana');
     if (not UninstallSilent()) and DirExists(dataDir) then
     begin
-      form := TForm.Create(nil);
+      form := CreateCustomForm(ScaleX(420), ScaleY(176), True, True);
       form.Caption := 'Uninstall Mollana';
-      form.BorderStyle := bsDialog;
       form.Position := poScreenCenter;
-      form.Width := 400;
-      form.Height := 140;
 
-      captionLabel := TLabel.Create(form);
-      captionLabel.Parent := form;
-      captionLabel.Left := 12;
-      captionLabel.Top := 12;
-      captionLabel.Width := 370;
-      captionLabel.WordWrap := True;
-      captionLabel.Caption := 'Remove Mollana''s user data (preferences, dictionaries, and logs)?';
+      questionLabel := TLabel.Create(form);
+      questionLabel.Parent := form;
+      questionLabel.WordWrap := True;
+      questionLabel.Caption :=
+        'Remove Mollana''s user data (preferences, dictionaries, and logs)?';
+      questionLabel.AutoSize := False;
+      questionLabel.Left := ScaleX(16);
+      questionLabel.Top := ScaleY(12);
+      questionLabel.Width := ScaleX(388);
+      questionLabel.Height := ScaleY(30);
+
+      warningLabel := TLabel.Create(form);
+      warningLabel.Parent := form;
+      warningLabel.WordWrap := True;
+      warningLabel.Caption :=
+        'Warning: checking this box permanently deletes every saved dictionary ' +
+        'in that folder. Back up your dictionaries first if you want to keep them.';
+      warningLabel.AutoSize := False;
+      warningLabel.Left := ScaleX(16);
+      warningLabel.Top := ScaleY(46);
+      warningLabel.Width := ScaleX(388);
+      warningLabel.Height := ScaleY(48);
 
       checkBox := TCheckBox.Create(form);
       checkBox.Parent := form;
-      checkBox.Left := 12;
-      checkBox.Top := 52;
       checkBox.Caption := 'Remove user data';
+      checkBox.Left := ScaleX(16);
+      checkBox.Top := ScaleY(100);
 
       okButton := TButton.Create(form);
       okButton.Parent := form;
-      okButton.Left := 170;
-      okButton.Top := 84;
-      okButton.Width := 75;
       okButton.Caption := 'OK';
+      okButton.Left := ScaleX(240);
+      okButton.Top := ScaleY(136);
+      okButton.Width := ScaleX(78);
+      okButton.Height := ScaleY(25);
       okButton.ModalResult := mrOK;
       okButton.Default := True;
 
       cancelButton := TButton.Create(form);
       cancelButton.Parent := form;
-      cancelButton.Left := 258;
-      cancelButton.Top := 84;
-      cancelButton.Width := 75;
       cancelButton.Caption := 'Cancel';
+      cancelButton.Left := ScaleX(326);
+      cancelButton.Top := ScaleY(136);
+      cancelButton.Width := ScaleX(78);
+      cancelButton.Height := ScaleY(25);
       cancelButton.ModalResult := mrCancel;
       cancelButton.Cancel := True;
 
