@@ -88,7 +88,8 @@ Python **3.13**, managed with **uv**. Always go through `uv`.
 | Tests                   | `uv run pytest`                             |
 
 The console script and `-m` entry work from any directory. The generated UI modules are not
-committed, so a fresh clone needs `compileUI.py` before the first launch.
+committed, so a fresh clone needs `compileUI.py` before the first launch, and before
+`uv run pytest`, whose UI tests import them; the release workflow generates them first.
 
 ## Conventions
 
