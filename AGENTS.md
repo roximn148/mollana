@@ -53,7 +53,6 @@ src/mollana/
     ├── editor_pane.py      # EditorPane (QTabWidget of PyRaya)
     ├── theme.py            # palette application
     └── resources/          # mollana.qrc + images/
-data/                       # corpora and notebooks — data, not code
 tests/                      # pytest; conftest sets QT_QPA_PLATFORM=offscreen
 scripts/compileUI.py        # uic/rcc build step
 scripts/generate-win-setup.bat  # compileUI -> PyInstaller -> Inno Setup
@@ -98,7 +97,7 @@ committed, so a fresh clone needs `compileUI.py` before the first launch, and be
 - Every source file starts with the MIT copyright banner; keep it first.
 - `mollana.*` namespaced imports only; no flat imports.
 - Type hints and docstrings on public functions/classes.
-- Ruff: line length 100, rules `E,F,W,I,UP,B`, `src = ["src"]`, `data/` excluded.
+- Ruff: line length 100, rules `E,F,W,I,UP,B`, `src = ["src"]`.
 - `CHANGELOG.md` follows Keep a Changelog + SemVer in structure, but its content is the
   **user-facing surface only** — the public user contract of the desktop app: what the end user
   can now do, experience, or hit, in user language. Internal changes (layers, engines, CI, build,
@@ -266,8 +265,6 @@ is one global, per-process choice stored in the dictionary catalogue.
   directly from mollana is a smell.
 - Use **`pyside6-essentials`**, not the `pyside6` metapackage; Mollana needs only
   QtCore/QtGui/QtWidgets.
-- `data/` is data: corpora, notebooks, and vocabulary fixtures. Do not reformat, normalize,
-  or "clean" it, and do not add `__init__.py` — it is not a package.
 - `docs/` still describes the pilot editor (TECkit, twin panes, line numbers). Treat it as
   stale until rewritten.
 

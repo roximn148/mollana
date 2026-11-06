@@ -53,7 +53,6 @@ dev = [
 line-length = 100
 target-version = "py313"
 src = ["src"]
-extend-exclude = ["data"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]

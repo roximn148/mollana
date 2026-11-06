@@ -28,7 +28,7 @@ uv run python scripts\compileUI.py
 if errorlevel 1 exit /b 1
 
 echo [2/3] Freezing the application with PyInstaller...
-uv run python scripts\normalize-mtimes.py .venv src data
+uv run python scripts\normalize-mtimes.py .venv src
 if errorlevel 1 exit /b 1
 uv run pyinstaller --clean --noconfirm mollana.spec
 if errorlevel 1 exit /b 1
