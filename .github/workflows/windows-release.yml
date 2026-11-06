@@ -66,7 +66,10 @@ jobs:
       - name: Install Inno Setup
         # Pinned: the installer bytes depend on the Inno Setup version, and the
         # winget manifest's InstallerSha256 is generated with the pinned version.
-        run: winget install -e --id JRSoftware.InnoSetup --version 6.7.3
+        # --source winget keeps the msstore source out of it; without the
+        # agreement flags winget stops at a Y/N prompt and the runner cannot
+        # answer it.
+        run: winget install -e --id JRSoftware.InnoSetup --version 6.7.3 --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity
 
       - name: Build the application and installer
         shell: pwsh

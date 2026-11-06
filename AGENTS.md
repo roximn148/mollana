@@ -210,9 +210,12 @@ is one global, per-process choice stored in the dictionary catalogue.
   prompt in silent mode, scripted installs must pass `/SILENT /CURRENTUSER`; without it
   the setup waits forever on a dialog nobody can click.
 - Inno Setup 6 is not preinstalled on GitHub runners; the release workflow installs it
-  with `winget install -e --id JRSoftware.InnoSetup --version 6.7.3` — the version is
-  pinned because the installer bytes depend on it (see the reproducibility gotcha
-  below). `generate-win-setup.bat` locates ISCC itself, so no PATH refresh is needed.
+  with `winget install -e --id JRSoftware.InnoSetup --version 6.7.3 --source winget
+  --accept-source-agreements --accept-package-agreements --disable-interactivity` — the
+  version is pinned because the installer bytes depend on it (see the reproducibility
+  gotcha below), and the flags are required because an unattended runner cannot answer
+  winget's source-agreement prompt. `generate-win-setup.bat` locates ISCC itself, so no
+  PATH refresh is needed.
 - The winget manifests are **not** part of the PyInstaller bundle; the release workflow
   runs `scripts/winget_manifest.py --check` after building and fails when the committed
   manifest's sha256 does not match the freshly built installer.
