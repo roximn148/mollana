@@ -14,7 +14,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QKeySequence
-from PySide6.QtWidgets import QApplication, QMenu, QSplitter
+from PySide6.QtWidgets import QApplication, QDockWidget, QMenu
 
 from mollana.editor.dictionaries import DictionaryStore
 from mollana.editor.session import Session
@@ -221,7 +221,7 @@ print("ok")
 
 
 # ******************************************************************************
-def test_windowLayoutMatchesTheDesign(qapp: QApplication, tmp_path: Path) -> None:
+def test_windowLayoutUsesEditorCentreAndExplorerDock(qapp: QApplication, tmp_path: Path) -> None:
     window = _window(tmp_path)
 
     assert window.width() == 1024
@@ -232,18 +232,25 @@ def test_windowLayoutMatchesTheDesign(qapp: QApplication, tmp_path: Path) -> Non
     assert window.iconSize().height() == 24
     assert not window.windowIcon().isNull()
 
-    assert isinstance(window.centralWidget(), QSplitter)
-    assert window.centralWidget() is window.ui.splMain
-    assert window.ui.splMain.objectName() == "splMain"
-    assert window.ui.splMain.orientation() == Qt.Orientation.Horizontal
-    assert window.ui.splMain.childrenCollapsible()
-    assert window.ui.splMain.count() == 2
-    assert window.ui.splMain.widget(0) is window.ui.trvExplorer
-    assert window.ui.splMain.widget(1) is window.ui.tbwEditors
-    assert isinstance(window.ui.trvExplorer, FileExplorer)
-    assert isinstance(window.ui.tbwEditors, EditorPane)
-    assert window.ui.trvExplorer.objectName() == "trvExplorer"
+    assert isinstance(window.centralWidget(), EditorPane)
+    assert window.centralWidget() is window.ui.tbwEditors
     assert window.ui.tbwEditors.objectName() == "tbwEditors"
+
+    dock = window.ui.dockExplorer
+    assert isinstance(dock, QDockWidget)
+    assert dock.objectName() == "dockExplorer"
+    assert dock.windowTitle() == "Explorer"
+    assert dock.widget() is window.ui.trvExplorer
+    assert isinstance(window.ui.trvExplorer, FileExplorer)
+    assert window.ui.trvExplorer.objectName() == "trvExplorer"
+    assert window.dockWidgetArea(dock) == Qt.DockWidgetArea.LeftDockWidgetArea
+    assert dock.allowedAreas() == (
+        Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
+    )
+    assert not dock.isFloating()
+    assert dock.features() & QDockWidget.DockWidgetFeature.DockWidgetMovable
+    assert dock.features() & QDockWidget.DockWidgetFeature.DockWidgetFloatable
+    assert not (dock.features() & QDockWidget.DockWidgetFeature.DockWidgetClosable)
 
     assert window.ui.menuBar.objectName() == "menuBar"
     assert window.ui.mainToolBar.objectName() == "mainToolBar"

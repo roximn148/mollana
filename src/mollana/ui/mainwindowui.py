@@ -14,7 +14,7 @@ module only builds the window and names its parts.
 # ******************************************************************************
 from PySide6.QtCore import QObject, QSize, Qt
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QMainWindow, QMenu, QMenuBar, QSplitter, QStatusBar, QToolBar
+from PySide6.QtWidgets import QDockWidget, QMainWindow, QMenu, QMenuBar, QStatusBar, QToolBar
 
 from mollana.ui.editor_pane import EditorPane
 from mollana.ui.explorer import FileExplorer
@@ -76,6 +76,7 @@ class MainWindowUi:
 
         self._buildActions(window)
         self._buildCentralWidget(window)
+        self._buildExplorerDock(window)
         self._buildMenus(window)
         self._buildToolBar(window)
         self._buildStatusBar(window)
@@ -214,21 +215,29 @@ class MainWindowUi:
 
     # **************************************************************************
     def _buildCentralWidget(self, window: QMainWindow) -> None:
-        """Create the explorer/editor splitter and make it the central widget."""
-        self.splMain = QSplitter(window)
-        self.splMain.setObjectName("splMain")
-        self.splMain.setOrientation(Qt.Orientation.Horizontal)
-        self.splMain.setChildrenCollapsible(True)
-
-        self.trvExplorer = FileExplorer(self.splMain)
-        self.trvExplorer.setObjectName("trvExplorer")
-        self.splMain.addWidget(self.trvExplorer)
-
-        self.tbwEditors = EditorPane(self.splMain)
+        """Create the editor tabs and make them the central widget."""
+        self.tbwEditors = EditorPane(window)
         self.tbwEditors.setObjectName("tbwEditors")
-        self.splMain.addWidget(self.tbwEditors)
+        window.setCentralWidget(self.tbwEditors)
 
-        window.setCentralWidget(self.splMain)
+    # **************************************************************************
+    def _buildExplorerDock(self, window: QMainWindow) -> None:
+        """Create the file explorer as a left/right dock, left by default."""
+        self.dockExplorer = QDockWidget("Explorer", window)
+        self.dockExplorer.setObjectName("dockExplorer")
+        self.dockExplorer.setAllowedAreas(
+            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
+        )
+        self.dockExplorer.setFeatures(
+            QDockWidget.DockWidgetFeature.DockWidgetMovable
+            | QDockWidget.DockWidgetFeature.DockWidgetFloatable
+        )
+
+        self.trvExplorer = FileExplorer()
+        self.trvExplorer.setObjectName("trvExplorer")
+        self.dockExplorer.setWidget(self.trvExplorer)
+
+        window.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dockExplorer)
 
     # **************************************************************************
     def _buildMenus(self, window: QMainWindow) -> None:

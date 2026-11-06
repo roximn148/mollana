@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The file explorer is now a dock panel that can sit on the left or right edge;
+  the document tabs fill the central area.
+
 ## [0.2.0a1] - 2026-11-06
 
 ### Added
