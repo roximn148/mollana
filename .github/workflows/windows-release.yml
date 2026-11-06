@@ -77,6 +77,17 @@ jobs:
           & "scripts\generate-win-setup.bat"
           if ($LASTEXITCODE -ne 0) { throw "generate-win-setup.bat failed" }
 
+      - name: Record the built file hashes
+        # Reproducibility debugging aid: the manifest check below compares one
+        # sha256 for the whole installer, which says nothing about *what*
+        # differs when a workstation and the runner disagree.
+        shell: pwsh
+        run: |
+          Get-ChildItem dist\Mollana -Recurse -File | Sort-Object FullName | ForEach-Object {
+            $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+            "{0}  {1}" -f $h.Substring(0, 16), $_.FullName.Replace("$PWD\dist\Mollana\", "")
+          }
+
       - name: Check the committed winget manifest
         run: uv run python scripts/winget_manifest.py --check
 
