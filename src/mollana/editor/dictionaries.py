@@ -149,11 +149,12 @@ class DictionaryStore:
     def ensureDefault(self) -> DictionaryEntry:
         """Create the catalogue and the default dictionary if either is missing."""
         self.root.mkdir(parents=True, exist_ok=True)
-        if self.find(DEFAULT_ID) is None:
-            self.create(DEFAULT_ID, DEFAULT_NAME)
+        entry = self.find(DEFAULT_ID)
+        if entry is None:
+            entry = self.create(DEFAULT_ID, DEFAULT_NAME)
         elif not self.pathOf(DEFAULT_ID).is_file():
             self.pathOf(DEFAULT_ID).write_text("", encoding="utf-8", newline="")
-        return self.find(DEFAULT_ID)  # type: ignore[return-value]
+        return entry
 
     # **************************************************************************
     def create(self, dictionaryId: str, name: str, description: str = "") -> DictionaryEntry:

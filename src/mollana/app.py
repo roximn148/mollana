@@ -53,7 +53,7 @@ def main() -> int:
     log = appLogging.setup(dataPath)
     appLogging.runtime(log, f"Initializing {Rx.ApplicationTitle} {Rx.ApplicationVersion}...")
 
-    settings = RSettings()  # type: ignore[missing-argument]  # filled by confz sources
+    settings = RSettings()  # filled by confz sources
     log.debug("Preferences loaded")
     log.setLevel(settings.Main.LogLevel)
     applyTheme(app, settings.Main.Theme)

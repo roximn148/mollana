@@ -171,9 +171,7 @@ is one global, per-process choice stored in the dictionary catalogue.
 
 - `uv run mollana` launches, from the repo or elsewhere.
 - `uv run ruff check .` passes (baseline: clean).
-- `uv run pyrefly check` reports **0 errors**. The two remaining suppressions are confz's
-  source-populated `RSettings()` argument in `app.py` and a narrowed return in
-  `editor/dictionaries.py`.
+- `uv run pyrefly check` reports **0 errors** with no suppressions.
 - `uv run lint-imports` keeps both contracts, and `uv run pytest` passes headless with
   `tests/test_architecture.py` still holding the layer line.
 - The version in `pyproject.toml`, a dated `## [version]` section in `CHANGELOG.md`, and
@@ -186,8 +184,8 @@ is one global, per-process choice stored in the dictionary catalogue.
   PyInstaller spec ships that folder, and `imagesDir()` switches to `_MEIPASS` when frozen.
   A missing file yields a null `QIcon` rather than an error, so the UI contract test checks
   that every icon-bearing action is non-null.
-- `RSettings()` looks argument-less but confz supplies `Main` from `TomlSource`. Pyrefly
-  reports `missing-argument`; the single suppression in `app.py` is intentional.
+- `RSettings()` looks argument-less but confz supplies `Main` from `TomlSource`. The field
+  has a default so type checkers accept the call; the TOML source still overrides it.
 - `TomlLoader.populate_config` must keep confz's `config_source` parameter name, and the
   `[Main]` table is cast to a plain mapping because tomlkit types every lookup as `Item`.
 - A frozen build must ship distribution metadata (`copy_metadata("mollana")` in

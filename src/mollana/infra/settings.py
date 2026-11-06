@@ -218,7 +218,7 @@ tomlkit.register_encoder(_encodePath)
 class RSettings(BaseConfig):
     """Application preferences, loaded from ``preferences.toml``."""
 
-    Main: MainConfig
+    Main: MainConfig = Field(default_factory=MainConfig)
 
     CONFIG_SOURCES = TomlSource(tomlFile=paths.configDir() / CONFIG_FILENAME)
 

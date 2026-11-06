@@ -83,6 +83,19 @@ def test_loaderResetsAnInvalidValueToItsDefault(tmp_path: Path) -> None:
 
 
 # ******************************************************************************
+def test_settingsLoadTheTomlValues(tmp_path: Path) -> None:
+    source = TomlSource(tomlFile=tmp_path / CONFIG_FILENAME)
+    source.tomlFile.write_text(
+        '[Main]\nRecentMaxCount = 7\nTheme = "Dark"\n',
+        encoding="utf-8",
+    )
+    with RSettings.change_config_sources(source):
+        settings = RSettings()
+        assert settings.Main.RecentMaxCount == 7
+        assert settings.Main.Theme is Themes.Dark
+
+
+# ******************************************************************************
 def test_saveWritesTheCurrentValues(tmp_path: Path) -> None:
     source = TomlSource(tomlFile=tmp_path / CONFIG_FILENAME)
     with RSettings.change_config_sources(source):
