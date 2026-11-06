@@ -67,7 +67,7 @@ def test_versionFileDeclaresPackageIdentityAndSchema() -> None:
         "PackageVersion: 0.2.0a1",
         "DefaultLocale: en-US",
         "ManifestType: version",
-        "ManifestVersion: 1.12.0",
+        "ManifestVersion: 1.28.0",
         "MinimumOSVersion: 10.0.17763.0",
     ):
         assert expected in version
@@ -87,7 +87,7 @@ def test_localeFileCarriesPublisherLicenseAndUrls() -> None:
         "releases/tag/v0.2.0a1",
         f"ReleaseDate: {DATE}",
         "ManifestType: defaultLocale",
-        "ManifestVersion: 1.12.0",
+        "ManifestVersion: 1.28.0",
     ):
         assert expected in locale
 
@@ -103,8 +103,8 @@ def test_installerFileCarriesSha256AndAssetUrl() -> None:
     assert "InstallerType: inno" in installer
     assert "/CURRENTUSER" in installer  # silent installs otherwise hang on the Install Mode dialog
     assert "ManifestType: installer" in installer
-    assert "ManifestVersion: 1.12.0" in installer
-    assert "winget-manifest.installer.1.12.0.schema.json" in installer
+    assert "ManifestVersion: 1.28.0" in installer
+    assert "winget-manifest.installer.1.28.0.schema.json" in installer
     assert "ReleaseDate" not in installer  # belongs in the locale file; winget rejects a duplicate
 
 

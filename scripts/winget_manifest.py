@@ -37,8 +37,8 @@ IDENTIFIER = "RoXimn.Mollana"
 REPO_URL = "https://github.com/roximn148/mollana"
 """Canonical repository URL; the asset and note URLs are derived from it."""
 
-MANIFEST_VERSION = "1.12.0"
-"""Schema version of the winget-pkgs documents."""
+MANIFEST_VERSION = "1.28.0"
+"""Schema version of the winget-pkgs documents (matches current submissions)."""
 
 MINIMUM_OS_VERSION = "10.0.17763.0"
 """Qt 6's Windows 10 1809 floor."""
