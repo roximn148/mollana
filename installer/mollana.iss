@@ -65,3 +65,81 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: deskto
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+// The user data directory ({localappdata}\mollana: preferences, dictionaries,
+// and logs) is kept by uninstallation by default. When the user starts an
+// interactive uninstall, the script below offers to remove it, with an opt-in
+// checkbox: unchecked, the data is kept; checked, it is removed after the
+// uninstaller has finished deleting the application files. Silent uninstalls
+// (/SILENT, /VERYSILENT) never see the dialog.
+
+var
+  DeleteUserData: Boolean;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  dataDir: String;
+  form: TForm;
+  captionLabel: TLabel;
+  checkBox: TCheckBox;
+  okButton: TButton;
+  cancelButton: TButton;
+  formResult: Integer;
+begin
+  if CurUninstallStep = usUninstall then
+  begin
+    DeleteUserData := False;
+    dataDir := ExpandConstant('{localappdata}\mollana');
+    if (not UninstallSilent()) and DirExists(dataDir) then
+    begin
+      form := TForm.Create(nil);
+      form.Caption := 'Uninstall Mollana';
+      form.BorderStyle := bsDialog;
+      form.Position := poScreenCenter;
+      form.Width := 400;
+      form.Height := 140;
+
+      captionLabel := TLabel.Create(form);
+      captionLabel.Parent := form;
+      captionLabel.Left := 12;
+      captionLabel.Top := 12;
+      captionLabel.Width := 370;
+      captionLabel.WordWrap := True;
+      captionLabel.Caption := 'Remove Mollana''s user data (preferences, dictionaries, and logs)?';
+
+      checkBox := TCheckBox.Create(form);
+      checkBox.Parent := form;
+      checkBox.Left := 12;
+      checkBox.Top := 52;
+      checkBox.Caption := 'Remove user data';
+
+      okButton := TButton.Create(form);
+      okButton.Parent := form;
+      okButton.Left := 170;
+      okButton.Top := 84;
+      okButton.Width := 75;
+      okButton.Caption := 'OK';
+      okButton.ModalResult := mrOK;
+      okButton.Default := True;
+
+      cancelButton := TButton.Create(form);
+      cancelButton.Parent := form;
+      cancelButton.Left := 258;
+      cancelButton.Top := 84;
+      cancelButton.Width := 75;
+      cancelButton.Caption := 'Cancel';
+      cancelButton.ModalResult := mrCancel;
+      cancelButton.Cancel := True;
+
+      formResult := form.ShowModal;
+      if (formResult = mrOK) and checkBox.Checked then
+        DeleteUserData := True;
+      form.Free;
+    end;
+  end
+  else if (CurUninstallStep = usPostUninstall) and DeleteUserData then
+  begin
+    DelTree(ExpandConstant('{localappdata}\mollana'), True, True, True);
+  end;
+end;

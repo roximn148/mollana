@@ -201,9 +201,13 @@ is one global, per-process choice stored in the dictionary catalogue.
 - `installer/mollana.iss` is a per-user installer: `PrivilegesRequired=lowest` installs
   into `%LOCALAPPDATA%\Mollana` without elevation, and
   `PrivilegesRequiredOverridesAllowed=dialog` lets the wizard offer an elevated
-  all-users install. The uninstall entry lands in HKCU under the AppId plus `_is1`. It
-  does not delete `%LOCALAPPDATA%\mollana` on uninstall — that holds user preferences
-  and dictionaries.
+  all-users install. The uninstall entry lands in HKCU under the AppId plus `_is1`. The
+  uninstaller offers to delete `%LOCALAPPDATA%\mollana` — user preferences, dictionaries,
+  and logs — via an opt-in checkbox in the `[Code]` section; the data is kept unless the
+  user checks it, and silent uninstalls never see the dialog. Because
+  `PrivilegesRequiredOverridesAllowed=dialog` also raises the "Select Setup Install Mode"
+  prompt in silent mode, scripted installs must pass `/SILENT /CURRENTUSER`; without it
+  the setup waits forever on a dialog nobody can click.
 - Inno Setup 6 is not preinstalled on GitHub runners; the release workflow installs it
   with `winget install -e --id JRSoftware.InnoSetup --version 6.7.3` — the version is
   pinned because the installer bytes depend on it (see the reproducibility gotcha
