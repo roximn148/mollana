@@ -73,7 +73,6 @@ Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#AppName}}"; F
 // checkbox: unchecked, the data is kept; checked, it is removed after the
 // uninstaller has finished deleting the application files. Silent uninstalls
 // (/SILENT, /VERYSILENT) never see the dialog.
-
 //
 // Layout notes: the dialog is built with CreateCustomForm so it inherits Inno's
 // DPI-aware dialog font, and every coordinate goes through ScaleX/ScaleY.
@@ -133,6 +132,7 @@ begin
       checkBox.Caption := 'Remove user data';
       checkBox.Left := ScaleX(16);
       checkBox.Top := ScaleY(100);
+      checkBox.Width := ScaleX(388);
 
       okButton := TButton.Create(form);
       okButton.Parent := form;
