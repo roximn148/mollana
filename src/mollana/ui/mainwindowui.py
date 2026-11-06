@@ -229,7 +229,8 @@ class MainWindowUi:
             Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
         )
         self.dockExplorer.setFeatures(
-            QDockWidget.DockWidgetFeature.DockWidgetMovable
+            QDockWidget.DockWidgetFeature.DockWidgetClosable
+            | QDockWidget.DockWidgetFeature.DockWidgetMovable
             | QDockWidget.DockWidgetFeature.DockWidgetFloatable
         )
 
@@ -248,8 +249,14 @@ class MainWindowUi:
 
         self.menuFile = _makeMenu(self.menuBar, "menuFile", "&File")
         self.menuEdit = _makeMenu(self.menuBar, "menuEdit", "&Edit")
+        self.menuView = _makeMenu(self.menuBar, "menuView", "&View")
         self.menuFormat = _makeMenu(self.menuBar, "menuFormat", "F&ormat")
         self.menuHelp = _makeMenu(self.menuBar, "menuHelp", "&Help")
+
+        self.actionFileExplorer = self.dockExplorer.toggleViewAction()
+        self.actionFileExplorer.setObjectName("actionFileExplorer")
+        self.actionFileExplorer.setText("File Explorer")
+        self.menuView.addAction(self.actionFileExplorer)
 
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)

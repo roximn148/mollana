@@ -250,7 +250,7 @@ def test_windowLayoutUsesEditorCentreAndExplorerDock(qapp: QApplication, tmp_pat
     assert not dock.isFloating()
     assert dock.features() & QDockWidget.DockWidgetFeature.DockWidgetMovable
     assert dock.features() & QDockWidget.DockWidgetFeature.DockWidgetFloatable
-    assert not (dock.features() & QDockWidget.DockWidgetFeature.DockWidgetClosable)
+    assert dock.features() & QDockWidget.DockWidgetFeature.DockWidgetClosable
 
     assert window.ui.menuBar.objectName() == "menuBar"
     assert window.ui.mainToolBar.objectName() == "mainToolBar"
@@ -303,11 +303,13 @@ def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) ->
 
     assert window.ui.menuFile.title() == "&File"
     assert window.ui.menuEdit.title() == "&Edit"
+    assert window.ui.menuView.title() == "&View"
     assert window.ui.menuFormat.title() == "F&ormat"
     assert window.ui.menuHelp.title() == "&Help"
     assert [action.text() for action in window.ui.menuBar.actions()] == [
         "&File",
         "&Edit",
+        "&View",
         "F&ormat",
         "&Help",
     ]
@@ -337,6 +339,7 @@ def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) ->
         "-",
         "actionSelectAll",
     ]
+    assert _menuEntries(window.ui.menuView) == ["actionFileExplorer"]
     assert _menuEntries(window.ui.menuFormat) == ["actionWordWrap", "actionSpellChecker"]
     assert _menuEntries(window.ui.menuHelp) == ["actionAbout"]
     assert window.ui.menuFile.actions()[-1] is window.ui.actionQuit
@@ -350,6 +353,34 @@ def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) ->
     assert not window.ui.mainToolBar.isMovable()
     assert window.ui.mainToolBar.toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonTextUnderIcon
     assert window.ui.mainToolBar.windowTitle() == "Standard"
+    window.close()
+
+
+# ******************************************************************************
+def test_viewMenuTogglesTheExplorerDock(qapp: QApplication, tmp_path: Path) -> None:
+    window = _window(tmp_path)
+    action = window.ui.actionFileExplorer
+    dock = window.ui.dockExplorer
+
+    assert action.objectName() == "actionFileExplorer"
+    assert action.text() == "File Explorer"
+    assert action.shortcut() == QKeySequence()
+    assert action.isCheckable()
+    assert not action.isChecked()
+    window.show()
+    qapp.processEvents()
+    assert dock.isVisible()
+    assert action.isChecked()
+
+    action.trigger()
+    qapp.processEvents()
+    assert not dock.isVisible()
+    assert not action.isChecked()
+
+    action.trigger()
+    qapp.processEvents()
+    assert dock.isVisible()
+    assert action.isChecked()
     window.close()
 
 
