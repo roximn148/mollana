@@ -80,7 +80,6 @@ Either form works from any directory. Development commands:
 | Type-check              | `uv run pyrefly check`               |
 | Layer contracts         | `uv run lint-imports`                |
 | Tests                   | `uv run pytest`                      |
-| Regenerate UI/resources | `uv run python scripts/compileUI.py` |
 
 ### Packaging
 
@@ -89,12 +88,11 @@ the installer includes version defines that the freeze step generates from
 `pyproject.toml`.
 
 ```bash
-uv run python scripts/compileUI.py
 uv run pyinstaller --clean --noconfirm mollana.spec
 ```
 
 Then compile `installer/mollana.iss` with Inno Setup, or run
-`scripts\generate-win-setup.bat` to do all three steps. The frozen app lands in
+`scripts\generate-win-setup.bat` to do both steps. The frozen app lands in
 `dist\Mollana\` and the installer in `dist\Mollana-<version>-win64-setup.exe`.
 
 

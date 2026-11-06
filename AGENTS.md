@@ -48,14 +48,14 @@ src/mollana/
 │   └── settings.py         # confz/pydantic prefs -> preferences.toml
 └── ui/
     ├── mainwindow.py       # menu/action wiring, save/close/dictionary flush
-    ├── mainwindow.ui       # Qt Designer source
+    ├── mainwindowui.py     # hand-written window construction
     ├── explorer.py         # FileExplorer (QTreeView over QFileSystemModel)
     ├── editor_pane.py      # EditorPane (QTabWidget of PyRaya)
+    ├── icons.py            # PNG icon loader (checkout and frozen build)
     ├── theme.py            # palette application
-    └── resources/          # mollana.qrc + images/
+    └── resources/images/   # PNG icons and the installer .ico
 tests/                      # pytest; conftest sets QT_QPA_PLATFORM=offscreen
-scripts/compileUI.py        # uic/rcc build step
-scripts/generate-win-setup.bat  # compileUI -> PyInstaller -> Inno Setup
+scripts/generate-win-setup.bat  # PyInstaller -> Inno Setup
 scripts/winget_manifest.py  # winget-pkgs manifest generator + --check
 mollana.spec                # PyInstaller definition (onedir + version resource)
 installer/mollana.iss       # Inno Setup 6 per-user installer
@@ -64,10 +64,8 @@ winget/                     # committed winget-pkgs manifests (RoXimn.Mollana/<v
 docs/                       # legacy user guide (describes the pilot)
 ```
 
-Generated and **gitignored**, written next to the UI modules:
-
-- `src/mollana/ui/mainwindow_ui.py`
-- `src/mollana/ui/mollana_rc.py`
+The main window is constructed by hand in `src/mollana/ui/mainwindowui.py`; there is no
+UI code generation step.
 
 ## Environment and commands
 
@@ -76,7 +74,6 @@ Python **3.13**, managed with **uv**. Always go through `uv`.
 | Action                  | Command                                     |
 | ----------------------- | ------------------------------------------- |
 | Sync deps               | `uv sync`                                   |
-| Build generated UI      | `uv run python scripts/compileUI.py`        |
 | Run the app             | `uv run mollana` or `uv run python -m mollana` |
 | Freeze the app          | `uv run pyinstaller --clean --noconfirm mollana.spec` |
 | Build the installer     | `scripts\generate-win-setup.bat` (needs Inno Setup 6) |
@@ -86,9 +83,8 @@ Python **3.13**, managed with **uv**. Always go through `uv`.
 | Layer contracts         | `uv run lint-imports`                       |
 | Tests                   | `uv run pytest`                             |
 
-The console script and `-m` entry work from any directory. The generated UI modules are not
-committed, so a fresh clone needs `compileUI.py` before the first launch, and before
-`uv run pytest`, whose UI tests import them; the release workflow generates them first.
+The console script and `-m` entry work from any directory. The UI is hand-written, so a
+fresh clone needs no code generation before `uv run mollana` or `uv run pytest`.
 
 ## Conventions
 
@@ -186,11 +182,10 @@ is one global, per-process choice stored in the dictionary catalogue.
 
 ## Gotchas
 
-- **Generated UI location is deliberate.** `pyside6-uic --from-imports` emits
-  `from . import mollana_rc`, so `compileUI.py` writes the compiled resource module into
-  `src/mollana/ui/`, not `ui/resources/`. Do not "tidy" it.
-- The `.ui` file references resources as `resources/mollana.qrc`. Change the `.ui`/`.qrc` and
-  rerun `scripts/compileUI.py`; never edit or commit the generated modules.
+- Icons load from `src/mollana/ui/resources/images` through `mollana.ui.icons`. The
+  PyInstaller spec ships that folder, and `imagesDir()` switches to `_MEIPASS` when frozen.
+  A missing file yields a null `QIcon` rather than an error, so the UI contract test checks
+  that every icon-bearing action is non-null.
 - `RSettings()` looks argument-less but confz supplies `Main` from `TomlSource`. Pyrefly
   reports `missing-argument`; the single suppression in `app.py` is intentional.
 - `TomlLoader.populate_config` must keep confz's `config_source` parameter name, and the
@@ -200,8 +195,8 @@ is one global, per-process choice stored in the dictionary catalogue.
   collects `pyraya/qamoos.sym` and `romanalfaz/UrduWords5k.sym`; both packages load them
   from beside their modules.
 - The frozen app is a PyInstaller **onedir** at `dist/Mollana`; the installer packs that
-  tree. Build order is generated UI → PyInstaller → Inno Setup, because the installer
-  `#include`s `build/version.iss`, written by the spec during the freeze.
+  tree. Build order is PyInstaller → Inno Setup, because the installer `#include`s
+  `build/version.iss`, written by the spec during the freeze.
 - `mollana.spec` trims unused Qt payload on purpose: translations, `opengl32sw.dll`,
   QtNetwork and its TLS plugins, non-Windows platform plugins, and unused image formats.
   Only `qwindows.dll` remains, so the frozen app cannot be launched with

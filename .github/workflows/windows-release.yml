@@ -55,11 +55,6 @@ jobs:
           }
           "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Build the generated UI modules
-        # mainwindow_ui.py and mollana_rc.py are gitignored, and the UI tests
-        # import them, so a fresh checkout must generate them before pytest.
-        run: uv run python scripts/compileUI.py
-
       - name: Run the test suite
         run: uv run pytest
 

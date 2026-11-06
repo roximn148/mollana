@@ -13,8 +13,8 @@ to a fixed epoch makes ``dist/Mollana`` byte-identical across machines and
 across repeated builds, so the installer SHA is stable and the committed
 winget manifest's ``InstallerSha256`` can be verified against a rebuild.
 
-Run between ``compileUI`` and ``pyinstaller`` (and again before Inno Setup)
-from ``scripts/generate-win-setup.bat``.
+Run before ``pyinstaller`` (and again before Inno Setup) from
+``scripts/generate-win-setup.bat``.
 """
 
 # ******************************************************************************

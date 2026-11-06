@@ -23,17 +23,13 @@ if not exist "%ISCC%" (
 set "SOURCE_DATE_EPOCH=1700000000"
 set "PYTHONHASHSEED=42"
 
-echo [1/3] Compiling Qt UI and resources...
-uv run python scripts\compileUI.py
-if errorlevel 1 exit /b 1
-
-echo [2/3] Freezing the application with PyInstaller...
+echo [1/2] Freezing the application with PyInstaller...
 uv run python scripts\normalize-mtimes.py .venv src
 if errorlevel 1 exit /b 1
 uv run pyinstaller --clean --noconfirm mollana.spec
 if errorlevel 1 exit /b 1
 
-echo [3/3] Building the Windows installer with Inno Setup...
+echo [2/2] Building the Windows installer with Inno Setup...
 uv run python scripts\normalize-mtimes.py dist build installer LICENSE.txt
 if errorlevel 1 exit /b 1
 "%ISCC%" "installer\mollana.iss"

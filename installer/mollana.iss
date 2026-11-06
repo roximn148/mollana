@@ -1,7 +1,6 @@
 ; Mollana Windows installer, built with Inno Setup 6.
 ;
 ; Build the application first:
-;   uv run python scripts/compileUI.py
 ;   uv run pyinstaller --clean --noconfirm mollana.spec
 ;
 ; PyInstaller writes build\version.iss from pyproject.toml, so this script must

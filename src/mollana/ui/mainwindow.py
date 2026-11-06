@@ -24,7 +24,7 @@ from mollana.editor.session import Session
 from mollana.infra.logging import getLogger
 from mollana.infra.meta import Rx
 from mollana.infra.settings import RSettings
-from mollana.ui.mainwindow_ui import Ui_MainWindow
+from mollana.ui.mainwindowui import MainWindowUi
 
 # ******************************************************************************
 FILE_FILTER: str = "Text files (*.txt *.md *.tex *.csv *.json *.toml);;All files (*)"
@@ -46,8 +46,7 @@ class MainWindow(QMainWindow):
         parent=None,
     ) -> None:
         super().__init__(parent)
-        self.ui = Ui_MainWindow()
-        self.ui.setupUi(self)
+        self.ui = MainWindowUi(self)
 
         self.session = session
         self.store = store

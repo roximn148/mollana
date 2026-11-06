@@ -1,11 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller build definition for the Mollana desktop application.
 
-The Qt UI modules are generated, so run ``scripts/compileUI.py`` first::
-
-    uv run python scripts/compileUI.py
-    uv run pyinstaller --clean --noconfirm mollana.spec
-
 The spec also generates ``build/version_info.txt`` (the Windows version
 resource for ``Mollana.exe``) and ``build/version.iss`` (the version defines
 consumed by ``installer/mollana.iss``) from ``pyproject.toml``, so the version
@@ -25,18 +20,6 @@ ROOT = Path(SPECPATH).resolve()
 PACKAGE = ROOT / "src" / "mollana"
 ICON = PACKAGE / "ui" / "resources" / "images" / "mollana.ico"
 BUILD = ROOT / "build"
-
-GENERATED = (
-    PACKAGE / "ui" / "mainwindow_ui.py",
-    PACKAGE / "ui" / "mollana_rc.py",
-)
-missing = [path for path in GENERATED if not path.is_file()]
-if missing:
-    raise SystemExit(
-        "Generated UI modules are missing "
-        f"({', '.join(path.name for path in missing)}). "
-        "Run `uv run python scripts/compileUI.py` first."
-    )
 
 # ******************************************************************************
 PROJECT = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
@@ -126,6 +109,9 @@ datas = [
     ),
     *collect_data_files("pyraya", includes=["*.sym"]),
     *collect_data_files("romanalfaz", includes=["*.sym"]),
+    # The window loads its PNG icons from files, not from a compiled resource
+    # module, so the image folder travels beside the package.
+    (str(PACKAGE / "ui" / "resources" / "images"), "mollana/ui/resources/images"),
     (str(ROOT / "LICENSE.txt"), "."),
 ]
 

@@ -6,6 +6,6 @@
 
 """Qt presentation layer: the main window and the widgets it hosts.
 
-The generated ``mainwindow_ui`` module is produced from ``mainwindow.ui`` by
-``scripts/compileUI.py`` and is not committed.
+The window's widget graph is hand-written in :mod:`mollana.ui.mainwindowui`;
+icons load from ``resources/images`` with no compiled resource module.
 """
