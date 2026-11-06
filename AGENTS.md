@@ -142,10 +142,13 @@ follow it explicitly, in order:
    `CHANGELOG.md` section + README `Alpha, …` line, in one commit (rule above).
 3. **Build + verify** — `scripts\generate-win-setup.bat`; then install per-user,
    launch, and uninstall `dist\Mollana-<version>-win64-setup.exe`.
-4. **Winget manifest** — `uv run python scripts/winget_manifest.py` writes
-   `winget/RoXimn.Mollana/<version>/`; review the three files (version, sha256,
-   date, asset URL) and commit. The manifest is not part of the PyInstaller
-   bundle, so it cannot change installer bytes.
+4. **Winget manifest** — `uv run python scripts/winget_manifest.py --date <date>
+   --sha256 <hash>` writes `winget/RoXimn.Mollana/<version>/`. The `<hash>` is the
+   installer sha256 **the runner builds**, not the workstation's: tag once, read the
+   hash CI reports, then record and re-tag (or ask for it in a `workflow_dispatch`
+   run). Review the three files (version, sha256, date, asset URL) and commit. The
+   manifest is not part of the PyInstaller bundle, so it cannot change installer
+   bytes.
 5. **Tag + push** — clean tree, then `git tag vX.Y.Z` and `git push --tags`;
    CI rebuilds, asserts the manifest sha256 matches, smoke-tests, and publishes
    the Release with notes from the changelog section.
@@ -219,8 +222,9 @@ is one global, per-process choice stored in the dictionary catalogue.
 - The winget manifests are **not** part of the PyInstaller bundle; the release workflow
   runs `scripts/winget_manifest.py --check` after building and fails when the committed
   manifest's sha256 does not match the freshly built installer.
-- The installer build is **reproducible**, and the manifest's `InstallerSha256`
-  depends on it. `generate-win-setup.bat` sets `SOURCE_DATE_EPOCH` (PyInstaller stamps
+- The installer build is **reproducible on a given machine**, and the manifest's
+  `InstallerSha256` depends on it. `generate-win-setup.bat` sets `SOURCE_DATE_EPOCH`
+  (PyInstaller stamps
   the EXE's PE header with the build time unless it is set) and `PYTHONHASHSEED` (the
   module-graph traversal that orders `base_library.zip` is hash-seed dependent; the
   PYZ is sorted for reproducible builds, the zip is not), and
@@ -230,7 +234,13 @@ is one global, per-process choice stored in the dictionary catalogue.
   changes the bytes and requires regenerating the manifest. The bundle must also not
   depend on the build host: `mollana.spec` drops `api-ms-win-*.dll` because PyInstaller
   copies whichever API sets the build machine exposes, and Windows editions differ —
-  that one difference alone made a runner build and a workstation build disagree.
+  that one difference alone made a runner build and a workstation build disagree; it
+  also drops `ucrtbase.dll`, pins OpenSSL to the analysed interpreter, and ships only
+  `METADATA` from the dist-info (the rest records the checkout path and cache
+  timestamps). Even so, a Windows 11 workstation and the Server runner still differ in
+  some interpreter files, so **the committed `InstallerSha256` is the runner's build**,
+  recorded with `scripts/winget_manifest.py --sha256 <hash> --date <date>` from the
+  hash in a tag-push run; `--check` is therefore a CI gate, and can disagree locally.
 - Logging is `mollana.infra.logging.getLogger`, not an attribute of `QApplication`. A plain
   `QApplication` in a test is fine.
 - `PyRaya` persists learned words only when the host asks:

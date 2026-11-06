@@ -176,6 +176,14 @@ def main(argv: list[str] | None = None) -> int:
         "--date", default=None, help="release date, YYYY-MM-DD (default: today)"
     )
     parser.add_argument(
+        "--sha256",
+        default=None,
+        help=(
+            "installer sha256 to record instead of hashing --installer; used when the "
+            "published installer was built on another machine (the release runner)"
+        ),
+    )
+    parser.add_argument(
         "--dir", default=None, help=f"winget root directory (default: {ROOT / 'winget'})"
     )
     parser.add_argument(
@@ -196,7 +204,14 @@ def main(argv: list[str] | None = None) -> int:
         return checkManifests(version, installer, wingetRoot)
 
     date = args.date or datetime.date.today().isoformat()
-    versionDir = writeManifests(version, sha256Of(installer), date, wingetRoot)
+    if args.sha256 is not None:
+        sha = args.sha256.strip().upper()
+        if len(sha) != 64 or any(c not in "0123456789ABCDEF" for c in sha):
+            print(f"not a sha256 hex digest: {args.sha256}")
+            return 1
+    else:
+        sha = sha256Of(installer)
+    versionDir = writeManifests(version, sha, date, wingetRoot)
     print(f"winget manifest written: {versionDir}")
     return 0
 
