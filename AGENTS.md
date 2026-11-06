@@ -98,8 +98,13 @@ committed, so a fresh clone needs `compileUI.py` before the first launch.
 - `mollana.*` namespaced imports only; no flat imports.
 - Type hints and docstrings on public functions/classes.
 - Ruff: line length 100, rules `E,F,W,I,UP,B`, `src = ["src"]`, `data/` excluded.
-- `CHANGELOG.md` follows Keep a Changelog + SemVer; add user-visible changes under
-  `## [Unreleased]` in the same commit.
+- `CHANGELOG.md` follows Keep a Changelog + SemVer in structure, but its content is the
+  **user-facing surface only** — the public user contract of the desktop app: what the end user
+  can now do, experience, or hit, in user language. Internal changes (layers, engines, CI, build,
+  scripts, tooling) live in git/AGENTS.md, not here; a change earns a CHANGELOG entry only if it
+  alters the user's capability, behavior, install/upgrade path, or data, and internal-only
+  changes with no user effect get none. Release announcements need no entry; they land when
+  `[Unreleased]` moves to a version.
 - Commit titles: one line, conventional prefix (`feat:`, `fix:`, `ref:`, `chore:`, `docs:`,
   `ver:`), imperative summary.
 - `uv.lock` is regenerated with `uv lock`, never hand-edited.
