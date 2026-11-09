@@ -46,7 +46,7 @@ def test_panelDefaultsToSpacedMetrics(qapp: QApplication) -> None:
 
 # ******************************************************************************
 def test_compactDensityPacksKeysAndUsesGlyphs(qapp: QApplication) -> None:
-    """Compact: 34 px glyphs, 48x34 controls, navigation as glyphs."""
+    """Compact: 34 px glyphs, 48x34 controls, glyphs on all six controls."""
     panel = UrduKeyboardPanel()
     panel.setDensity(Density.Compact)
     assert panel.density() is Density.Compact
@@ -56,10 +56,38 @@ def test_compactDensityPacksKeysAndUsesGlyphs(qapp: QApplication) -> None:
     assert all(b.size() == QSize(34, 34) for b in glyphs)
 
     labels = {b.text(): b for b in panel.findChildren(QPushButton)}
-    for label in ("Del", "Bksp", "\u21e4", "\u21e5", "\u2190", "\u2192"):
-        assert label in labels
-        assert labels[label].size() == QSize(48, 34)
-    assert "Home" not in labels and "End" not in labels
+    for glyph in ("\u21a4", "\u2715", "\u21e4", "\u21e5", "\u2190", "\u2192"):
+        assert glyph in labels
+        assert labels[glyph].size() == QSize(48, 34)
+    assert not ({"Del", "Bksp", "Home", "End"} & set(labels))
+
+
+# ******************************************************************************
+def test_controlTypeIsTheSameInBothDensities(qapp: QApplication) -> None:
+    """Density changes geometry only, never the control font family or size."""
+    panel = UrduKeyboardPanel()
+    control = next(b for b in panel.findChildren(QPushButton) if b.text() == "Bksp")
+    glyph = next(b for b in panel.findChildren(QPushButton) if b.text() == "\u0622")
+    spacedControlStyle = control.styleSheet()
+    spacedGlyphStyle = glyph.styleSheet()
+    assert "font-size: 12px" in spacedControlStyle
+    assert "'Calibri', Arial" in spacedControlStyle
+
+    panel.setDensity(Density.Compact)
+    assert control.styleSheet() == spacedControlStyle
+    assert glyph.styleSheet() == spacedGlyphStyle
+
+
+# ******************************************************************************
+def test_controlKeysCarryTheirWordsAsTooltips(qapp: QApplication) -> None:
+    """Compact glyphs stay unambiguous: every control names itself on hover."""
+    panel = UrduKeyboardPanel()
+    tooltips = {b.toolTip() for b in panel.findChildren(QPushButton)}
+    assert {"Delete", "Backspace", "Home", "End", "Move left", "Move right"} <= tooltips
+
+    panel.setDensity(Density.Compact)
+    tooltips = {b.toolTip() for b in panel.findChildren(QPushButton)}
+    assert {"Delete", "Backspace", "Home", "End", "Move left", "Move right"} <= tooltips
 
 
 # ******************************************************************************

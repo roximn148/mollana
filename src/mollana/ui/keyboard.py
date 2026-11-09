@@ -54,33 +54,34 @@ ALPHABET: list[str] = [
 # ******************************************************************************
 @dataclass(frozen=True)
 class ControlKey:
-    """One editing key: its action and its Spaced and Compact labels."""
+    """One editing key: action, Spaced word, Compact glyph, tooltip."""
 
     action: str
     label: str
-    compactLabel: str
+    glyph: str
+    description: str
 
 
 # ******************************************************************************
 CONTROLS: list[ControlKey] = [
-    ControlKey("delete", "Del", "Del"),
-    ControlKey("backspace", "Bksp", "Bksp"),
-    ControlKey("home", "Home", "\u21e4"),
-    ControlKey("end", "End", "\u21e5"),
-    ControlKey("left", "\u2190", "\u2190"),
-    ControlKey("right", "\u2192", "\u2192"),
+    ControlKey("delete", "Del", "\u2715", "Delete"),
+    ControlKey("backspace", "Bksp", "\u21a4", "Backspace"),
+    ControlKey("home", "Home", "\u21e4", "Home"),
+    ControlKey("end", "End", "\u21e5", "End"),
+    ControlKey("left", "\u2190", "\u2190", "Move left"),
+    ControlKey("right", "\u2192", "\u2192", "Move right"),
 ]
-"""The editing keys: action, Spaced word label, Compact label.
-
-The erase glyphs (U+232B, U+2326) ship in no installed font, so the
-compact erases keep their short words; navigation uses glyphs.
-"""
+"""The editing keys. The erase control pictures (U+232B, U+2326) ship in no
+installed font, so Compact uses the nearest rendering glyphs instead."""
 
 COLUMNS_PER_ROW: int = 14
 """Alphabet grid columns; 42 glyphs fill exactly three rows."""
 
 GLYPH_FONT_SIZE: int = 20
 """The alphabet type size, shared by both densities (the key box shrinks)."""
+
+CONTROL_FONT_SIZE: int = 12
+"""The control-key type size, shared by both densities."""
 
 
 # ******************************************************************************
@@ -99,15 +100,14 @@ class DensityMetrics:
     glyphKey: int
     controlWidth: int
     controlHeight: int
-    controlFontSize: int
     gridSpacing: int
     groupGap: int
     margin: int
 
 
 METRICS: dict[Density, DensityMetrics] = {
-    Density.Spaced: DensityMetrics(45, 60, 45, 12, 6, 45, 11),
-    Density.Compact: DensityMetrics(34, 48, 34, 16, 0, 8, 2),
+    Density.Spaced: DensityMetrics(45, 60, 45, 6, 45, 11),
+    Density.Compact: DensityMetrics(34, 48, 34, 0, 8, 2),
 }
 """Spaced is the dock's baseline; Compact is the Add Word dialog's."""
 
@@ -166,8 +166,8 @@ class UrduKeyboardPanel(QWidget):
             button.setStyleSheet(self._keyStyle(True, GLYPH_FONT_SIZE))
         for button, key in zip(self._controlButtons, CONTROLS, strict=True):
             button.setFixedSize(metrics.controlWidth, metrics.controlHeight)
-            button.setText(key.label if density is Density.Spaced else key.compactLabel)
-            button.setStyleSheet(self._keyStyle(False, metrics.controlFontSize))
+            button.setText(key.label if density is Density.Spaced else key.glyph)
+            button.setStyleSheet(self._keyStyle(False, CONTROL_FONT_SIZE))
         for grid in (self._glyphGrid, self._controlGrid):
             grid.setSpacing(metrics.gridSpacing)
             grid.setContentsMargins(0, 0, 0, 0)
@@ -211,6 +211,7 @@ QPushButton:pressed {{ background-color: #dcdde1; }}
             row = index // 2
             col = index % 2
             button = self._createButton(key.label, isChar=False)
+            button.setToolTip(key.description)
             button.clicked.connect(lambda _checked=False, a=key.action: self._performControl(a))
             self._controlGrid.addWidget(button, row, col)
         self._contentLayout.addLayout(self._controlGrid)
