@@ -52,6 +52,7 @@ src/mollana/
     ├── explorer.py         # FileExplorer (QTreeView over QFileSystemModel)
     ├── editor_pane.py      # EditorPane (QTabWidget of PyRaya)
     ├── icons.py            # PNG icon loader (checkout and frozen build)
+    ├── keyboard.py         # UrduKeyboardDock — bottom dock typing into the focused widget
     ├── theme.py            # palette application
     └── resources/images/   # PNG icons and the installer .ico
 tests/                      # pytest; conftest sets QT_QPA_PLATFORM=offscreen

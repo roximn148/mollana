@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A dockable on-screen Urdu alphabet keyboard (bottom dock, hidden at start;
+  toggled from the View menu or with F2) whose keys type into whatever field
+  or editor holds the caret.
+
 ### Changed
 
 - The file explorer is now a dock panel that can sit on the left or right edge,
