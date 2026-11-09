@@ -19,6 +19,7 @@ from PySide6.QtWidgets import QDockWidget, QMainWindow, QMenu, QMenuBar, QStatus
 from mollana.ui.editor_pane import EditorPane
 from mollana.ui.explorer import FileExplorer
 from mollana.ui.icons import icon
+from mollana.ui.keyboard import UrduKeyboardDock
 
 
 # ******************************************************************************
@@ -77,6 +78,7 @@ class MainWindowUi:
         self._buildActions(window)
         self._buildCentralWidget(window)
         self._buildExplorerDock(window)
+        self._buildKeyboardDock(window)
         self._buildMenus(window)
         self._buildToolBar(window)
         self._buildStatusBar(window)
@@ -241,6 +243,14 @@ class MainWindowUi:
         window.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dockExplorer)
 
     # **************************************************************************
+    def _buildKeyboardDock(self, window: QMainWindow) -> None:
+        """Create the on-screen Urdu keyboard as a bottom dock, hidden by default."""
+        self.dockKeyboard = UrduKeyboardDock(window)
+        self.dockKeyboard.setObjectName("dockKeyboard")
+        window.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.dockKeyboard)
+        self.dockKeyboard.setVisible(False)
+
+    # **************************************************************************
     def _buildMenus(self, window: QMainWindow) -> None:
         """Create the menu bar and place every action in its menu."""
         self.menuBar = QMenuBar(window)
@@ -257,6 +267,12 @@ class MainWindowUi:
         self.actionFileExplorer.setObjectName("actionFileExplorer")
         self.actionFileExplorer.setText("File Explorer")
         self.menuView.addAction(self.actionFileExplorer)
+
+        self.actionUrduKeyboard = self.dockKeyboard.toggleViewAction()
+        self.actionUrduKeyboard.setObjectName("actionUrduKeyboard")
+        self.actionUrduKeyboard.setText("Urdu Keyboard")
+        self.actionUrduKeyboard.setShortcut(QKeySequence("F2"))
+        self.menuView.addAction(self.actionUrduKeyboard)
 
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)

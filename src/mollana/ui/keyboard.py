@@ -65,10 +65,17 @@ class UrduKeyboardDock(QDockWidget):
 
     # **************************************************************************
     def __init__(self, parent: QMainWindow | None = None) -> None:
-        """Value the dock on ``parent``; bottom area only, movable only."""
+        """Value the dock on ``parent``; bottom area only, toggle-friendly."""
         super().__init__("Urdu Keyboard", parent)
         self.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea)
-        self.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable)
+        # The full feature set (as the explorer dock has) is what lets the
+        # View-menu toggleViewAction actually show and hide the dock: a
+        # dock may only be toggled away when it is closable.
+        self.setFeatures(
+            QDockWidget.DockWidgetFeature.DockWidgetMovable
+            | QDockWidget.DockWidgetFeature.DockWidgetClosable
+            | QDockWidget.DockWidgetFeature.DockWidgetFloatable
+        )
 
         container = QWidget()
         contentLayout = QHBoxLayout(container)

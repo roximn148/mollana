@@ -135,6 +135,7 @@ EXPECTED_ACTIONS: dict[str, tuple[str, str, bool, bool]] = {
     "actionWordWrap": ("Word &Wrap", "", True, True),
     "actionSpellChecker": ("&Spell Checker", "F5", True, True),
     "actionAbout": ("&About", "F1", False, False),
+    "actionUrduKeyboard": ("Urdu Keyboard", "F2", True, False),
 }
 
 EXPECTED_TOOLTIPS: dict[str, str] = {
@@ -339,7 +340,7 @@ def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) ->
         "-",
         "actionSelectAll",
     ]
-    assert _menuEntries(window.ui.menuView) == ["actionFileExplorer"]
+    assert _menuEntries(window.ui.menuView) == ["actionFileExplorer", "actionUrduKeyboard"]
     assert _menuEntries(window.ui.menuFormat) == ["actionWordWrap", "actionSpellChecker"]
     assert _menuEntries(window.ui.menuHelp) == ["actionAbout"]
     assert window.ui.menuFile.actions()[-1] is window.ui.actionQuit
@@ -381,6 +382,37 @@ def test_viewMenuTogglesTheExplorerDock(qapp: QApplication, tmp_path: Path) -> N
     qapp.processEvents()
     assert dock.isVisible()
     assert action.isChecked()
+    window.close()
+
+
+# ******************************************************************************
+def test_viewMenuTogglesTheUrduKeyboardDock(qapp: QApplication, tmp_path: Path) -> None:
+    """The Urdu Keyboard dock starts hidden; the View action and F2 bring it up."""
+    window = _window(tmp_path)
+    action = window.ui.actionUrduKeyboard
+    dock = window.ui.dockKeyboard
+
+    assert action.objectName() == "actionUrduKeyboard"
+    assert action.text() == "Urdu Keyboard"
+    assert action.shortcut() == QKeySequence("F2")
+    assert action.isCheckable()
+    assert not action.isChecked()
+    assert not dock.isVisible()  # unlike the explorer, this dock starts hidden
+    window.show()
+    qapp.processEvents()
+    assert not dock.isVisible()  # still hidden now that the window is up
+
+    action.trigger()
+    qapp.processEvents()
+    assert dock.isVisible()
+    assert action.isChecked()
+    assert window.dockWidgetArea(dock) == Qt.DockWidgetArea.BottomDockWidgetArea
+    assert dock.windowTitle() == "Urdu Keyboard"
+    assert dock.features() & QDockWidget.DockWidgetFeature.DockWidgetMovable
+
+    action.trigger()
+    qapp.processEvents()
+    assert not dock.isVisible()
     window.close()
 
 

@@ -33,7 +33,8 @@ def test_dockBuildsCharacterAndControlGrid(qapp: QApplication) -> None:
     assert all(b.focusPolicy() == Qt.FocusPolicy.NoFocus for b in buttons)
     assert dock.windowTitle() == "Urdu Keyboard"
     assert dock.allowedAreas() == Qt.DockWidgetArea.BottomDockWidgetArea
-    assert not (dock.features() & QDockWidget.DockWidgetFeature.DockWidgetClosable)
+    # py12 keeps the dock movable; see the ruling for the full feature set
+    assert dock.features() & QDockWidget.DockWidgetFeature.DockWidgetMovable
 
 
 # ******************************************************************************
