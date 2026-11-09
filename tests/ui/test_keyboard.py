@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QDockWidget,
     QLineEdit,
+    QMainWindow,
     QPlainTextEdit,
     QPushButton,
     QWidget,
@@ -35,6 +36,9 @@ def test_dockBuildsCharacterAndControlGrid(qapp: QApplication) -> None:
     assert dock.allowedAreas() == Qt.DockWidgetArea.BottomDockWidgetArea
     # py12 keeps the dock movable; see the ruling for the full feature set
     assert dock.features() & QDockWidget.DockWidgetFeature.DockWidgetMovable
+    # Floatable would let the dock's floating tool window activate without
+    # any focused target inside, leaving the keys dead there.
+    assert not (dock.features() & QDockWidget.DockWidgetFeature.DockWidgetFloatable)
 
 
 # ******************************************************************************
@@ -156,6 +160,44 @@ def test_keyboardTypesIntoTheActivePyrayaEditor(qapp: QApplication) -> None:
     buttons = dock.findChildren(QPushButton)
     buttons[0].click()
     assert editor.toPlainText() == "salam" + buttons[0].text()
+
+
+# ******************************************************************************
+def test_consecutiveKeysTypeIntoTheActivePyrayaDocument(qapp: QApplication) -> None:
+    """Every click lands in the document, never in the roman overlay.
+
+    PyRaya's roman-assist overlay activates on the caret's word and moves
+    the focus into its own line edit; the dock must resolve that focus
+    back to the editor, suspend the overlay around the edit, and keep the
+    consecutive clicks landing in the document.
+    """
+    host = QMainWindow()
+    editor = PyRaya(host)
+    host.setCentralWidget(editor)
+    dock = UrduKeyboardDock(host)
+    host.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
+
+    editor.setPlainText("سلام")  # an Arabic word the roman overlay will cover
+    editor.moveCursor(QTextCursor.MoveOperation.End)
+    host.show()
+    editor.setFocus()
+    qapp.processEvents()
+
+    buttons = dock.findChildren(QPushButton)
+    for _ in range(3):
+        buttons[0].click()
+        qapp.processEvents()
+    assert editor.toPlainText() == "سلام" + buttons[0].text() * 3
+
+    selection = QTextCursor(editor.textCursor())
+    selection.setPosition(0)
+    selection.setPosition(2, QTextCursor.MoveMode.KeepAnchor)
+    editor.setTextCursor(selection)
+    qapp.processEvents()
+    buttons[4].click()
+    qapp.processEvents()
+    assert editor.toPlainText().startswith(buttons[4].text())  # selection replaced
+    host.close()
 
 
 # ******************************************************************************

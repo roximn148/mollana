@@ -14,6 +14,9 @@ never moves the caret away from the field being edited.
 """
 
 # ******************************************************************************
+from collections.abc import Callable
+
+from pyraya import PyRaya
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (
@@ -65,16 +68,15 @@ class UrduKeyboardDock(QDockWidget):
 
     # **************************************************************************
     def __init__(self, parent: QMainWindow | None = None) -> None:
-        """Value the dock on ``parent``; bottom area only, toggle-friendly."""
+        """Create the dock on ``parent``; bottom area only, toggle-friendly."""
         super().__init__("Urdu Keyboard", parent)
         self.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea)
-        # The full feature set (as the explorer dock has) is what lets the
-        # View-menu toggleViewAction actually show and hide the dock: a
-        # dock may only be toggled away when it is closable.
+        # The toggleViewAction can only show or hide a dock that is closable.
+        # Not floatable: the floating tool window has no focusable target,
+        # so telling it apart from the main window keeps the keys working.
         self.setFeatures(
             QDockWidget.DockWidgetFeature.DockWidgetMovable
             | QDockWidget.DockWidgetFeature.DockWidgetClosable
-            | QDockWidget.DockWidgetFeature.DockWidgetFloatable
         )
 
         container = QWidget()
@@ -133,9 +135,12 @@ QPushButton:pressed {{ background-color: #dcdde1; }}
 
     # **************************************************************************
     def _insertCharacter(self, char: str) -> None:
-        """Insert ``char`` into whatever widget currently holds the focus."""
+        """Insert ``char`` into whatever editable widget holds the focus."""
         widget = QApplication.focusWidget()
-        if isinstance(widget, QLineEdit):
+        editor = self._pyRayaEditor(widget)
+        if editor is not None:
+            self._editPyraya(editor, lambda cursor: cursor.insertText(char))
+        elif isinstance(widget, QLineEdit):
             widget.insert(char)
         elif isinstance(widget, QPlainTextEdit):
             cursor = widget.textCursor()
@@ -144,9 +149,12 @@ QPushButton:pressed {{ background-color: #dcdde1; }}
 
     # **************************************************************************
     def _performControl(self, action: str) -> None:
-        """Apply ``action`` to the focused field or editor it holds."""
-
+        """Apply ``action`` to the focused field or editor."""
         widget = QApplication.focusWidget()
+        editor = self._pyRayaEditor(widget)
+        if editor is not None:
+            self._editPyraya(editor, lambda cursor: self._applyCursorAction(cursor, action))
+            return
         if isinstance(widget, QLineEdit):
             if action == "backspace":
                 widget.backspace()
@@ -164,18 +172,62 @@ QPushButton:pressed {{ background-color: #dcdde1; }}
                 widget.end(False)
         elif isinstance(widget, QPlainTextEdit):
             cursor = widget.textCursor()
-            if action == "backspace":
-                cursor.deletePreviousChar()  # over a selection: the selection goes
-            elif action == "delete":
-                cursor.deleteChar()
-            elif action == "left":
-                cursor.movePosition(QTextCursor.MoveOperation.Left)
-            elif action == "right":
-                cursor.movePosition(QTextCursor.MoveOperation.Right)
-            elif action == "home":
-                cursor.movePosition(QTextCursor.MoveOperation.StartOfLine)
-            elif action == "end":
-                cursor.movePosition(QTextCursor.MoveOperation.EndOfLine)
-            else:
-                return
-            widget.setTextCursor(cursor)
+            if self._applyCursorAction(cursor, action):
+                widget.setTextCursor(cursor)
+
+    # **************************************************************************
+    def _pyRayaEditor(self, widget: QWidget | None) -> PyRaya | None:
+        """The :class:`PyRaya` that owns ``widget`` in the parent chain.
+
+        PyRaya's roman-assist overlay is a child line edit that takes the
+        focus while it edits the caret's word; a key click must reach the
+        editor itself, never the overlay's roman strip.
+        """
+        while widget is not None:
+            if isinstance(widget, PyRaya):
+                return widget
+            widget = widget.parentWidget()
+        return None
+
+    # **************************************************************************
+    def _editPyraya(self, editor: PyRaya, edit: Callable[[QTextCursor], object]) -> None:
+        """Apply ``edit`` to the editor's caret with the overlay suspended.
+
+        Inserting changed or moved the caret, which lets PyRaya reactivate
+        its roman-assist overlay and move the focus into the overlay's
+        line edit — the very click that made it happen must escape that:
+        suspending the assist around the edit leaves the focus alone.
+        """
+        assist = editor.isAssistEnabled()
+        editor.setAssistEnabled(False)
+        try:
+            cursor = editor.textCursor()
+            edit(cursor)
+            editor.setTextCursor(cursor)
+        finally:
+            editor.setAssistEnabled(assist)  # re-enabling shows no overlay
+
+    # **************************************************************************
+    @staticmethod
+    def _applyCursorAction(cursor: QTextCursor, action: str) -> bool:
+        """Apply ``action`` to ``cursor``; whether the action was known.
+
+        The left and right moves track the caret visually, the way a
+        caret behaves in a plain-text editor.
+        """
+        if action == "backspace":
+            cursor.deletePreviousChar()  # over a selection: the selection goes
+            return True
+        if action == "delete":
+            cursor.deleteChar()
+            return True
+        moves = {
+            "left": QTextCursor.MoveOperation.Left,
+            "right": QTextCursor.MoveOperation.Right,
+            "home": QTextCursor.MoveOperation.StartOfLine,
+            "end": QTextCursor.MoveOperation.EndOfLine,
+        }
+        if action in moves:
+            cursor.movePosition(moves[action])
+            return True
+        return False
