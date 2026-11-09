@@ -254,9 +254,12 @@ is one global, per-process choice stored in the dictionary catalogue.
   hash in a tag-push run; `--check` is therefore a CI gate, and can disagree locally.
 - Logging is `mollana.infra.logging.getLogger`, not an attribute of `QApplication`. A plain
   `QApplication` in a test is fine.
-- `PyRaya` persists learned words only when the host asks:
-  `localDictionary().isModified()` then `.save(path)`. `MainWindow.flushDictionaries()`
-  does this on close, against the active dictionary.
+- `PyRaya`'s shared `localDictionary()` starts empty in every process. `MainWindow`
+  loads the active dictionary into it when the first document opens
+  (`_loadActiveDictionary`), and `flushDictionaries()` writes the completed words
+  through `DictionaryStore.write` on close, which merges frequencies so another
+  instance's words survive. `Vocabulary.save` is not used: it overwrites the file,
+  which would drop every word learned in earlier sessions.
 - `symspellpy` and `unicodedataplus` are **transitive** via `romanalfaz`. Importing them
   directly from mollana is a smell.
 - Use **`pyside6-essentials`**, not the `pyside6` metapackage; Mollana needs only

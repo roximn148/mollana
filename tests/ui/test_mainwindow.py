@@ -434,6 +434,65 @@ def test_iconsLoadFromTheImageFolder(qapp: QApplication, tmp_path: Path) -> None
 
 
 # ******************************************************************************
+def test_startupLoadsTheActiveDictionary(qapp: QApplication, tmp_path: Path) -> None:
+    """The active dictionary on disk reaches PyRaya's shared vocabulary."""
+    store = DictionaryStore(tmp_path / "dictionaries")
+    store.ensureDefault()
+    store.write("default", {"کتابچہ": 5})
+
+    window = MainWindow(Session(), store, StubSettings())
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    assert editor is not None
+    dictionary = editor.localDictionary()
+    assert dictionary.counter["کتابچہ"] == 5
+    assert "کتابچہ" in dictionary.completed
+    window.close()
+
+
+# ******************************************************************************
+def test_closingKeepsEarlierWordsAndAddsNew(
+    qapp: QApplication, tmp_path: Path
+) -> None:
+    """A word learned now must not wipe the dictionary saved earlier."""
+    store = DictionaryStore(tmp_path / "dictionaries")
+    store.ensureDefault()
+    store.write("default", {"دفتر": 4})
+
+    window = MainWindow(Session(), store, StubSettings())
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    assert editor is not None
+    editor.localDictionary().add("میز", isCompleted=True)
+    window.close()
+
+    words = store.read("default")
+    assert words["دفتر"] == 4
+    assert words["میز"] == 1
+
+
+# ******************************************************************************
+def test_closeMergesWordsSavedByAnotherInstance(
+    qapp: QApplication, tmp_path: Path
+) -> None:
+    """Saving merges with the disk instead of replacing another instance's words."""
+    store = DictionaryStore(tmp_path / "dictionaries")
+    store.ensureDefault()
+
+    window = MainWindow(Session(), store, StubSettings())
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    assert editor is not None
+    editor.localDictionary().add("اندر", isCompleted=True)
+    store.write("default", {"باہر": 2})  # another instance saves after our start
+    window.close()
+
+    words = store.read("default")
+    assert words["باہر"] == 2
+    assert words["اندر"] == 1
+
+
+# ******************************************************************************
 def test_imagesDirUsesMeipass(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
     assert imagesDir() == tmp_path / "mollana" / "ui" / "resources" / "images"

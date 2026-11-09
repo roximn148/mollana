@@ -14,6 +14,7 @@ class translates user intent into calls on those two and reports back.
 # ******************************************************************************
 from pathlib import Path
 
+from pyraya import PyRaya
 from PySide6.QtWidgets import QDialog, QFileDialog, QMainWindow, QMenu, QMessageBox
 
 from mollana.editor.dictionaries import DictionaryStore
@@ -53,6 +54,7 @@ class MainWindow(QMainWindow):
         self.store = store
         self.settings = settings
         self.log = getLogger("ui")
+        self._dictionaryLoaded = False
 
         self.recent = RecentFiles(
             paths=self.settings.Main.RecentFiles,
@@ -105,12 +107,28 @@ class MainWindow(QMainWindow):
         self.session.add(document)
         editor = self.ui.tbwEditors.bind(document, text)
         editor.setAddWordHandler(self.openLearnDialog)
+        self._loadActiveDictionary(editor)
         editor.modificationChanged.connect(
             lambda modified, documentId=document.id: self.onDocumentModified(documentId, modified)
         )
         self.selectDocument(document)
         self._updateTitle()
         return document
+
+    # **************************************************************************
+    def _loadActiveDictionary(self, editor: PyRaya) -> None:
+        """Load the active dictionary into PyRaya's shared vocabulary once.
+
+        PyRaya's vocabulary starts empty on every process; without this the
+        words saved on the last close would never come back, and the next
+        save would overwrite them with only this session's words.
+        """
+        if self._dictionaryLoaded:
+            return
+        self._dictionaryLoaded = True
+        dictionary = editor.localDictionary()
+        for word, count in self.store.read(self.store.activeId()).items():
+            dictionary.add(word, count=count, isCompleted=True)
 
     # **************************************************************************
     def openLearnDialog(self, trigger: str) -> str | None:
@@ -424,7 +442,12 @@ class MainWindow(QMainWindow):
     # Shutdown
     # **************************************************************************
     def flushDictionaries(self) -> None:
-        """Persist words learned in this run into the active dictionary."""
+        """Persist this run's learned words, merging them into the active file.
+
+        ``DictionaryStore.write`` keeps the larger frequency of any word
+        already on disk, so a second instance's words survive. PyRaya's own
+        ``Vocabulary.save`` overwrites, which is why it is not used here.
+        """
         dictionaryId = self.store.activeId()
         target = self.store.pathOf(dictionaryId)
         for editor in self.ui.tbwEditors.editors():
@@ -434,9 +457,14 @@ class MainWindow(QMainWindow):
             dictionary = getDictionary()
             if dictionary is None or not dictionary.isModified():
                 continue
+            words = {
+                word: count
+                for word, count in dictionary.counter.items()
+                if word in dictionary.completed
+            }
             try:
-                dictionary.save(str(target))
-            except Exception as error:  # noqa: BLE001 - third-party persistence
+                self.store.write(dictionaryId, words)
+            except OSError as error:
                 self.log.warning(f"Could not save dictionary {dictionaryId}: {error}")
             else:
                 self.log.info(f"Saved dictionary {dictionaryId} to {target}")

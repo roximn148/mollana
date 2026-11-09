@@ -27,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be closed, and be reopened from the new View menu; the document tabs fill the
   central area.
 
+### Fixed
+
+- Learned words now survive closing the app: the active dictionary is loaded at
+  startup, and closing merges this session's words into the file instead of
+  replacing it with only the new ones.
+
 ## [0.2.0a1] - 2026-11-06
 
 ### Added
