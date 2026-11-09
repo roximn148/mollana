@@ -7,7 +7,7 @@
 """Mollana's learn-word dialog: PyRaya's gating and the app's one keyboard."""
 
 # ******************************************************************************
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QAbstractButton,
@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QPushButton,
 )
 
-from mollana.ui.keyboard import UrduKeyboardPanel
+from mollana.ui.keyboard import Density, UrduKeyboardPanel
 from mollana.ui.learn_dialog import LearnWordDialog, prefillFor
 
 
@@ -66,6 +66,39 @@ def test_keyboardInheritsTheDocksState(qapp: QApplication) -> None:
     qapp.processEvents()
     assert not closedPanel.isVisible()
     closedDialog.close()
+
+
+# ******************************************************************************
+def test_dialogMakesTheBorrowedKeyboardCompact(qapp: QApplication) -> None:
+    """The dialog's context is the compact density, applied on adoption."""
+    dialog, panel = _dialog("سلام")
+    assert panel.density() is Density.Compact
+    glyph = next(b for b in panel.findChildren(QPushButton) if b.text() == "\u0622")
+    assert glyph.size() == QSize(34, 34)
+
+
+# ******************************************************************************
+def test_f2TogglingKeepsTheDialogCentered(qapp: QApplication) -> None:
+    """Showing the keyboard grows the dialog around its own center."""
+    dialog, panel = _dialog("سلام", keyboardVisible=False)
+    dialog.show()
+    dialog.activateWindow()
+    qapp.processEvents()
+    screen = dialog.screen().availableGeometry()
+    dialog.move(screen.center() - dialog.rect().center())  # place it mid-screen
+    qapp.processEvents()
+    center = dialog.geometry().center()
+    before = dialog.size()
+
+    dialog.actionUrduKeyboard.trigger()
+    qapp.processEvents()
+
+    assert panel.isVisible()
+    assert dialog.size() != before
+    after = dialog.geometry().center()
+    assert abs(after.x() - center.x()) <= 2
+    assert abs(after.y() - center.y()) <= 2
+    dialog.close()
 
 
 # ******************************************************************************

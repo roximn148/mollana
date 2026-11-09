@@ -13,7 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   toggled from the View menu or with F2) whose keys type into whatever field
   or editor holds the caret.
 - The Add Word dialog shows the on-screen keyboard when it was open, hides it
-  otherwise, and F2 toggles it there.
+  otherwise, and F2 toggles it there. Inside the dialog the keyboard is
+  compact (smaller keys, tighter spacing) and the dialog stays centered as
+  the keyboard appears or disappears.
 
 ### Changed
 

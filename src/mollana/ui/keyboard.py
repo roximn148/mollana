@@ -20,6 +20,8 @@ dialog while it is open; there is only ever one panel.
 
 # ******************************************************************************
 from collections.abc import Callable
+from dataclasses import dataclass
+from enum import Enum
 
 from pyraya import PyRaya
 from PySide6.QtCore import Qt
@@ -33,6 +35,8 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QPlainTextEdit,
     QPushButton,
+    QSizePolicy,
+    QSpacerItem,
     QWidget,
 )
 
@@ -47,15 +51,65 @@ ALPHABET: list[str] = [
 ]
 """The Urdu alphabet in its one-character glyph order, verbatim from py12."""
 
-CONTROLS: list[tuple[str, str]] = [
-    ("Del", "delete"), ("Bksp", "backspace"),
-    ("Home", "home"), ("End", "end"),
-    ("\u2190", "left"), ("\u2192", "right"),
+# ******************************************************************************
+@dataclass(frozen=True)
+class ControlKey:
+    """One editing key: its action and its Spaced and Compact labels."""
+
+    action: str
+    label: str
+    compactLabel: str
+
+
+# ******************************************************************************
+CONTROLS: list[ControlKey] = [
+    ControlKey("delete", "Del", "Del"),
+    ControlKey("backspace", "Bksp", "Bksp"),
+    ControlKey("home", "Home", "\u21e4"),
+    ControlKey("end", "End", "\u21e5"),
+    ControlKey("left", "\u2190", "\u2190"),
+    ControlKey("right", "\u2192", "\u2192"),
 ]
-"""The editing keys, as ``(button label, action name)`` pairs."""
+"""The editing keys: action, Spaced word label, Compact label.
+
+The erase glyphs (U+232B, U+2326) ship in no installed font, so the
+compact erases keep their short words; navigation uses glyphs.
+"""
 
 COLUMNS_PER_ROW: int = 14
 """Alphabet grid columns; 42 glyphs fill exactly three rows."""
+
+GLYPH_FONT_SIZE: int = 20
+"""The alphabet type size, shared by both densities (the key box shrinks)."""
+
+
+# ******************************************************************************
+class Density(Enum):
+    """How tightly the keyboard packs its keys."""
+
+    Spaced = "spaced"
+    Compact = "compact"
+
+
+# ******************************************************************************
+@dataclass(frozen=True)
+class DensityMetrics:
+    """The dimensions one density applies, labelled for targeted edits."""
+
+    glyphKey: int
+    controlWidth: int
+    controlHeight: int
+    controlFontSize: int
+    gridSpacing: int
+    groupGap: int
+    margin: int
+
+
+METRICS: dict[Density, DensityMetrics] = {
+    Density.Spaced: DensityMetrics(45, 60, 45, 12, 6, 45, 11),
+    Density.Compact: DensityMetrics(34, 48, 34, 16, 0, 8, 2),
+}
+"""Spaced is the dock's baseline; Compact is the Add Word dialog's."""
 
 
 # ******************************************************************************
@@ -75,41 +129,64 @@ class UrduKeyboardPanel(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         """Lay out the glyph and control grids on ``parent``."""
         super().__init__(parent)
-        contentLayout = QHBoxLayout(self)
-        contentLayout.addStretch()
-        self._buildCharacterGrid(contentLayout)
-        contentLayout.addSpacing(45)
-        self._buildControlGrid(contentLayout)
-        contentLayout.addStretch()
+        self._density = Density.Spaced
+        self._glyphButtons: list[QPushButton] = []
+        self._controlButtons: list[QPushButton] = []
+        self._contentLayout = QHBoxLayout(self)
+        self._contentLayout.addStretch()
+        self._glyphGrid = QGridLayout()
+        self._controlGrid = QGridLayout()
+        self._buildCharacterGrid()
+        self._groupSpacer = QSpacerItem(
+            0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum
+        )
+        self._contentLayout.addItem(self._groupSpacer)
+        self._buildControlGrid()
+        self._contentLayout.addStretch()
+        self._applyMetrics(Density.Spaced)
 
     # **************************************************************************
-    def _buildCharacterGrid(self, contentLayout: QHBoxLayout) -> None:
-        """Add the alphabet grid; rows run right to left, as Urdu reads."""
-        grid = QGridLayout()
-        for index, glyph in enumerate(ALPHABET):
-            row = index // COLUMNS_PER_ROW
-            col = (COLUMNS_PER_ROW - 1) - (index % COLUMNS_PER_ROW)
-            grid.addWidget(self._createButton(glyph), row, col)
-        contentLayout.addLayout(grid)
+    def density(self) -> Density:
+        """The density this panel currently uses."""
+        return self._density
 
     # **************************************************************************
-    def _buildControlGrid(self, contentLayout: QHBoxLayout) -> None:
-        """Add the editing keys: one button per ``(label, action)`` pair."""
-        grid = QGridLayout()
-        for index, (label, action) in enumerate(CONTROLS):
-            row = index // 2
-            col = index % 2
-            button = self._createButton(label, isChar=False)
-            button.clicked.connect(lambda _checked=False, a=action: self._performControl(a))
-            grid.addWidget(button, row, col)
-        contentLayout.addLayout(grid)
+    def setDensity(self, density: Density) -> None:
+        """Repack the keys for ``density`` in place; no key is rebuilt."""
+        if density is self._density:
+            return
+        self._applyMetrics(density)
 
     # **************************************************************************
-    def _createButton(self, text: str, isChar: bool = True) -> QPushButton:
-        """Create one key: white for glyphs, grey and wider for editing keys."""
+    def _applyMetrics(self, density: Density) -> None:
+        """Apply one density's dimensions to the keys and layout."""
+        metrics = METRICS[density]
+        for button in self._glyphButtons:
+            button.setFixedSize(metrics.glyphKey, metrics.glyphKey)
+            button.setStyleSheet(self._keyStyle(True, GLYPH_FONT_SIZE))
+        for button, key in zip(self._controlButtons, CONTROLS, strict=True):
+            button.setFixedSize(metrics.controlWidth, metrics.controlHeight)
+            button.setText(key.label if density is Density.Spaced else key.compactLabel)
+            button.setStyleSheet(self._keyStyle(False, metrics.controlFontSize))
+        for grid in (self._glyphGrid, self._controlGrid):
+            grid.setSpacing(metrics.gridSpacing)
+            grid.setContentsMargins(0, 0, 0, 0)
+        self._contentLayout.setContentsMargins(
+            metrics.margin, metrics.margin, metrics.margin, metrics.margin
+        )
+        self._groupSpacer.changeSize(
+            metrics.groupGap, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum
+        )
+        self._contentLayout.invalidate()
+        self.updateGeometry()
+        self._density = density
+
+    # **************************************************************************
+    @staticmethod
+    def _keyStyle(isChar: bool, fontSize: int) -> str:
+        """The key stylesheet: white for glyphs, grey for editing keys."""
         bgColor = "#ffffff" if isChar else "#e1e1e1"
-        fontSize = 20 if isChar else 12
-        styleSheet = f"""
+        return f"""
 QPushButton {{
     font-size: {fontSize}px; font-family: 'Calibri', Arial;
     background-color: {bgColor}; border: 1px solid #bdc3c7; border-radius: 5px;
@@ -117,14 +194,37 @@ QPushButton {{
 QPushButton:hover {{ background-color: #ecf0f1; }}
 QPushButton:pressed {{ background-color: #dcdde1; }}
 """
+
+    # **************************************************************************
+    def _buildCharacterGrid(self) -> None:
+        """Add the alphabet grid; rows run right to left, as Urdu reads."""
+        for index, glyph in enumerate(ALPHABET):
+            row = index // COLUMNS_PER_ROW
+            col = (COLUMNS_PER_ROW - 1) - (index % COLUMNS_PER_ROW)
+            self._glyphGrid.addWidget(self._createButton(glyph), row, col)
+        self._contentLayout.addLayout(self._glyphGrid)
+
+    # **************************************************************************
+    def _buildControlGrid(self) -> None:
+        """Add the editing keys: one button per control pair."""
+        for index, key in enumerate(CONTROLS):
+            row = index // 2
+            col = index % 2
+            button = self._createButton(key.label, isChar=False)
+            button.clicked.connect(lambda _checked=False, a=key.action: self._performControl(a))
+            self._controlGrid.addWidget(button, row, col)
+        self._contentLayout.addLayout(self._controlGrid)
+
+    # **************************************************************************
+    def _createButton(self, text: str, isChar: bool = True) -> QPushButton:
+        """Create one key; the density pass sizes and styles it."""
         button = QPushButton(text)
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         if isChar:
-            button.setFixedSize(45, 45)
             button.clicked.connect(lambda _checked=False, char=text: self._insertCharacter(char))
+            self._glyphButtons.append(button)
         else:
-            button.setFixedSize(60, 45)  # Slightly wider for text labels
-        button.setStyleSheet(styleSheet)
+            self._controlButtons.append(button)
         return button
 
     # **************************************************************************
@@ -272,7 +372,8 @@ class UrduKeyboardDock(QDockWidget):
 
     # **************************************************************************
     def attachPanel(self, panel: UrduKeyboardPanel, visible: bool) -> None:
-        """Take the panel back and restore the dock's visibility."""
+        """Take the panel back as the dock's Spaced keyboard, and restore it."""
+        panel.setDensity(Density.Spaced)
         panel.setParent(self)
         panel.show()
         self.setWidget(panel)

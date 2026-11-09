@@ -23,7 +23,7 @@ from mollana.editor.session import Session
 from mollana.ui.editor_pane import EditorPane
 from mollana.ui.explorer import FileExplorer
 from mollana.ui.icons import icon, imagesDir
-from mollana.ui.keyboard import UrduKeyboardPanel
+from mollana.ui.keyboard import Density, UrduKeyboardPanel
 from mollana.ui.learn_dialog import LearnWordDialog
 from mollana.ui.mainwindow import MainWindow
 
@@ -586,6 +586,7 @@ def test_learnDialogRoundTripReturnsThePanel(qapp: QApplication, tmp_path: Path)
     assert panel.parent() is dock
     assert panel.isVisible()
     assert dock.isVisible()
+    assert panel.density() is Density.Spaced  # the dock's context came back
     window.close()
 
 

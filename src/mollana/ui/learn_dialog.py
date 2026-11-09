@@ -20,10 +20,11 @@ panel, the F2 toggle and the window title.
 
 # ******************************************************************************
 from pyraya import AddWordDialog, ArabicScriptWordChars, PyRaya, wordRuns
+from PySide6.QtCore import QPoint
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QDialogButtonBox, QVBoxLayout, QWidget
 
-from mollana.ui.keyboard import UrduKeyboardPanel
+from mollana.ui.keyboard import Density, UrduKeyboardPanel
 
 
 # ******************************************************************************
@@ -102,6 +103,7 @@ class LearnWordDialog(AddWordDialog):
 
         self._panelKeyboard = keyboard
         if keyboard is not None:
+            keyboard.setDensity(Density.Compact)
             keyboard.setParent(self)
             layout = self.layout()
             assert isinstance(layout, QVBoxLayout)
@@ -141,8 +143,18 @@ class LearnWordDialog(AddWordDialog):
 
     # **************************************************************************
     def _setKeyboardShown(self, shown: bool) -> None:
-        """Show or hide the borrowed keyboard, resizing the dialog."""
+        """Show or hide the borrowed keyboard, keeping the dialog centered."""
         if self._panelKeyboard is None:
             return
+        before = self.size()
         self._panelKeyboard.setVisible(shown)
         self.adjustSize()
+        delta = self.size() - before
+        if delta.width() == 0 and delta.height() == 0:
+            return
+        # Grow or shrink around the dialog's own centre, then keep it on screen.
+        position = self.pos() - QPoint(delta.width() // 2, delta.height() // 2)
+        available = self.screen().availableGeometry()
+        x = min(max(position.x(), available.left()), available.right() - self.width() + 1)
+        y = min(max(position.y(), available.top()), available.bottom() - self.height() + 1)
+        self.move(x, y)

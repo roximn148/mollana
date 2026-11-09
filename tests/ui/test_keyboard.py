@@ -8,7 +8,7 @@
 
 # ******************************************************************************
 from pyraya import PyRaya
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QMargins, QSize, Qt
 from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
@@ -20,7 +20,99 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from mollana.ui.keyboard import UrduKeyboardDock, UrduKeyboardPanel
+from mollana.ui.keyboard import (
+    ALPHABET,
+    Density,
+    UrduKeyboardDock,
+    UrduKeyboardPanel,
+)
+
+
+# ******************************************************************************
+def _glyphSize(panel: UrduKeyboardPanel) -> QSize:
+    """The size of the first alphabet key."""
+    return next(b for b in panel.findChildren(QPushButton) if b.text() == "\u0622").size()
+
+
+# ******************************************************************************
+def test_panelDefaultsToSpacedMetrics(qapp: QApplication) -> None:
+    """The dock's panel ships Spaced: 45 px glyphs, 60x45 controls, word labels."""
+    panel = UrduKeyboardPanel()
+    assert panel.density() is Density.Spaced
+    assert _glyphSize(panel) == QSize(45, 45)
+    control = next(b for b in panel.findChildren(QPushButton) if b.text() == "Bksp")
+    assert control.size() == QSize(60, 45)
+
+
+# ******************************************************************************
+def test_compactDensityPacksKeysAndUsesGlyphs(qapp: QApplication) -> None:
+    """Compact: 34 px glyphs, 48x34 controls, navigation as glyphs."""
+    panel = UrduKeyboardPanel()
+    panel.setDensity(Density.Compact)
+    assert panel.density() is Density.Compact
+
+    glyphs = [b for b in panel.findChildren(QPushButton) if b.text() in ALPHABET]
+    assert len(glyphs) == 42
+    assert all(b.size() == QSize(34, 34) for b in glyphs)
+
+    labels = {b.text(): b for b in panel.findChildren(QPushButton)}
+    for label in ("Del", "Bksp", "\u21e4", "\u21e5", "\u2190", "\u2192"):
+        assert label in labels
+        assert labels[label].size() == QSize(48, 34)
+    assert "Home" not in labels and "End" not in labels
+
+
+# ******************************************************************************
+def test_glyphTypeSizeIsTheSameInBothDensities(qapp: QApplication) -> None:
+    """The alphabet type stays at the shared 20 px; only the key box shrinks."""
+    panel = UrduKeyboardPanel()
+    glyph = next(b for b in panel.findChildren(QPushButton) if b.text() == "\u0622")
+    assert "font-size: 20px" in glyph.styleSheet()
+
+    panel.setDensity(Density.Compact)
+    assert "font-size: 20px" in glyph.styleSheet()
+    assert glyph.size() == QSize(34, 34)
+
+
+# ******************************************************************************
+def test_compactTightensSpacingAndMargins(qapp: QApplication) -> None:
+    """Compact: zero grid spacing, 8 px group gap, 2 px margins."""
+    panel = UrduKeyboardPanel()
+    panel.setDensity(Density.Compact)
+
+    layout = panel.layout()
+    assert layout is not None
+    assert layout.contentsMargins() == QMargins(2, 2, 2, 2)
+
+    grids = [
+        item.layout()
+        for index in range(layout.count())
+        if (item := layout.itemAt(index)).layout() is not None
+    ]
+    assert len(grids) == 2
+    assert all(grid.spacing() == 0 for grid in grids)
+    assert all(grid.contentsMargins() == QMargins(0, 0, 0, 0) for grid in grids)
+
+
+# ******************************************************************************
+def test_dockTakesThePanelBackSpaced(qapp: QApplication) -> None:
+    """However the dialog left it, the dock's panel returns Spaced."""
+    dock = UrduKeyboardDock()
+    panel = dock.widget()
+    assert isinstance(panel, UrduKeyboardPanel)
+    panel.setDensity(Density.Compact)
+
+    dock.detachPanel()
+    dock.attachPanel(panel, False)
+
+    assert panel.density() is Density.Spaced
+    assert _glyphSize(panel) == QSize(45, 45)
+    assert {b.text() for b in panel.findChildren(QPushButton)} >= {
+        "Del",
+        "Bksp",
+        "Home",
+        "End",
+    }
 
 
 # ******************************************************************************
