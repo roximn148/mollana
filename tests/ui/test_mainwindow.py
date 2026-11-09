@@ -12,15 +12,19 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+import pytest
+from pyraya import PyRaya
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QIcon, QKeySequence
-from PySide6.QtWidgets import QApplication, QDockWidget, QMenu
+from PySide6.QtWidgets import QApplication, QDialog, QDockWidget, QMenu
 
 from mollana.editor.dictionaries import DictionaryStore
 from mollana.editor.session import Session
 from mollana.ui.editor_pane import EditorPane
 from mollana.ui.explorer import FileExplorer
 from mollana.ui.icons import icon, imagesDir
+from mollana.ui.keyboard import UrduKeyboardPanel
+from mollana.ui.learn_dialog import LearnWordDialog
 from mollana.ui.mainwindow import MainWindow
 
 
@@ -433,6 +437,184 @@ def test_iconsLoadFromTheImageFolder(qapp: QApplication, tmp_path: Path) -> None
 def test_imagesDirUsesMeipass(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
     assert imagesDir() == tmp_path / "mollana" / "ui" / "resources" / "images"
+
+
+# ******************************************************************************
+def test_newDocumentInstallsTheLearnHandler(
+    qapp: QApplication, tmp_path: Path, monkeypatch
+) -> None:
+    """Every editor Mollana opens routes its learn flow through the window."""
+    handlers: list[object] = []
+
+    def record(editor: PyRaya, handler: object) -> None:
+        handlers.append(handler)
+
+    monkeypatch.setattr(PyRaya, "setAddWordHandler", record)
+    window = _window(tmp_path)
+    window.onNew()
+    assert len(handlers) == 1
+    assert handlers[0] == window.openLearnDialog
+    window.close()
+
+
+# ******************************************************************************
+def test_learnDialogBorrowsTheDockKeyboard(
+    qapp: QApplication, tmp_path: Path, monkeypatch
+) -> None:
+    """An open dock lends its panel to the dialog and takes it back."""
+    created: dict[str, object] = {}
+
+    class StubDialog:
+        def __init__(
+            self,
+            prefill: str = "",
+            hint: str = "",
+            parent=None,
+            keyboard=None,
+            keyboardVisible: bool = True,
+        ) -> None:
+            created.update(
+                prefill=prefill, hint=hint, keyboard=keyboard, visible=keyboardVisible
+            )
+
+        def exec(self) -> QDialog.DialogCode:
+            created["dockHiddenDuring"] = not dock.isVisible()
+            created["actionUncheckedDuring"] = not window.ui.actionUrduKeyboard.isChecked()
+            return QDialog.DialogCode.Accepted
+
+        def word(self) -> str:
+            return "سلام"
+
+        def takeKeyboard(self) -> None:
+            created["taken"] = True
+
+    monkeypatch.setattr("mollana.ui.mainwindow.LearnWordDialog", StubDialog)
+    window = _window(tmp_path)
+    window.show()
+    dock = window.ui.dockKeyboard
+    dock.setVisible(True)
+    qapp.processEvents()
+    panel = dock.widget()
+    assert panel is not None
+
+    assert window.openLearnDialog("سلام") == "سلام"
+    assert created["keyboard"] is panel
+    assert created["visible"] is True  # inherited from the open dock
+    assert created["dockHiddenDuring"] is True  # requirement: the dock steps aside
+    assert created["actionUncheckedDuring"] is True
+    assert created["taken"] is True
+    assert dock.widget() is panel  # the one panel came home
+    assert dock.isVisible()  # and the dock's state came back
+    window.close()
+
+
+# ******************************************************************************
+def test_learnDialogKeepsAClosedDockClosed(
+    qapp: QApplication, tmp_path: Path, monkeypatch
+) -> None:
+    """A closed dock lends a hidden keyboard and stays closed afterwards."""
+
+    class StubDialog:
+        def __init__(
+            self,
+            prefill: str = "",
+            hint: str = "",
+            parent=None,
+            keyboard=None,
+            keyboardVisible: bool = True,
+        ) -> None:
+            self.visible = keyboardVisible
+
+        def exec(self) -> QDialog.DialogCode:
+            return QDialog.DialogCode.Rejected
+
+        def word(self) -> str:
+            return ""
+
+        def takeKeyboard(self) -> None:
+            pass
+
+    monkeypatch.setattr("mollana.ui.mainwindow.LearnWordDialog", StubDialog)
+    window = _window(tmp_path)
+    window.show()
+    dock = window.ui.dockKeyboard
+    qapp.processEvents()
+    panel = dock.widget()
+    assert panel is not None
+    assert not dock.isVisible()
+
+    assert window.openLearnDialog("سلام") is None
+    assert dock.widget() is panel
+    assert not dock.isVisible()
+    window.close()
+
+
+# ******************************************************************************
+def test_learnDialogRoundTripReturnsThePanel(qapp: QApplication, tmp_path: Path) -> None:
+    """With the real dialog: the panel is inside it, then home again."""
+    window = _window(tmp_path)
+    window.show()
+    window.onNew()
+    dock = window.ui.dockKeyboard
+    dock.setVisible(True)
+    qapp.processEvents()
+    panel = dock.widget()
+    assert panel is not None
+    seen: dict[str, bool] = {}
+
+    def accept() -> None:
+        modal = QApplication.activeModalWidget()
+        seen["isOurs"] = isinstance(modal, LearnWordDialog)
+        seen["borrowed"] = (
+            modal is not None and modal.findChild(UrduKeyboardPanel) is panel
+        )
+        seen["dockHidden"] = not dock.isVisible()
+        if isinstance(modal, LearnWordDialog):
+            modal.accept()
+
+    QTimer.singleShot(50, accept)
+    QTimer.singleShot(
+        5000,
+        window,
+        lambda: QApplication.activeModalWidget()
+        and QApplication.activeModalWidget().close(),
+    )
+    assert window.openLearnDialog("سلام") == "سلام"
+
+    assert seen == {"isOurs": True, "borrowed": True, "dockHidden": True}
+    assert dock.widget() is panel
+    assert panel.parent() is dock
+    assert panel.isVisible()
+    assert dock.isVisible()
+    window.close()
+
+
+# ******************************************************************************
+def test_prefillFailureLeavesTheDockIntact(
+    qapp: QApplication, tmp_path: Path, monkeypatch
+) -> None:
+    """The panel is only lent once the prefill succeeded."""
+
+    def boom(*_args, **_kwargs) -> str:
+        raise RuntimeError("prefill failed")
+
+    monkeypatch.setattr("mollana.ui.mainwindow.prefillFor", boom)
+    window = _window(tmp_path)
+    window.show()
+    window.onNew()
+    dock = window.ui.dockKeyboard
+    dock.setVisible(True)
+    qapp.processEvents()
+    panel = dock.widget()
+    assert panel is not None
+
+    with pytest.raises(RuntimeError):
+        window.openLearnDialog("سلام")
+
+    assert dock.widget() is panel
+    assert panel.parent() is dock
+    assert dock.isVisible()
+    window.close()
 
 
 # ******************************************************************************

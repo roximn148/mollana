@@ -4,13 +4,18 @@
 # LICENSE.txt file in the root directory of this source tree.
 # ******************************************************************************
 
-"""The dockable on-screen Urdu alphabet keyboard.
+"""The on-screen Urdu alphabet keyboard.
 
-A bottom dock whose glyph and control keys type into whatever widget holds
-the keyboard focus: characters are inserted into the focused
-:class:`QLineEdit` or :class:`QPlainTextEdit` (which covers ``PyRaya``,
-itself a ``QPlainTextEdit``). The keys take ``NoFocus``, so clicking them
-never moves the caret away from the field being edited.
+:class:`UrduKeyboardPanel` carries the keys and the routing: every click types
+into whatever widget holds the keyboard focus, so one panel serves the dock in
+the main window and the learn-word dialog alike. Characters are inserted into
+the focused :class:`QLineEdit` or :class:`QPlainTextEdit` (which covers
+``PyRaya``, itself a ``QPlainTextEdit``). The keys take ``NoFocus``, so
+clicking them never moves the caret away from the field being edited.
+
+:class:`UrduKeyboardDock` is the panel's home in the main window. A modal
+dialog cannot reach the dock, so the dock *lends* the panel to the learn-word
+dialog while it is open; there is only ever one panel.
 """
 
 # ******************************************************************************
@@ -54,11 +59,11 @@ COLUMNS_PER_ROW: int = 14
 
 
 # ******************************************************************************
-class UrduKeyboardDock(QDockWidget):
-    """The dockable on-screen Urdu alphabet keyboard.
+class UrduKeyboardPanel(QWidget):
+    """The alphabet grid and its routing into the focused widget.
 
     Every key types into whatever widget currently holds the keyboard
-    focus, so one dock serves every focused field the host shows. The
+    focus, so the panel serves every focused field its host shows. The
     character keys carry the RTL ``QLineEdit`` cursor semantics of the
     original py12 implementation: the left and right keys advance or
     retreat the logical cursor, so the caret moves visually leftward and
@@ -67,26 +72,15 @@ class UrduKeyboardDock(QDockWidget):
     """
 
     # **************************************************************************
-    def __init__(self, parent: QMainWindow | None = None) -> None:
-        """Create the dock on ``parent``; bottom area only, toggle-friendly."""
-        super().__init__("Urdu Keyboard", parent)
-        self.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea)
-        # The toggleViewAction can only show or hide a dock that is closable.
-        # Not floatable: the floating tool window has no focusable target,
-        # so telling it apart from the main window keeps the keys working.
-        self.setFeatures(
-            QDockWidget.DockWidgetFeature.DockWidgetMovable
-            | QDockWidget.DockWidgetFeature.DockWidgetClosable
-        )
-
-        container = QWidget()
-        contentLayout = QHBoxLayout(container)
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Lay out the glyph and control grids on ``parent``."""
+        super().__init__(parent)
+        contentLayout = QHBoxLayout(self)
         contentLayout.addStretch()
         self._buildCharacterGrid(contentLayout)
         contentLayout.addSpacing(45)
         self._buildControlGrid(contentLayout)
         contentLayout.addStretch()
-        self.setWidget(container)
 
     # **************************************************************************
     def _buildCharacterGrid(self, contentLayout: QHBoxLayout) -> None:
@@ -186,6 +180,8 @@ QPushButton:pressed {{ background-color: #dcdde1; }}
         while widget is not None:
             if isinstance(widget, PyRaya):
                 return widget
+            if widget.isWindow():
+                return None  # a dialog's keys never leak to an editor behind it
             widget = widget.parentWidget()
         return None
 
@@ -231,3 +227,53 @@ QPushButton:pressed {{ background-color: #dcdde1; }}
             cursor.movePosition(moves[action])
             return True
         return False
+
+
+# ******************************************************************************
+class UrduKeyboardDock(QDockWidget):
+    """The on-screen Urdu alphabet keyboard docked in the main window.
+
+    The dock owns nothing but placement and toggling; the keys and their
+    routing live in :class:`UrduKeyboardPanel`, which the learn-word dialog
+    also embeds while the main-window dock is out of reach.
+    """
+
+    # **************************************************************************
+    def __init__(self, parent: QMainWindow | None = None) -> None:
+        """Create the dock on ``parent``; bottom area only, toggle-friendly."""
+        super().__init__("Urdu Keyboard", parent)
+        self.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea)
+        # The toggleViewAction can only show or hide a dock that is closable.
+        # Not floatable: the floating tool window has no focusable target,
+        # so telling it apart from the main window keeps the keys working.
+        self.setFeatures(
+            QDockWidget.DockWidgetFeature.DockWidgetMovable
+            | QDockWidget.DockWidgetFeature.DockWidgetClosable
+        )
+        self._panel = UrduKeyboardPanel(self)
+        self._placeholder = QWidget(self)
+        self.setWidget(self._panel)
+
+    # **************************************************************************
+    def detachPanel(self) -> tuple[UrduKeyboardPanel, bool]:
+        """Lend the app's keyboard panel to a modal dialog.
+
+        Returns:
+            The panel and whether the dock was open, so the dialog can start
+            the keyboard in the same state and the dock can be restored.
+        """
+        panel = self._panel
+        wasVisible = not self.isHidden()
+        self.setWidget(self._placeholder)  # empty the slot before the dialog adopts it
+        panel.setParent(self)
+        panel.hide()
+        self.hide()  # an empty dock strip behind a modal serves nobody
+        return panel, wasVisible
+
+    # **************************************************************************
+    def attachPanel(self, panel: UrduKeyboardPanel, visible: bool) -> None:
+        """Take the panel back and restore the dock's visibility."""
+        panel.setParent(self)
+        panel.show()
+        self.setWidget(panel)
+        self.setVisible(visible)

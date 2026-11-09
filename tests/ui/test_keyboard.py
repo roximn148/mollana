@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from mollana.ui.keyboard import UrduKeyboardDock
+from mollana.ui.keyboard import UrduKeyboardDock, UrduKeyboardPanel
 
 
 # ******************************************************************************
@@ -39,6 +39,22 @@ def test_dockBuildsCharacterAndControlGrid(qapp: QApplication) -> None:
     # Floatable would let the dock's floating tool window activate without
     # any focused target inside, leaving the keys dead there.
     assert not (dock.features() & QDockWidget.DockWidgetFeature.DockWidgetFloatable)
+
+
+# ******************************************************************************
+def test_dockLendsAndTakesBackTheSamePanel(qapp: QApplication) -> None:
+    """The panel is the app's one keyboard: lending it empties the dock."""
+    dock = UrduKeyboardDock()
+    panel = dock.widget()
+    assert isinstance(panel, UrduKeyboardPanel)
+
+    detached, wasVisible = dock.detachPanel()
+    assert detached is panel
+    assert dock.widget() is not panel  # the slot is emptied for the dialog
+    assert not wasVisible  # the dock was never shown
+
+    dock.attachPanel(panel, False)
+    assert dock.widget() is panel
 
 
 # ******************************************************************************

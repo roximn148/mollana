@@ -14,7 +14,7 @@ class translates user intent into calls on those two and reports back.
 # ******************************************************************************
 from pathlib import Path
 
-from PySide6.QtWidgets import QFileDialog, QMainWindow, QMenu, QMessageBox
+from PySide6.QtWidgets import QDialog, QFileDialog, QMainWindow, QMenu, QMessageBox
 
 from mollana.editor.dictionaries import DictionaryStore
 from mollana.editor.document import Document
@@ -24,6 +24,7 @@ from mollana.editor.session import Session
 from mollana.infra.logging import getLogger
 from mollana.infra.meta import Rx
 from mollana.infra.settings import RSettings
+from mollana.ui.learn_dialog import LearnWordDialog, prefillFor
 from mollana.ui.mainwindowui import MainWindowUi
 
 # ******************************************************************************
@@ -103,12 +104,46 @@ class MainWindow(QMainWindow):
         """Add ``document`` to the session and open its tab."""
         self.session.add(document)
         editor = self.ui.tbwEditors.bind(document, text)
+        editor.setAddWordHandler(self.openLearnDialog)
         editor.modificationChanged.connect(
             lambda modified, documentId=document.id: self.onDocumentModified(documentId, modified)
         )
         self.selectDocument(document)
         self._updateTitle()
         return document
+
+    # **************************************************************************
+    def openLearnDialog(self, trigger: str) -> str | None:
+        """Open the Add Word entry with the window's one keyboard.
+
+        The modal dialog cannot reach the dock, so the dock lends it the
+        panel; the keyboard starts in the dock's own state, F2 toggles it
+        inside the dialog, and the panel goes home when the dialog closes.
+
+        Args:
+            trigger: The word that opened the learn flow.
+
+        Returns:
+            The chosen Arabic word, or ``None`` when the dialog is cancelled.
+        """
+        prefill = prefillFor(trigger, self.ui.tbwEditors.activeEditor())
+        panel, keyboardVisible = self.ui.dockKeyboard.detachPanel()
+        dialog: LearnWordDialog | None = None
+        try:
+            dialog = LearnWordDialog(
+                prefill,
+                hint=trigger,
+                parent=self,
+                keyboard=panel,
+                keyboardVisible=keyboardVisible,
+            )
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return None
+            return dialog.word() or None
+        finally:
+            if dialog is not None:
+                dialog.takeKeyboard()
+            self.ui.dockKeyboard.attachPanel(panel, keyboardVisible)
 
     # **************************************************************************
     def openPath(self, path: Path | str) -> Document | None:

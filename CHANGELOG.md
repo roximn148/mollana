@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A dockable on-screen Urdu alphabet keyboard (bottom dock, hidden at start;
   toggled from the View menu or with F2) whose keys type into whatever field
   or editor holds the caret.
+- The Add Word dialog shows the on-screen keyboard when it was open, hides it
+  otherwise, and F2 toggles it there.
 
 ### Changed
 
