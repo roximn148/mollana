@@ -8,12 +8,14 @@
 
 A bottom dock whose glyph and control keys type into whatever widget holds
 the keyboard focus: characters are inserted into the focused
-:class:`QLineEdit`. The keys take ``NoFocus``, so clicking them never moves
-the caret away from the field being edited.
+:class:`QLineEdit` or :class:`QPlainTextEdit` (which covers ``PyRaya``,
+itself a ``QPlainTextEdit``). The keys take ``NoFocus``, so clicking them
+never moves the caret away from the field being edited.
 """
 
 # ******************************************************************************
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
     QDockWidget,
@@ -21,6 +23,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLineEdit,
     QMainWindow,
+    QPlainTextEdit,
     QPushButton,
     QWidget,
 )
@@ -56,7 +59,8 @@ class UrduKeyboardDock(QDockWidget):
     character keys carry the RTL ``QLineEdit`` cursor semantics of the
     original py12 implementation: the left and right keys advance or
     retreat the logical cursor, so the caret moves visually leftward and
-    rightward.
+    rightward. In a :class:`QPlainTextEdit` the keys move the cursor
+    visually instead, the way a caret behaves there.
     """
 
     # **************************************************************************
@@ -126,10 +130,15 @@ QPushButton:pressed {{ background-color: #dcdde1; }}
         widget = QApplication.focusWidget()
         if isinstance(widget, QLineEdit):
             widget.insert(char)
+        elif isinstance(widget, QPlainTextEdit):
+            cursor = widget.textCursor()
+            cursor.insertText(char)  # a selection, if any, is replaced
+            widget.setTextCursor(cursor)
 
     # **************************************************************************
     def _performControl(self, action: str) -> None:
-        """Apply ``action`` to the focused :class:`QLineEdit`, py12 semantics."""
+        """Apply ``action`` to the focused field or editor it holds."""
+
         widget = QApplication.focusWidget()
         if isinstance(widget, QLineEdit):
             if action == "backspace":
@@ -146,3 +155,20 @@ QPushButton:pressed {{ background-color: #dcdde1; }}
                 widget.home(False)
             elif action == "end":
                 widget.end(False)
+        elif isinstance(widget, QPlainTextEdit):
+            cursor = widget.textCursor()
+            if action == "backspace":
+                cursor.deletePreviousChar()  # over a selection: the selection goes
+            elif action == "delete":
+                cursor.deleteChar()
+            elif action == "left":
+                cursor.movePosition(QTextCursor.MoveOperation.Left)
+            elif action == "right":
+                cursor.movePosition(QTextCursor.MoveOperation.Right)
+            elif action == "home":
+                cursor.movePosition(QTextCursor.MoveOperation.StartOfLine)
+            elif action == "end":
+                cursor.movePosition(QTextCursor.MoveOperation.EndOfLine)
+            else:
+                return
+            widget.setTextCursor(cursor)

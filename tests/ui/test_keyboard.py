@@ -7,8 +7,17 @@
 """The on-screen Urdu keyboard: grid construction and focused-field routing."""
 
 # ******************************************************************************
+from pyraya import PyRaya
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QDockWidget, QLineEdit, QPushButton, QWidget
+from PySide6.QtGui import QTextCursor
+from PySide6.QtWidgets import (
+    QApplication,
+    QDockWidget,
+    QLineEdit,
+    QPlainTextEdit,
+    QPushButton,
+    QWidget,
+)
 
 from mollana.ui.keyboard import UrduKeyboardDock
 
@@ -78,6 +87,74 @@ def test_controlKeysIntoTheFocusedField(qapp: QApplication) -> None:
     assert field.cursorPosition() == 3
     buttons["\u2192"].click()  # and visual-right retreats
     assert field.cursorPosition() == 2
+
+
+# ******************************************************************************
+def test_characterClickInsertsIntoTheFocusedEditor(qapp: QApplication) -> None:
+    """Clicking a glyph key types into whatever QPlainTextEdit has focus."""
+    dock = UrduKeyboardDock()
+    editor = QPlainTextEdit("salam")
+    editor.show()
+    editor.moveCursor(QTextCursor.MoveOperation.End)  # the caret starts where the text ends
+    editor.setFocus()
+    qapp.processEvents()
+    buttons = dock.findChildren(QPushButton)
+    buttons[0].click()
+    assert editor.toPlainText() == "salam" + buttons[0].text()
+    editor.selectAll()
+    buttons[2].click()
+    assert editor.toPlainText() == buttons[2].text()  # selection was replaced, not appended
+
+
+# ******************************************************************************
+def test_controlKeysIntoTheFocusedEditor(qapp: QApplication) -> None:
+    """Bksp/Del/Home/End/+/> drive the focused editor's cursor."""
+    dock = UrduKeyboardDock()
+    buttons = {b.text(): b for b in dock.findChildren(QPushButton)}
+
+    editor = QPlainTextEdit()
+    editor.show()
+    editor.setFocus()
+    qapp.processEvents()
+    buttons["Bksp"].click()  # backspace in an empty editor: silent no-op
+    assert editor.toPlainText() == ""
+
+    editor.setPlainText("salam")
+    buttons["Del"].click()  # caret starts at 0: the first character goes
+    assert editor.toPlainText() == "alam"
+
+    editor.setPlainText("salam")
+    buttons["Home"].click()
+    assert editor.textCursor().position() == 0
+    buttons["End"].click()
+    assert editor.textCursor().position() == len("salam")
+    buttons["\u2190"].click()  # visual left from the end: one step back
+    assert editor.textCursor().position() == len("salam") - 1
+    buttons["\u2192"].click()  # and visual right: one step forward again
+    assert editor.textCursor().position() == len("salam")
+
+    editor.setPlainText("salam")
+    selection = QTextCursor(editor.textCursor())
+    selection.setPosition(2)
+    selection.setPosition(4, QTextCursor.MoveMode.KeepAnchor)
+    editor.setTextCursor(selection)
+    buttons["Bksp"].click()  # backspace over a selection removes it
+    assert editor.toPlainText() == "sam"
+
+
+# ******************************************************************************
+def test_keyboardTypesIntoTheActivePyrayaEditor(qapp: QApplication) -> None:
+    """PyRaya is a QPlainTextEdit subclass, so the routing finds it the same way."""
+    dock = UrduKeyboardDock()
+    editor = PyRaya()
+    editor.setPlainText("salam")
+    editor.moveCursor(QTextCursor.MoveOperation.End)  # the caret starts where the text ends
+    editor.show()
+    editor.setFocus()
+    qapp.processEvents()
+    buttons = dock.findChildren(QPushButton)
+    buttons[0].click()
+    assert editor.toPlainText() == "salam" + buttons[0].text()
 
 
 # ******************************************************************************
