@@ -257,9 +257,11 @@ is one global, per-process choice stored in the dictionary catalogue.
 - `PyRaya`'s shared `localDictionary()` starts empty in every process. `MainWindow`
   loads the active dictionary into it when the first document opens
   (`_loadActiveDictionary`), and `flushDictionaries()` writes the completed words
-  through `DictionaryStore.write` on close, which merges frequencies so another
-  instance's words survive. `Vocabulary.save` is not used: it overwrites the file,
-  which would drop every word learned in earlier sessions.
+  through `DictionaryStore.write` on close and on the `AutoSaveInterval` timer
+  (default 5 minutes). That write merges frequencies, so another instance's words
+  survive, and it is skipped when the completed words are unchanged since the last
+  save. `Vocabulary.save` is not used: it overwrites the file, which would drop
+  every word learned in earlier sessions.
 - `symspellpy` and `unicodedataplus` are **transitive** via `romanalfaz`. Importing them
   directly from mollana is a smell.
 - Use **`pyside6-essentials`**, not the `pyside6` metapackage; Mollana needs only

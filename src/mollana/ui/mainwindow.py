@@ -15,6 +15,7 @@ class translates user intent into calls on those two and reports back.
 from pathlib import Path
 
 from pyraya import PyRaya
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QDialog, QFileDialog, QMainWindow, QMenu, QMessageBox
 
 from mollana.editor.dictionaries import DictionaryStore
@@ -55,6 +56,11 @@ class MainWindow(QMainWindow):
         self.settings = settings
         self.log = getLogger("ui")
         self._dictionaryLoaded = False
+        self._savedDictionaryWords: dict[str, int] = {}
+        self.autoSaveTimer = QTimer(self)
+        self.autoSaveTimer.setInterval(self.settings.Main.AutoSaveInterval * 60_000)
+        self.autoSaveTimer.timeout.connect(self.flushDictionaries)
+        self.autoSaveTimer.start()
 
         self.recent = RecentFiles(
             paths=self.settings.Main.RecentFiles,
@@ -127,8 +133,10 @@ class MainWindow(QMainWindow):
             return
         self._dictionaryLoaded = True
         dictionary = editor.localDictionary()
-        for word, count in self.store.read(self.store.activeId()).items():
+        stored = self.store.read(self.store.activeId())
+        for word, count in stored.items():
             dictionary.add(word, count=count, isCompleted=True)
+        self._savedDictionaryWords = dict(stored)
 
     # **************************************************************************
     def openLearnDialog(self, trigger: str) -> str | None:
@@ -462,11 +470,14 @@ class MainWindow(QMainWindow):
                 for word, count in dictionary.counter.items()
                 if word in dictionary.completed
             }
+            if words == self._savedDictionaryWords:
+                continue
             try:
                 self.store.write(dictionaryId, words)
             except OSError as error:
                 self.log.warning(f"Could not save dictionary {dictionaryId}: {error}")
             else:
+                self._savedDictionaryWords = dict(words)
                 self.log.info(f"Saved dictionary {dictionaryId} to {target}")
             break
 
@@ -481,6 +492,7 @@ class MainWindow(QMainWindow):
 
         self.settings.Main.RecentFiles = [Path(path) for path in self.recent.paths]
         self.settings.save()
+        self.autoSaveTimer.stop()
         self.flushDictionaries()
         event.accept()
 

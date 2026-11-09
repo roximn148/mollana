@@ -36,6 +36,7 @@ class StubMain:
     LogLevel: str = "DEBUG"
     RecentFiles: list[Path] = field(default_factory=list)
     RecentMaxCount: int = 10
+    AutoSaveInterval: int = 5
 
 
 # ******************************************************************************
@@ -199,6 +200,7 @@ class StubMain:
     LogLevel = "DEBUG"
     RecentFiles = []
     RecentMaxCount = 10
+    AutoSaveInterval = 5
 
 
 class StubSettings:
@@ -490,6 +492,69 @@ def test_closeMergesWordsSavedByAnotherInstance(
     words = store.read("default")
     assert words["باہر"] == 2
     assert words["اندر"] == 1
+
+
+# ******************************************************************************
+def test_autoSaveTimerFlushesTheVocabulary(
+    qapp: QApplication, tmp_path: Path
+) -> None:
+    """A timer tick persists a learned word without closing the app."""
+    store = DictionaryStore(tmp_path / "dictionaries")
+    store.ensureDefault()
+
+    window = MainWindow(Session(), store, StubSettings())
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    assert editor is not None
+    editor.localDictionary().add("وقتی", isCompleted=True)
+
+    window.autoSaveTimer.timeout.emit()
+    qapp.processEvents()
+
+    assert store.read("default")["وقتی"] == 1
+    window.close()
+
+
+# ******************************************************************************
+def test_autoSaveTimerUsesTheConfiguredInterval(
+    qapp: QApplication, tmp_path: Path
+) -> None:
+    """The timer runs at the configured minutes, converted to milliseconds."""
+    settings = StubSettings()
+    settings.Main.AutoSaveInterval = 3
+    window = MainWindow(Session(), DictionaryStore(tmp_path / "dictionaries"), settings)
+
+    assert window.autoSaveTimer.isActive()
+    assert window.autoSaveTimer.interval() == 3 * 60 * 1000
+    window.close()
+
+
+# ******************************************************************************
+def test_autoSaveDoesNotRewriteAnUnchangedVocabulary(
+    qapp: QApplication, tmp_path: Path, monkeypatch
+) -> None:
+    """Only a changed vocabulary is written; an idle tick is a no-op."""
+    store = DictionaryStore(tmp_path / "dictionaries")
+    store.ensureDefault()
+    window = MainWindow(Session(), store, StubSettings())
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    assert editor is not None
+    editor.localDictionary().add("یکبار", isCompleted=True)
+
+    writes: list[dict[str, int]] = []
+    originalWrite = store.write
+
+    def spy(dictionaryId: str, words: dict[str, int]) -> None:
+        writes.append(dict(words))
+        originalWrite(dictionaryId, words)
+
+    monkeypatch.setattr(store, "write", spy)
+    window.autoSaveTimer.timeout.emit()
+    window.autoSaveTimer.timeout.emit()
+
+    assert len(writes) == 1
+    window.close()
 
 
 # ******************************************************************************
