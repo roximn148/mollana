@@ -20,11 +20,19 @@ panel, the F2 toggle and the window title.
 
 # ******************************************************************************
 from pyraya import AddWordDialog, ArabicScriptWordChars, PyRaya, wordRuns
-from PySide6.QtCore import QPoint
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QDialogButtonBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QDialogButtonBox,
+    QLabel,
+    QLineEdit,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
-from mollana.ui.keyboard import Density, UrduKeyboardPanel
+from mollana.ui.fonts import editorFont
+from mollana.ui.keyboard import METRICS, Density, UrduKeyboardPanel
 
 
 # ******************************************************************************
@@ -100,6 +108,32 @@ class LearnWordDialog(AddWordDialog):
         """
         super().__init__(prefill, hint, parent)
         self.setWindowTitle("Add Word")
+        buttonBox = self.findChild(QDialogButtonBox)
+
+        # The word and its roman preview speak with the editor's typeface.
+        field = self.findChild(QLineEdit)
+        assert field is not None
+        field.setFont(editorFont())
+        preview = self.findChild(QLabel)
+        assert preview is not None
+        preview.setFont(editorFont())
+        preview.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        preview.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
+
+        # The buttons grow to the compact key height, so the dialog reads as
+        # one piece rather than a keyboard under a strip of small buttons.
+        if buttonBox is not None:
+            keyHeight = METRICS[Density.Compact].controlHeight
+            for standard in (
+                QDialogButtonBox.StandardButton.Ok,
+                QDialogButtonBox.StandardButton.Cancel,
+            ):
+                button = buttonBox.button(standard)
+                if button is not None:
+                    button.setMinimumHeight(keyHeight)
+                    button.setMinimumWidth(80)
 
         self._panelKeyboard = keyboard
         if keyboard is not None:
@@ -109,7 +143,6 @@ class LearnWordDialog(AddWordDialog):
             assert isinstance(layout, QVBoxLayout)
             # The keyboard belongs between the preview and the OK/Cancel
             # buttons; the button box is looked up rather than assumed last.
-            buttonBox = self.findChild(QDialogButtonBox)
             index = layout.indexOf(buttonBox) if buttonBox is not None else -1
             if index < 0:
                 layout.addWidget(keyboard)

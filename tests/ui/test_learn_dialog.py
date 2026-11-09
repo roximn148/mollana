@@ -14,11 +14,14 @@ from PySide6.QtWidgets import (
     QApplication,
     QDialog,
     QDialogButtonBox,
+    QLabel,
     QLineEdit,
     QPushButton,
+    QSizePolicy,
 )
 
-from mollana.ui.keyboard import Density, UrduKeyboardPanel
+from mollana.ui.fonts import editorFont
+from mollana.ui.keyboard import METRICS, Density, UrduKeyboardPanel
 from mollana.ui.learn_dialog import LearnWordDialog, prefillFor
 
 
@@ -41,6 +44,57 @@ def _okButton(dialog: LearnWordDialog) -> QAbstractButton:
     button = box.button(QDialogButtonBox.StandardButton.Ok)
     assert button is not None
     return button
+
+
+# ******************************************************************************
+def test_dialogTypefaceMatchesTheEditor(qapp: QApplication) -> None:
+    """The word field and the roman preview use PyRaya's typeface."""
+    dialog, _panel = _dialog("سلام")
+    field = dialog.findChild(QLineEdit)
+    preview = dialog.findChild(QLabel)
+    assert field is not None and preview is not None
+
+    expected = editorFont()
+    for widget in (field, preview):
+        assert widget.font().families() == expected.families()
+        assert widget.font().pointSizeF() == expected.pointSizeF()
+
+
+# ******************************************************************************
+def test_previewSpansTheDialogRightAligned(qapp: QApplication) -> None:
+    """The roman preview fills the width, its text flush right like the field."""
+    dialog, _panel = _dialog("سلام")
+    dialog.show()
+    qapp.processEvents()
+    field = dialog.findChild(QLineEdit)
+    preview = dialog.findChild(QLabel)
+    assert field is not None and preview is not None
+
+    assert preview.alignment() & Qt.AlignmentFlag.AlignRight
+    assert preview.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding
+    assert preview.width() == field.width()
+    dialog.close()
+
+
+# ******************************************************************************
+def test_dialogButtonsAreAtLeastKeyHeight(qapp: QApplication) -> None:
+    """OK and Cancel are no shorter than the compact keyboard's keys."""
+    dialog, _panel = _dialog("سلام")
+    dialog.show()
+    qapp.processEvents()
+    box = dialog.findChild(QDialogButtonBox)
+    assert box is not None
+    keyHeight = METRICS[Density.Compact].controlHeight
+
+    for standard in (
+        QDialogButtonBox.StandardButton.Ok,
+        QDialogButtonBox.StandardButton.Cancel,
+    ):
+        button = box.button(standard)
+        assert button is not None
+        assert button.minimumHeight() >= keyHeight
+        assert button.height() >= keyHeight
+    dialog.close()
 
 
 # ******************************************************************************

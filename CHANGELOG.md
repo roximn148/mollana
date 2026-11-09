@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   compact (smaller keys, tighter spacing, symbol control keys whose tooltips
   name them) and the dialog stays centered as the keyboard appears or
   disappears.
+- The Add Word dialog's word field and roman preview now use the editor's
+  typeface, the preview spans the dialog right-aligned, and OK/Cancel stand
+  as tall as the keyboard's keys.
 
 ### Changed
 

@@ -51,6 +51,7 @@ src/mollana/
     ├── mainwindowui.py     # hand-written window construction
     ├── explorer.py         # FileExplorer (QTreeView over QFileSystemModel)
     ├── editor_pane.py      # EditorPane (QTabWidget of PyRaya)
+    ├── fonts.py            # the editor typeface, resolved once from PyRaya
     ├── icons.py            # PNG icon loader (checkout and frozen build)
     ├── keyboard.py         # UrduKeyboardPanel + UrduKeyboardDock — one keyboard, typed into the focused widget
     ├── learn_dialog.py     # LearnWordDialog — Add Word entry borrowing the dock's keyboard
