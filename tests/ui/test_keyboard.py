@@ -22,6 +22,8 @@ from PySide6.QtWidgets import (
 
 from mollana.ui.keyboard import (
     ALPHABET,
+    CONTROL_FONT_SIZE,
+    GLYPH_FONT_SIZE,
     Density,
     UrduKeyboardDock,
     UrduKeyboardPanel,
@@ -64,18 +66,20 @@ def test_compactDensityPacksKeysAndUsesGlyphs(qapp: QApplication) -> None:
 
 # ******************************************************************************
 def test_controlTypeIsTheSameInBothDensities(qapp: QApplication) -> None:
-    """Density changes geometry only, never the control font family or size."""
+    """Density changes geometry only, never the key typeface."""
     panel = UrduKeyboardPanel()
     control = next(b for b in panel.findChildren(QPushButton) if b.text() == "Bksp")
     glyph = next(b for b in panel.findChildren(QPushButton) if b.text() == "\u0622")
-    spacedControlStyle = control.styleSheet()
-    spacedGlyphStyle = glyph.styleSheet()
-    assert "font-size: 12px" in spacedControlStyle
-    assert "'Calibri', Arial" in spacedControlStyle
+    spacedControlFont = control.font()
+    spacedGlyphFont = glyph.font()
+    assert ["Calibri", "Arial"] == spacedControlFont.families()
+    assert spacedControlFont.pixelSize() == CONTROL_FONT_SIZE
+    assert spacedGlyphFont.pixelSize() == GLYPH_FONT_SIZE
 
     panel.setDensity(Density.Compact)
-    assert control.styleSheet() == spacedControlStyle
-    assert glyph.styleSheet() == spacedGlyphStyle
+    assert control.font() == spacedControlFont
+    assert glyph.font() == spacedGlyphFont
+    assert not control.styleSheet()  # colour comes from the palette, not a sheet
 
 
 # ******************************************************************************
@@ -95,10 +99,10 @@ def test_glyphTypeSizeIsTheSameInBothDensities(qapp: QApplication) -> None:
     """The alphabet type stays at the shared 20 px; only the key box shrinks."""
     panel = UrduKeyboardPanel()
     glyph = next(b for b in panel.findChildren(QPushButton) if b.text() == "\u0622")
-    assert "font-size: 20px" in glyph.styleSheet()
+    assert glyph.font().pixelSize() == GLYPH_FONT_SIZE
 
     panel.setDensity(Density.Compact)
-    assert "font-size: 20px" in glyph.styleSheet()
+    assert glyph.font().pixelSize() == GLYPH_FONT_SIZE
     assert glyph.size() == QSize(34, 34)
 
 

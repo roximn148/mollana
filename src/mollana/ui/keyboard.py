@@ -25,7 +25,7 @@ from enum import Enum
 
 from pyraya import PyRaya
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QTextCursor
+from PySide6.QtGui import QFont, QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
     QDockWidget,
@@ -161,13 +161,15 @@ class UrduKeyboardPanel(QWidget):
     def _applyMetrics(self, density: Density) -> None:
         """Apply one density's dimensions to the keys and layout."""
         metrics = METRICS[density]
+        glyphFont = self._keyFont(GLYPH_FONT_SIZE)
+        controlFont = self._keyFont(CONTROL_FONT_SIZE)
         for button in self._glyphButtons:
             button.setFixedSize(metrics.glyphKey, metrics.glyphKey)
-            button.setStyleSheet(self._keyStyle(True, GLYPH_FONT_SIZE))
+            button.setFont(glyphFont)
         for button, key in zip(self._controlButtons, CONTROLS, strict=True):
             button.setFixedSize(metrics.controlWidth, metrics.controlHeight)
             button.setText(key.label if density is Density.Spaced else key.glyph)
-            button.setStyleSheet(self._keyStyle(False, CONTROL_FONT_SIZE))
+            button.setFont(controlFont)
         for grid in (self._glyphGrid, self._controlGrid):
             grid.setSpacing(metrics.gridSpacing)
             grid.setContentsMargins(0, 0, 0, 0)
@@ -183,17 +185,17 @@ class UrduKeyboardPanel(QWidget):
 
     # **************************************************************************
     @staticmethod
-    def _keyStyle(isChar: bool, fontSize: int) -> str:
-        """The key stylesheet: white for glyphs, grey for editing keys."""
-        bgColor = "#ffffff" if isChar else "#e1e1e1"
-        return f"""
-QPushButton {{
-    font-size: {fontSize}px; font-family: 'Calibri', Arial;
-    background-color: {bgColor}; border: 1px solid #bdc3c7; border-radius: 5px;
-}}
-QPushButton:hover {{ background-color: #ecf0f1; }}
-QPushButton:pressed {{ background-color: #dcdde1; }}
-"""
+    def _keyFont(fontSize: int) -> QFont:
+        """The key typeface: Calibri falling back to Arial, in the theme's colours.
+
+        Only the font is set here; the key's colour comes from the palette,
+        like every other widget, rather than from a per-button stylesheet.
+        """
+        font = QFont()
+        font.setFamilies(["Calibri", "Arial"])
+        font.setPixelSize(fontSize)
+        font.setWeight(QFont.Weight.DemiBold)
+        return font
 
     # **************************************************************************
     def _buildCharacterGrid(self) -> None:
