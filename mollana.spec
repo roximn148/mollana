@@ -109,8 +109,9 @@ datas = [
     ),
     *collect_data_files("pyraya", includes=["*.sym"]),
     *collect_data_files("romanalfaz", includes=["*.sym"]),
-    # The window loads its PNG icons from files, not from a compiled resource
-    # module, so the image folder travels beside the package.
+    # The window loads its icons (SVG catalogue, brand image, and .ico) from
+    # files, not from a compiled resource module, so the image folder travels
+    # beside the package.
     (str(PACKAGE / "ui" / "resources" / "images"), "mollana/ui/resources/images"),
     (str(ROOT / "LICENSE.txt"), "."),
 ]

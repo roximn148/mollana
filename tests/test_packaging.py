@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 # ******************************************************************************
 def test_pyinstallerShipsTheUiImages() -> None:
-    """The spec must ship the PNG icons beside the frozen package."""
+    """The spec must ship the icon folder beside the frozen package."""
     spec = (ROOT / "mollana.spec").read_text(encoding="utf-8")
     entry = '(str(PACKAGE / "ui" / "resources" / "images"), "mollana/ui/resources/images")'
     assert entry in spec
