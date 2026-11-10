@@ -92,7 +92,8 @@ fresh clone needs no code generation before `uv run mollana` or `uv run pytest`.
 ## Conventions
 
 - **Qt naming, not PEP 8**: `camelCase` for locals, functions, methods, and signals;
-  `PascalCase` for classes, enum members, and constants.
+  `PascalCase` for classes and enum members; `SCREAMING_SNAKE_CASE` for module-level
+  constants. Module-level singleton instances keep their name (`Rx`).
 - Every source file starts with the MIT copyright banner; keep it first.
 - `mollana.*` namespaced imports only; no flat imports.
 - Type hints and docstrings on public functions/classes.
