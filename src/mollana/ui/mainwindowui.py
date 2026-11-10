@@ -13,7 +13,7 @@ module only builds the window and names its parts.
 
 # ******************************************************************************
 from PySide6.QtCore import QObject, QSize, Qt
-from PySide6.QtGui import QAction, QIcon, QKeySequence
+from PySide6.QtGui import QAction, QIcon, QKeySequence, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QDockWidget,
     QLabel,
@@ -28,6 +28,32 @@ from mollana.ui.editor_pane import EditorPane
 from mollana.ui.explorer import FileExplorer
 from mollana.ui.icons import icon
 from mollana.ui.keyboard import UrduKeyboardDock
+
+# ******************************************************************************
+STATUS_ICON_SIZE: QSize = QSize(16, 16)
+STATUS_ICON_OPACITY: float = 0.4
+
+
+# ******************************************************************************
+def servicePixmap(source: QIcon, active: bool) -> QPixmap:
+    """Render a status-bar service icon, faded while the service is off.
+
+    ``QIcon.Mode.Disabled`` greyscales the pixmap instead of dimming it, which
+    on the dark theme leaves the off state brighter than the on one. Fading
+    keeps the icon's own colours and lowers its opacity, so "off" always reads
+    as the quieter state.
+    """
+    pixmap = source.pixmap(STATUS_ICON_SIZE)
+    if active:
+        return pixmap
+    faded = QPixmap(pixmap.size())
+    faded.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(faded)
+    painter.setOpacity(STATUS_ICON_OPACITY)
+    painter.drawPixmap(faded.rect(), pixmap)
+    painter.end()
+    faded.setDevicePixelRatio(pixmap.devicePixelRatio())
+    return faded
 
 
 # ******************************************************************************
@@ -341,14 +367,14 @@ class MainWindowUi:
         self.lblSpellCheck.setObjectName("lblSpellCheck")
         self.lblSpellCheck.setToolTip("Spell Check")
         self.lblSpellCheck.setAccessibleName("Spell Check")
-        self.lblSpellCheck.setPixmap(self.iconSpellCheck.pixmap(QSize(16, 16), QIcon.Mode.Disabled))
+        self.lblSpellCheck.setPixmap(servicePixmap(self.iconSpellCheck, False))
         self.lblSpellCheck.setEnabled(False)
 
         self.lblAssist = QLabel(self.statusBar)
         self.lblAssist.setObjectName("lblAssist")
         self.lblAssist.setToolTip("Assist Mode")
         self.lblAssist.setAccessibleName("Assist Mode")
-        self.lblAssist.setPixmap(self.iconAssist.pixmap(QSize(16, 16), QIcon.Mode.Disabled))
+        self.lblAssist.setPixmap(servicePixmap(self.iconAssist, False))
         self.lblAssist.setEnabled(False)
 
         self.statusBar.addPermanentWidget(self.lblSpellCheck)

@@ -15,8 +15,7 @@ class translates user intent into calls on those two and reports back.
 from pathlib import Path
 
 from pyraya import PyRaya
-from PySide6.QtCore import QSize, QTimer
-from PySide6.QtGui import QIcon
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QDialog, QFileDialog, QMainWindow, QMenu, QMessageBox
 from romanalfaz.engine import Vocabulary
 
@@ -29,7 +28,7 @@ from mollana.infra.logging import getLogger
 from mollana.infra.meta import Rx
 from mollana.infra.settings import RSettings
 from mollana.ui.learn_dialog import LearnWordDialog, prefillFor
-from mollana.ui.mainwindowui import MainWindowUi
+from mollana.ui.mainwindowui import MainWindowUi, servicePixmap
 
 # ******************************************************************************
 FILE_FILTER: str = "Text files (*.txt *.md *.tex *.csv *.json *.toml);;All files (*)"
@@ -130,18 +129,16 @@ class MainWindow(QMainWindow):
     def refreshEditorStatus(self) -> None:
         """Show the active editor's service state on the status bar.
 
-        Both icons are greyed while no document is open, and each one is
-        greyed when its service is off for the active editor.
+        Both icons are dimmed while no document is open, and each one is
+        dimmed when its service is off for the active editor.
         """
         editor = self.ui.tbwEditors.activeEditor()
         spell = editor is not None and editor.isSpellCheckEnabled()
         assist = editor is not None and editor.isAssistEnabled()
         self.ui.lblSpellCheck.setEnabled(spell)
         self.ui.lblAssist.setEnabled(assist)
-        spellMode = QIcon.Mode.Normal if spell else QIcon.Mode.Disabled
-        assistMode = QIcon.Mode.Normal if assist else QIcon.Mode.Disabled
-        self.ui.lblSpellCheck.setPixmap(self.ui.iconSpellCheck.pixmap(QSize(16, 16), spellMode))
-        self.ui.lblAssist.setPixmap(self.ui.iconAssist.pixmap(QSize(16, 16), assistMode))
+        self.ui.lblSpellCheck.setPixmap(servicePixmap(self.ui.iconSpellCheck, spell))
+        self.ui.lblAssist.setPixmap(servicePixmap(self.ui.iconAssist, assist))
 
     # **************************************************************************
     def _loadActiveDictionary(self, editor: PyRaya) -> None:

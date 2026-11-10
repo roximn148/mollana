@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 from pyraya import PyRaya
 from PySide6.QtCore import QSize, Qt, QTimer
-from PySide6.QtGui import QIcon, QKeySequence, QPixmap
+from PySide6.QtGui import QColor, QIcon, QKeySequence, QPixmap
 from PySide6.QtWidgets import QApplication, QDialog, QDockWidget, QMenu, QMessageBox
 from romanalfaz import RomanAlfaz
 
@@ -27,6 +27,7 @@ from mollana.ui.icons import icon, imagesDir
 from mollana.ui.keyboard import Density, UrduKeyboardPanel
 from mollana.ui.learn_dialog import LearnWordDialog
 from mollana.ui.mainwindow import MainWindow
+from mollana.ui.mainwindowui import servicePixmap
 
 
 # ******************************************************************************
@@ -312,6 +313,34 @@ def _pixmapPixels(pixmap: QPixmap) -> bytes:
 
 
 # ******************************************************************************
+def _meanAlpha(pixmap: QPixmap) -> float:
+    """Return the average opacity of a pixmap, over every pixel."""
+    image = pixmap.toImage()
+    total = 0.0
+    for y in range(image.height()):
+        for x in range(image.width()):
+            total += image.pixelColor(x, y).alphaF()
+    return total / (image.width() * image.height())
+
+
+# ******************************************************************************
+def _meanLuminance(pixmap: QPixmap, background: str) -> float:
+    """Return a pixmap's average luminance, composited on ``background``."""
+    image = pixmap.toImage()
+    bg = QColor(background)
+    total = 0.0
+    for y in range(image.height()):
+        for x in range(image.width()):
+            color = image.pixelColor(x, y)
+            alpha = color.alphaF()
+            red = color.redF() * alpha + bg.redF() * (1 - alpha)
+            green = color.greenF() * alpha + bg.greenF() * (1 - alpha)
+            blue = color.blueF() * alpha + bg.blueF() * (1 - alpha)
+            total += 0.2126 * red + 0.7152 * green + 0.0722 * blue
+    return total / (image.width() * image.height())
+
+
+# ******************************************************************************
 def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) -> None:
     window = _window(tmp_path)
 
@@ -455,7 +484,9 @@ def test_aboutBoxCreditsOxygenIcons(
 
     monkeypatch.setattr(QMessageBox, "about", staticmethod(fakeAbout))
     window.onAbout()
-    assert any("https://invent.kde.org/frameworks/oxygen-icons" in text for text in captured)
+    link = '<a href="https://invent.kde.org/frameworks/oxygen-icons">Oxygen Icons</a>'
+    assert any(link in text for text in captured)
+    assert all("github.com/KDE/oxygen-icons5" not in text for text in captured)
     window.close()
 
 
@@ -832,16 +863,16 @@ def test_statusBarCarriesTheServiceIconsOnTheRight(qapp: QApplication, tmp_path:
     assert assist.toolTip() == "Assist Mode"
     assert spell.accessibleName() == "Spell Check"
     assert assist.accessibleName() == "Assist Mode"
-    # The 16-pixel icons are the Oxygen set's, greyed while disabled.
+    # The 16-pixel icons are the Oxygen set's, faded while disabled.
     spellPixmap = spell.pixmap()
     assistPixmap = assist.pixmap()
     assert spellPixmap.size() == QSize(16, 16)
     assert assistPixmap.size() == QSize(16, 16)
-    assert _pixmapPixels(spellPixmap) == _pixmapPixels(
-        spellIcon.pixmap(QSize(16, 16), QIcon.Mode.Disabled)
-    )
-    assert _pixmapPixels(assistPixmap) == _pixmapPixels(
-        assistIcon.pixmap(QSize(16, 16), QIcon.Mode.Disabled)
+    assert _pixmapPixels(spellPixmap) == _pixmapPixels(servicePixmap(spellIcon, False))
+    assert _pixmapPixels(assistPixmap) == _pixmapPixels(servicePixmap(assistIcon, False))
+    # Two different images, so a copy-paste slip cannot pass as two services.
+    assert _pixmapPixels(spellIcon.pixmap(QSize(16, 16))) != _pixmapPixels(
+        assistIcon.pixmap(QSize(16, 16))
     )
     assert spell.parent() is statusBar
     assert assist.parent() is statusBar
@@ -861,8 +892,35 @@ def test_statusBarCarriesTheServiceIconsOnTheRight(qapp: QApplication, tmp_path:
 
 
 # ******************************************************************************
+def test_theOffStateDimsTheServiceIcons(qapp: QApplication, tmp_path: Path) -> None:
+    """A service that is off is less prominent than one that is on, any theme.
+
+    ``QIcon.Mode.Disabled`` greyscales a pixmap rather than dimming it, which
+    made the off state stand out more than the on one against the dark window.
+    """
+    window = _window(tmp_path)
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    assert editor is not None
+    onPixmap = window.ui.lblSpellCheck.pixmap()
+
+    editor.setSpellCheckEnabled(False)
+    offPixmap = window.ui.lblSpellCheck.pixmap()
+
+    for background in ("#353535", "#f0f0f0"):
+        bg = QColor(background)
+        bgLuminance = 0.2126 * bg.redF() + 0.7152 * bg.greenF() + 0.0722 * bg.blueF()
+        onContrast = abs(_meanLuminance(onPixmap, background) - bgLuminance)
+        offContrast = abs(_meanLuminance(offPixmap, background) - bgLuminance)
+        assert offContrast < onContrast
+    # The icon keeps its own colours; only its opacity drops.
+    assert _meanAlpha(offPixmap) < _meanAlpha(onPixmap)
+    window.close()
+
+
+# ******************************************************************************
 def test_statusLabelsFollowTheActiveEditor(qapp: QApplication, tmp_path: Path) -> None:
-    """An open document lights both icons; each service switch greys its own."""
+    """An open document lights both icons; each service switch dims its own."""
     window = _window(tmp_path)
     window.onNew()
     editor = window.ui.tbwEditors.activeEditor()
@@ -872,24 +930,24 @@ def test_statusLabelsFollowTheActiveEditor(qapp: QApplication, tmp_path: Path) -
     assert window.ui.lblSpellCheck.isEnabled()
     assert window.ui.lblAssist.isEnabled()
     assert _pixmapPixels(window.ui.lblSpellCheck.pixmap()) == _pixmapPixels(
-        spellIcon.pixmap(QSize(16, 16), QIcon.Mode.Normal)
+        servicePixmap(spellIcon, True)
     )
     assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
-        assistIcon.pixmap(QSize(16, 16), QIcon.Mode.Normal)
+        servicePixmap(assistIcon, True)
     )
 
     editor.setSpellCheckEnabled(False)
     assert not window.ui.lblSpellCheck.isEnabled()
     assert window.ui.lblAssist.isEnabled()
     assert _pixmapPixels(window.ui.lblSpellCheck.pixmap()) == _pixmapPixels(
-        spellIcon.pixmap(QSize(16, 16), QIcon.Mode.Disabled)
+        servicePixmap(spellIcon, False)
     )
 
     editor.setAssistEnabled(False)
     assert not window.ui.lblSpellCheck.isEnabled()
     assert not window.ui.lblAssist.isEnabled()
     assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
-        assistIcon.pixmap(QSize(16, 16), QIcon.Mode.Disabled)
+        servicePixmap(assistIcon, False)
     )
 
     editor.setSpellCheckEnabled(True)
@@ -897,10 +955,10 @@ def test_statusLabelsFollowTheActiveEditor(qapp: QApplication, tmp_path: Path) -
     assert window.ui.lblSpellCheck.isEnabled()
     assert window.ui.lblAssist.isEnabled()
     assert _pixmapPixels(window.ui.lblSpellCheck.pixmap()) == _pixmapPixels(
-        spellIcon.pixmap(QSize(16, 16), QIcon.Mode.Normal)
+        servicePixmap(spellIcon, True)
     )
     assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
-        assistIcon.pixmap(QSize(16, 16), QIcon.Mode.Normal)
+        servicePixmap(assistIcon, True)
     )
     window.close()
 
