@@ -390,7 +390,7 @@ class MainWindowUi:
         self.statusBar.setObjectName("statusBar")
 
         self.iconSpellCheck = icon("tools-check-spelling.png")
-        self.iconAssist = icon("help-hint.png")
+        self.iconAssist = icon("globe.png")
 
         self.lblSpellCheck = ServiceIconLabel(self.statusBar)
         self.lblSpellCheck.setObjectName("lblSpellCheck")

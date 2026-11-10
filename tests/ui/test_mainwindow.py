@@ -878,7 +878,7 @@ def test_statusBarCarriesTheServiceIconsOnTheRight(qapp: QApplication, tmp_path:
     spell = window.ui.lblSpellCheck
     assist = window.ui.lblAssist
     spellIcon = icon("tools-check-spelling.png")
-    assistIcon = icon("help-hint.png")
+    assistIcon = icon("globe.png")
 
     assert spell.objectName() == "lblSpellCheck"
     assert assist.objectName() == "lblAssist"
@@ -948,14 +948,14 @@ def test_theOffStateDimsTheServiceIcons(qapp: QApplication, tmp_path: Path) -> N
 
 
 # ******************************************************************************
-def test_statusLabelsFollowTheActiveEditor(qapp: QApplication, tmp_path: Path) -> None:
+def test_statusIconsFollowTheActiveEditor(qapp: QApplication, tmp_path: Path) -> None:
     """An open document lights both icons; each service switch dims its own."""
     window = _window(tmp_path)
     window.onNew()
     editor = window.ui.tbwEditors.activeEditor()
     assert editor is not None
     spellIcon = icon("tools-check-spelling.png")
-    assistIcon = icon("help-hint.png")
+    assistIcon = icon("globe.png")
     assert window.ui.lblSpellCheck.isEnabled()
     assert window.ui.lblAssist.isEnabled()
     assert _pixmapPixels(window.ui.lblSpellCheck.pixmap()) == _pixmapPixels(
@@ -995,7 +995,7 @@ def test_statusLabelsFollowTheActiveEditor(qapp: QApplication, tmp_path: Path) -
 
 
 # ******************************************************************************
-def test_statusLabelsFollowTheActiveTab(qapp: QApplication, tmp_path: Path) -> None:
+def test_statusIconsFollowTheActiveTab(qapp: QApplication, tmp_path: Path) -> None:
     """The labels describe the active tab, not whichever one changed last."""
     window = _window(tmp_path)
     window.onNew()
@@ -1004,7 +1004,7 @@ def test_statusLabelsFollowTheActiveTab(qapp: QApplication, tmp_path: Path) -> N
     second = window.ui.tbwEditors.activeEditor()
     assert first is not None
     assert second is not None
-    assistIcon = icon("help-hint.png")
+    assistIcon = icon("globe.png")
 
     first.setAssistEnabled(False)  # a background tab must not move the labels
     assert window.ui.lblAssist.isEnabled()
@@ -1027,7 +1027,7 @@ def test_statusLabelsFollowTheActiveTab(qapp: QApplication, tmp_path: Path) -> N
 
 
 # ******************************************************************************
-def test_closingTheLastTabGreysTheStatusLabels(qapp: QApplication, tmp_path: Path) -> None:
+def test_closingTheLastTabFadesTheStatusIcons(qapp: QApplication, tmp_path: Path) -> None:
     """With no document left, both services are reported as unavailable."""
     window = _window(tmp_path)
     window.onNew()
@@ -1071,7 +1071,7 @@ def test_newDocumentsInheritTheAssistMode(qapp: QApplication, tmp_path: Path) ->
     assert editor is not None
     assert not editor.isAssistEnabled()
     assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
-        servicePixmap(icon("help-hint.png"), False)
+        servicePixmap(icon("globe.png"), False)
     )
     window.close()
 
@@ -1083,7 +1083,7 @@ def test_statusIconsToggleTheirService(qapp: QApplication, tmp_path: Path) -> No
     spell = window.ui.lblSpellCheck
     assist = window.ui.lblAssist
     spellIcon = icon("tools-check-spelling.png")
-    assistIcon = icon("help-hint.png")
+    assistIcon = icon("globe.png")
 
     # No document is open: the icons are disabled, so clicks do nothing.
     assert not spell.isEnabled()
