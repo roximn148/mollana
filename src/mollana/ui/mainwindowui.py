@@ -196,6 +196,7 @@ class MainWindowUi:
             window,
             "actionCloseTab",
             "&Close Tab",
+            iconName="tab-close.png",
             shortcut="Ctrl+W",
         )
         self.actionQuit = _makeAction(
@@ -223,6 +224,7 @@ class MainWindowUi:
             window,
             "actionCut",
             "Cu&t",
+            iconName="edit-cut.png",
             shortcut="Ctrl+X",
         )
         self.actionCopy = _makeAction(
@@ -235,18 +237,21 @@ class MainWindowUi:
             window,
             "actionPaste",
             "&Paste",
+            iconName="edit-paste.png",
             shortcut="Ctrl+V",
         )
         self.actionSelectAll = _makeAction(
             window,
             "actionSelectAll",
             "Select &All",
+            iconName="edit-select-all.png",
             shortcut="Ctrl+A",
         )
         self.actionWordWrap = _makeAction(
             window,
             "actionWordWrap",
             "Word &Wrap",
+            iconName="format-justify-fill.png",
             checkable=True,
             checked=True,
         )
@@ -329,12 +334,14 @@ class MainWindowUi:
         self.actionFileExplorer = self.dockExplorer.toggleViewAction()
         self.actionFileExplorer.setObjectName("actionFileExplorer")
         self.actionFileExplorer.setText("File Explorer")
+        self.actionFileExplorer.setIcon(icon("view-list-tree.png"))
         self.menuView.addAction(self.actionFileExplorer)
 
         self.actionUrduKeyboard = self.dockKeyboard.toggleViewAction()
         self.actionUrduKeyboard.setObjectName("actionUrduKeyboard")
         self.actionUrduKeyboard.setText("Urdu Keyboard")
         self.actionUrduKeyboard.setShortcut(QKeySequence("F2"))
+        self.actionUrduKeyboard.setIcon(icon("input-keyboard.png"))
         self.menuView.addAction(self.actionUrduKeyboard)
 
         self.menuFile.addAction(self.actionNew)

@@ -27,6 +27,7 @@ from mollana.editor.session import Session
 from mollana.infra.logging import getLogger
 from mollana.infra.meta import Rx
 from mollana.infra.settings import RSettings
+from mollana.ui.icons import icon
 from mollana.ui.learn_dialog import LearnWordDialog, prefillFor
 from mollana.ui.mainwindowui import MainWindowUi, servicePixmap
 
@@ -69,6 +70,7 @@ class MainWindow(QMainWindow):
         )
 
         self.recentMenu = QMenu(RECENT_MENU_TITLE, self)
+        self.recentMenu.menuAction().setIcon(icon("document-open-recent.png"))
         self.ui.menuFile.insertMenu(self.ui.actionQuit, self.recentMenu)
 
         self._connectActions()

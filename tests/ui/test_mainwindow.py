@@ -173,9 +173,16 @@ ICON_FILES: dict[str, str] = {
     "actionOpenProject": "office_folders.png",
     "actionSave": "save.png",
     "actionSaveAs": "transfer.png",
+    "actionCloseTab": "tab-close.png",
     "actionQuit": "shut_down.png",
     "actionUndo": "blue_arrow_down.png",
     "actionRedo": "blue_arrow_up.png",
+    "actionCut": "edit-cut.png",
+    "actionPaste": "edit-paste.png",
+    "actionSelectAll": "edit-select-all.png",
+    "actionFileExplorer": "view-list-tree.png",
+    "actionUrduKeyboard": "input-keyboard.png",
+    "actionWordWrap": "format-justify-fill.png",
     "actionSpellChecker": "tools-check-spelling.png",
     "actionAssistMode": "globe.png",
     "actionAbout": "help_balloon.png",
@@ -496,6 +503,10 @@ def test_iconsLoadFromTheImageFolder(qapp: QApplication, tmp_path: Path) -> None
         action = getattr(window.ui, name)
         assert not action.icon().isNull()
         assert _iconPixels(action.icon()) == _iconPixels(icon(filename))
+    # The recent-files submenu carries its icon on its menu action.
+    recent = window.recentMenu.menuAction()
+    assert not recent.icon().isNull()
+    assert _iconPixels(recent.icon()) == _iconPixels(icon("document-open-recent.png"))
     window.close()
 
 
