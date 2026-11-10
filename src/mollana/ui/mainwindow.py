@@ -468,14 +468,14 @@ class MainWindow(QMainWindow):
             empty = self.recentMenu.addAction("No recent files")
             empty.setEnabled(False)
             return
-        fileIcon = icon("application-octet-stream.png")
+        fileIcon = icon("x-office-document.png")
         for path in paths:
             action = self.recentMenu.addAction(str(path))
             action.setIcon(fileIcon)
             action.triggered.connect(lambda checked=False, target=path: self.openPath(target))
         self.recentMenu.addSeparator()
         clear = self.recentMenu.addAction("Clear Recent", self.onClearRecent)
-        clear.setIcon(icon("edit-clear-list.png"))
+        clear.setIcon(icon("edit-clear.png"))
 
     # **************************************************************************
     def onClearRecent(self) -> None:

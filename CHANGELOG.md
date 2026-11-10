@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The spell checker and assist mode entries in the Format menu now show the
   same icons as their status bar indicators.
 - Every menu entry now shows an icon, including the recent files list.
+- The recent file entries show a document icon, their Clear Recent entry a
+  clear icon, and the View menu's Urdu Keyboard entry a keyboard icon.
 
 ### Fixed
 

@@ -353,7 +353,7 @@ class MainWindowUi:
         self.actionUrduKeyboard.setObjectName("actionUrduKeyboard")
         self.actionUrduKeyboard.setText("Urdu Keyboard")
         self.actionUrduKeyboard.setShortcut(QKeySequence("F2"))
-        self.actionUrduKeyboard.setIcon(icon("input-keyboard.png"))
+        self.actionUrduKeyboard.setIcon(icon("preferences-desktop-keyboard.png"))
         self.menuView.addAction(self.actionUrduKeyboard)
 
         self.menuFile.addAction(self.actionNew)

@@ -182,7 +182,7 @@ ICON_FILES: dict[str, str] = {
     "actionPaste": "edit-paste.png",
     "actionSelectAll": "edit-select-all.png",
     "actionFileExplorer": "view-list-tree.png",
-    "actionUrduKeyboard": "input-keyboard.png",
+    "actionUrduKeyboard": "preferences-desktop-keyboard.png",
     "actionWordWrap": "format-justify-fill.png",
     "actionSpellChecker": "tools-check-spelling.png",
     "actionAssistMode": "globe.png",
@@ -537,8 +537,8 @@ def test_iconsLoadFromTheImageFolder(qapp: QApplication, tmp_path: Path) -> None
     source = tmp_path / "recent.txt"
     source.write_text("x", encoding="utf-8")
     window.openPath(source)
-    fileIcon = icon("application-octet-stream.png")
-    clearIcon = icon("edit-clear-list.png")
+    fileIcon = icon("x-office-document.png")
+    clearIcon = icon("edit-clear.png")
     assert not fileIcon.isNull()
     assert not clearIcon.isNull()
     for action in window.recentMenu.actions():
