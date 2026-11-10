@@ -34,6 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Learned words now survive closing the app: the active dictionary is loaded at
   startup, and closing merges this session's words into the file instead of
   replacing it with only the new ones.
+- Cancelling the Add Word dialog from the `+ [..]` row now leaves the document
+  exactly as it was: no roman text, no separator, no undo step.
+- The right-click menu now acts on the word you clicked rather than wherever
+  the caret was last left.
+- Dictionary suggestions for `ملیں` and `شاید` are corrected, and the
+  misspelling `شائد` is no longer treated as a known word.
 
 ## [0.2.0a1] - 2026-11-06
 
