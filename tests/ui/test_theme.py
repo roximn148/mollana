@@ -13,7 +13,7 @@ from PySide6.QtCore import QSize
 from PySide6.QtGui import QColor, QIcon, QPalette, Qt
 from PySide6.QtWidgets import QApplication
 
-from mollana.ui.theme import TintedIconEngine, _render, icon
+from mollana.ui.theme import ICON_CATALOGUE, TintedIconEngine, _render, icon, imagesDir
 
 
 # ******************************************************************************
@@ -128,3 +128,21 @@ def test_allPhosphorWeightsTakeTheInk(qapp: QApplication) -> None:
     faded = backdrop.pixelColor(16, 16)
     assert abs(faded.alpha() - 51) <= 3
     assert QColor(faded.red(), faded.green(), faded.blue()) == ink
+
+
+# ******************************************************************************
+def test_catalogueCoversExactlyTheImageFolder() -> None:
+    """The catalogue and the image folder agree in both directions.
+
+    Every Phosphor stem the catalogue points at exists as a file, no file is
+    unreferenced, and the folder holds no subdirectories and exactly the two
+    non-SVG brand files.
+    """
+    directory = imagesDir()
+    assert all(not entry.is_dir() for entry in directory.iterdir())
+    stems = {entry.stem for entry in directory.iterdir() if entry.suffix == ".svg"}
+    assert set(ICON_CATALOGUE.values()) == stems
+    assert {entry.name for entry in directory.iterdir() if entry.suffix != ".svg"} == {
+        "mollana.ico",
+        "mollana64.png",
+    }

@@ -52,11 +52,10 @@ src/mollana/
     ├── explorer.py         # FileExplorer (QTreeView over QFileSystemModel)
     ├── editor_pane.py      # EditorPane (QTabWidget of PyRaya)
     ├── fonts.py            # the editor typeface, resolved once from PyRaya
-    ├── icons.py            # PNG icon loader (checkout and frozen build)
     ├── keyboard.py         # UrduKeyboardPanel + UrduKeyboardDock — one keyboard, typed into the focused widget
     ├── learn_dialog.py     # LearnWordDialog — Add Word entry borrowing the dock's keyboard
-    ├── theme.py            # palette application
-    └── resources/images/   # PNG icons and the installer .ico
+    ├── theme.py            # palette application, icon catalogue, and tinting engine
+    └── resources/images/   # Phosphor SVG icons, the brand PNG, and the installer .ico
 tests/                      # pytest; conftest sets QT_QPA_PLATFORM=offscreen
 scripts/generate-win-setup.bat  # PyInstaller -> Inno Setup
 scripts/winget_manifest.py  # winget-pkgs manifest generator + --check
@@ -184,10 +183,11 @@ is one global, per-process choice stored in the dictionary catalogue.
 
 ## Gotchas
 
-- Icons load from `src/mollana/ui/resources/images` through `mollana.ui.icons`. The
-  PyInstaller spec ships that folder, and `imagesDir()` switches to `_MEIPASS` when frozen.
-  A missing file yields a null `QIcon` rather than an error, so the UI contract test checks
-  that every icon-bearing action is non-null.
+- Icons load from `src/mollana/ui/resources/images` through `mollana.ui.theme`, whose
+  `ICON_CATALOGUE` maps kebab references to Phosphor stems; `imagesDir()` switches to
+  `_MEIPASS` when frozen. A missing file yields a null `QIcon` rather than an error, so the
+  UI contract test checks that every icon-bearing action is non-null, and a catalogue test
+  asserts the catalogue and the image folder agree in both directions.
 - `RSettings()` looks argument-less but confz supplies `Main` from `TomlSource`. The field
   has a default so type checkers accept the call; the TOML source still overrides it.
 - `TomlLoader.populate_config` must keep confz's `config_source` parameter name, and the

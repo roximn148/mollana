@@ -45,6 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Every menu entry now shows an icon, including the recent files list.
 - The recent file entries show a document icon, their Clear Recent entry a
   clear icon, and the View menu's Urdu Keyboard entry a keyboard icon.
+- The menu, toolbar, and status-bar icons are now vector icons drawn in the
+  active theme's colours, so they pick up the theme instead of carrying a
+  fixed palette.
 
 ### Fixed
 

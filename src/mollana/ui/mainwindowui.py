@@ -26,8 +26,8 @@ from PySide6.QtWidgets import (
 
 from mollana.ui.editor_pane import EditorPane
 from mollana.ui.explorer import FileExplorer
-from mollana.ui.icons import icon
 from mollana.ui.keyboard import UrduKeyboardDock
+from mollana.ui.theme import appLogo, icon
 
 # ******************************************************************************
 STATUS_ICON_SIZE: QSize = QSize(16, 16)
@@ -134,7 +134,7 @@ class MainWindowUi:
             window.setObjectName("MainWindow")
         window.resize(1024, 720)
         window.setMinimumSize(QSize(480, 320))
-        window.setWindowIcon(icon("mollana64.png"))
+        window.setWindowIcon(appLogo())
         window.setIconSize(QSize(24, 24))
         # The title is owned by MainWindow._updateTitle(), not the view.
 
@@ -153,7 +153,7 @@ class MainWindowUi:
             window,
             "actionNew",
             "&New",
-            iconName="document-new.png",
+            iconName="new-file",
             shortcut="Ctrl+N",
             tooltip="Create a new document",
         )
@@ -161,7 +161,7 @@ class MainWindowUi:
             window,
             "actionOpen",
             "&Open",
-            iconName="document-open.png",
+            iconName="open-file",
             shortcut="Ctrl+O",
             tooltip="Open a text file",
         )
@@ -169,7 +169,7 @@ class MainWindowUi:
             window,
             "actionOpenFolder",
             "Open F&older",
-            iconName="document-open-folder.png",
+            iconName="open-folder",
             shortcut="Ctrl+Shift+O",
             tooltip="Browse a folder without making it a project",
         )
@@ -177,21 +177,21 @@ class MainWindowUi:
             window,
             "actionNewProject",
             "New &Project",
-            iconName="folder-new.png",
+            iconName="new-folder",
             tooltip="Convert a folder into a Mollana project",
         )
         self.actionOpenProject = _makeAction(
             window,
             "actionOpenProject",
             "Open Pro&ject",
-            iconName="project-open.png",
+            iconName="open-project",
             tooltip="Open a folder that is already a project",
         )
         self.actionSave = _makeAction(
             window,
             "actionSave",
             "&Save",
-            iconName="document-save.png",
+            iconName="save-file",
             shortcut="Ctrl+S",
             tooltip="Save the active document",
         )
@@ -199,7 +199,7 @@ class MainWindowUi:
             window,
             "actionSaveAs",
             "Save &As",
-            iconName="document-save-as.png",
+            iconName="save-file-as",
             shortcut="Ctrl+Shift+S",
             tooltip="Save the active document under another path",
         )
@@ -207,63 +207,63 @@ class MainWindowUi:
             window,
             "actionCloseTab",
             "&Close Tab",
-            iconName="tab-close.png",
+            iconName="close-tab",
             shortcut="Ctrl+W",
         )
         self.actionQuit = _makeAction(
             window,
             "actionQuit",
             "&Quit",
-            iconName="application-exit.png",
+            iconName="quit",
             shortcut="Ctrl+Q",
         )
         self.actionUndo = _makeAction(
             window,
             "actionUndo",
             "&Undo",
-            iconName="edit-undo.png",
+            iconName="undo",
             shortcut="Ctrl+Z",
         )
         self.actionRedo = _makeAction(
             window,
             "actionRedo",
             "&Redo",
-            iconName="edit-redo.png",
+            iconName="redo",
             shortcut="Ctrl+Shift+Z",
         )
         self.actionCut = _makeAction(
             window,
             "actionCut",
             "Cu&t",
-            iconName="edit-cut.png",
+            iconName="cut",
             shortcut="Ctrl+X",
         )
         self.actionCopy = _makeAction(
             window,
             "actionCopy",
             "&Copy",
-            iconName="edit-copy.png",
+            iconName="copy",
             shortcut="Ctrl+C",
         )
         self.actionPaste = _makeAction(
             window,
             "actionPaste",
             "&Paste",
-            iconName="edit-paste.png",
+            iconName="paste",
             shortcut="Ctrl+V",
         )
         self.actionSelectAll = _makeAction(
             window,
             "actionSelectAll",
             "Select &All",
-            iconName="edit-select-all.png",
+            iconName="select-all",
             shortcut="Ctrl+A",
         )
         self.actionWordWrap = _makeAction(
             window,
             "actionWordWrap",
             "Word &Wrap",
-            iconName="format-justify-fill.png",
+            iconName="justify",
             checkable=True,
             checked=True,
         )
@@ -271,7 +271,7 @@ class MainWindowUi:
             window,
             "actionSpellChecker",
             "&Spell Checker",
-            iconName="tools-check-spelling.png",
+            iconName="spell-check",
             shortcut="F5",
             tooltip="Underline words the dictionary does not know",
             checkable=True,
@@ -281,7 +281,7 @@ class MainWindowUi:
             window,
             "actionAssistMode",
             "&Assist Mode",
-            iconName="globe.png",
+            iconName="assist",
             shortcut="F6",
             tooltip="Show roman hints under the word being edited",
             checkable=True,
@@ -291,7 +291,7 @@ class MainWindowUi:
             window,
             "actionAbout",
             "&About",
-            iconName="help-about.png",
+            iconName="about",
             shortcut="F1",
         )
 
@@ -346,14 +346,14 @@ class MainWindowUi:
         self.actionFileExplorer = self.dockExplorer.toggleViewAction()
         self.actionFileExplorer.setObjectName("actionFileExplorer")
         self.actionFileExplorer.setText("File Explorer")
-        self.actionFileExplorer.setIcon(icon("view-list-tree.png"))
+        self.actionFileExplorer.setIcon(icon("file-tree"))
         self.menuView.addAction(self.actionFileExplorer)
 
         self.actionUrduKeyboard = self.dockKeyboard.toggleViewAction()
         self.actionUrduKeyboard.setObjectName("actionUrduKeyboard")
         self.actionUrduKeyboard.setText("Urdu Keyboard")
         self.actionUrduKeyboard.setShortcut(QKeySequence("F2"))
-        self.actionUrduKeyboard.setIcon(icon("preferences-desktop-keyboard.png"))
+        self.actionUrduKeyboard.setIcon(icon("keyboard"))
         self.menuView.addAction(self.actionUrduKeyboard)
 
         self.menuFile.addAction(self.actionNew)
@@ -419,8 +419,8 @@ class MainWindowUi:
         self.statusBar = QStatusBar(window)
         self.statusBar.setObjectName("statusBar")
 
-        self.iconSpellCheck = icon("tools-check-spelling.png")
-        self.iconAssist = icon("globe.png")
+        self.iconSpellCheck = icon("spell-check")
+        self.iconAssist = icon("assist")
 
         self.lblSpellCheck = ServiceIconLabel(self.statusBar)
         self.lblSpellCheck.setObjectName("lblSpellCheck")

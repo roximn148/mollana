@@ -30,11 +30,11 @@ from mollana.editor.dictionaries import DictionaryStore
 from mollana.editor.session import Session
 from mollana.ui.editor_pane import EditorPane
 from mollana.ui.explorer import FileExplorer
-from mollana.ui.icons import icon, imagesDir
 from mollana.ui.keyboard import Density, UrduKeyboardPanel
 from mollana.ui.learn_dialog import LearnWordDialog
 from mollana.ui.mainwindow import MainWindow
 from mollana.ui.mainwindowui import servicePixmap
+from mollana.ui.theme import appLogo, icon, imagesDir
 
 
 # ******************************************************************************
@@ -165,28 +165,28 @@ EXPECTED_TOOLTIPS: dict[str, str] = {
     "actionAssistMode": "Show roman hints under the word being edited",
 }
 
-ICON_FILES: dict[str, str] = {
-    "actionNew": "document-new.png",
-    "actionOpen": "document-open.png",
-    "actionOpenFolder": "document-open-folder.png",
-    "actionNewProject": "folder-new.png",
-    "actionOpenProject": "project-open.png",
-    "actionSave": "document-save.png",
-    "actionSaveAs": "document-save-as.png",
-    "actionCloseTab": "tab-close.png",
-    "actionQuit": "application-exit.png",
-    "actionUndo": "edit-undo.png",
-    "actionRedo": "edit-redo.png",
-    "actionCut": "edit-cut.png",
-    "actionCopy": "edit-copy.png",
-    "actionPaste": "edit-paste.png",
-    "actionSelectAll": "edit-select-all.png",
-    "actionFileExplorer": "view-list-tree.png",
-    "actionUrduKeyboard": "preferences-desktop-keyboard.png",
-    "actionWordWrap": "format-justify-fill.png",
-    "actionSpellChecker": "tools-check-spelling.png",
-    "actionAssistMode": "globe.png",
-    "actionAbout": "help-about.png",
+ICON_NAMES: dict[str, str] = {
+    "actionNew": "new-file",
+    "actionOpen": "open-file",
+    "actionOpenFolder": "open-folder",
+    "actionNewProject": "new-folder",
+    "actionOpenProject": "open-project",
+    "actionSave": "save-file",
+    "actionSaveAs": "save-file-as",
+    "actionCloseTab": "close-tab",
+    "actionQuit": "quit",
+    "actionUndo": "undo",
+    "actionRedo": "redo",
+    "actionCut": "cut",
+    "actionCopy": "copy",
+    "actionPaste": "paste",
+    "actionSelectAll": "select-all",
+    "actionFileExplorer": "file-tree",
+    "actionUrduKeyboard": "keyboard",
+    "actionWordWrap": "justify",
+    "actionSpellChecker": "spell-check",
+    "actionAssistMode": "assist",
+    "actionAbout": "about",
 }
 
 
@@ -517,18 +517,18 @@ def test_viewMenuTogglesTheUrduKeyboardDock(qapp: QApplication, tmp_path: Path) 
 
 # ******************************************************************************
 def test_iconsLoadFromTheImageFolder(qapp: QApplication, tmp_path: Path) -> None:
-    assert not icon("document-new.png").isNull()
+    assert not icon("new-file").isNull()
 
     window = _window(tmp_path)
-    assert _iconPixels(window.windowIcon()) == _iconPixels(icon("mollana64.png"))
-    for name, filename in ICON_FILES.items():
+    assert _iconPixels(window.windowIcon()) == _iconPixels(appLogo())
+    for name, iconName in ICON_NAMES.items():
         action = getattr(window.ui, name)
         assert not action.icon().isNull()
-        assert _iconPixels(action.icon()) == _iconPixels(icon(filename))
+        assert _iconPixels(action.icon()) == _iconPixels(icon(iconName))
     # The recent-files submenu carries its icon on its menu action.
     recent = window.recentMenu.menuAction()
     assert not recent.icon().isNull()
-    assert _iconPixels(recent.icon()) == _iconPixels(icon("document-open-recent.png"))
+    assert _iconPixels(recent.icon()) == _iconPixels(icon("recent-files"))
     # The empty-state placeholder is not a file, so it carries no icon.
     empty = window.recentMenu.actions()[0]
     assert empty.text() == "No recent files"
@@ -537,8 +537,8 @@ def test_iconsLoadFromTheImageFolder(qapp: QApplication, tmp_path: Path) -> None
     source = tmp_path / "recent.txt"
     source.write_text("x", encoding="utf-8")
     window.openPath(source)
-    fileIcon = icon("x-office-document.png")
-    clearIcon = icon("edit-clear.png")
+    fileIcon = icon("document")
+    clearIcon = icon("clear-recent")
     assert not fileIcon.isNull()
     assert not clearIcon.isNull()
     for action in window.recentMenu.actions():
@@ -562,8 +562,8 @@ def test_iconsLoadFromTheImageFolder(qapp: QApplication, tmp_path: Path) -> None
         for action in menu.actions():
             if not action.isSeparator():
                 assert not action.icon().isNull(), action.text()
-    # No two actions may be pointed at the same icon file.
-    pixels = [_iconPixels(getattr(window.ui, name).icon()) for name in ICON_FILES]
+    # No two actions may be pointed at the same icon.
+    pixels = [_iconPixels(getattr(window.ui, name).icon()) for name in ICON_NAMES]
     pixels.append(_iconPixels(fileIcon))
     pixels.append(_iconPixels(clearIcon))
     assert len(set(pixels)) == len(pixels)
@@ -571,10 +571,10 @@ def test_iconsLoadFromTheImageFolder(qapp: QApplication, tmp_path: Path) -> None
 
 
 # ******************************************************************************
-def test_aboutBoxCreditsOxygenIcons(
+def test_aboutBoxCreditsPhosphorIcons(
     qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The about box credits Oxygen Icons with a link to its home page."""
+    """The about box credits Phosphor Icons with a link to its home page."""
     window = _window(tmp_path)
     captured: list[str] = []
 
@@ -583,9 +583,9 @@ def test_aboutBoxCreditsOxygenIcons(
 
     monkeypatch.setattr(QMessageBox, "about", staticmethod(fakeAbout))
     window.onAbout()
-    link = '<a href="https://invent.kde.org/frameworks/oxygen-icons">Oxygen Icons</a>'
+    link = '<a href="https://phosphoricons.com">Phosphor Icons</a>'
     assert any(link in text for text in captured)
-    assert all("github.com/KDE/oxygen-icons5" not in text for text in captured)
+    assert all("Oxygen" not in text for text in captured)
     window.close()
 
 
@@ -950,8 +950,8 @@ def test_statusBarCarriesTheServiceIconsOnTheRight(qapp: QApplication, tmp_path:
     statusBar = window.ui.statusBar
     spell = window.ui.lblSpellCheck
     assist = window.ui.lblAssist
-    spellIcon = icon("tools-check-spelling.png")
-    assistIcon = icon("globe.png")
+    spellIcon = icon("spell-check")
+    assistIcon = icon("assist")
 
     assert spell.objectName() == "lblSpellCheck"
     assert assist.objectName() == "lblAssist"
@@ -962,7 +962,7 @@ def test_statusBarCarriesTheServiceIconsOnTheRight(qapp: QApplication, tmp_path:
     assert assist.toolTip() == "Assist Mode"
     assert spell.accessibleName() == "Spell Check"
     assert assist.accessibleName() == "Assist Mode"
-    # The 16-pixel icons are the Oxygen set's, faded while disabled.
+    # The 16-pixel icons are the theme's, faded while the service is off.
     spellPixmap = spell.pixmap()
     assistPixmap = assist.pixmap()
     assert spellPixmap.size() == QSize(16, 16)
@@ -1027,8 +1027,8 @@ def test_statusIconsFollowTheActiveEditor(qapp: QApplication, tmp_path: Path) ->
     window.onNew()
     editor = window.ui.tbwEditors.activeEditor()
     assert editor is not None
-    spellIcon = icon("tools-check-spelling.png")
-    assistIcon = icon("globe.png")
+    spellIcon = icon("spell-check")
+    assistIcon = icon("assist")
     assert window.ui.lblSpellCheck.isEnabled()
     assert window.ui.lblAssist.isEnabled()
     assert _pixmapPixels(window.ui.lblSpellCheck.pixmap()) == _pixmapPixels(
@@ -1077,7 +1077,7 @@ def test_statusIconsFollowTheActiveTab(qapp: QApplication, tmp_path: Path) -> No
     second = window.ui.tbwEditors.activeEditor()
     assert first is not None
     assert second is not None
-    assistIcon = icon("globe.png")
+    assistIcon = icon("assist")
 
     first.setAssistEnabled(False)  # a background tab must not move the icons
     assert window.ui.lblAssist.isEnabled()
@@ -1127,7 +1127,7 @@ def test_newDocumentInheritsTheSpellCheckSwitch(qapp: QApplication, tmp_path: Pa
     # The icon stays clickable with a document open; the fade says spell is off.
     assert window.ui.lblSpellCheck.isEnabled()
     assert _pixmapPixels(window.ui.lblSpellCheck.pixmap()) == _pixmapPixels(
-        servicePixmap(icon("tools-check-spelling.png"), False)
+        servicePixmap(icon("spell-check"), False)
     )
     window.close()
 
@@ -1144,7 +1144,7 @@ def test_newDocumentsInheritTheAssistMode(qapp: QApplication, tmp_path: Path) ->
     assert editor is not None
     assert not editor.isAssistEnabled()
     assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
-        servicePixmap(icon("globe.png"), False)
+        servicePixmap(icon("assist"), False)
     )
     window.close()
 
@@ -1155,8 +1155,8 @@ def test_statusIconsToggleTheirService(qapp: QApplication, tmp_path: Path) -> No
     window = _window(tmp_path)
     spell = window.ui.lblSpellCheck
     assist = window.ui.lblAssist
-    spellIcon = icon("tools-check-spelling.png")
-    assistIcon = icon("globe.png")
+    spellIcon = icon("spell-check")
+    assistIcon = icon("assist")
 
     # No document is open: the icons are disabled, so clicks do nothing.
     assert not spell.isEnabled()

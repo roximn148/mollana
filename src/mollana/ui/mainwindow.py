@@ -27,9 +27,9 @@ from mollana.editor.session import Session
 from mollana.infra.logging import getLogger
 from mollana.infra.meta import Rx
 from mollana.infra.settings import RSettings
-from mollana.ui.icons import icon
 from mollana.ui.learn_dialog import LearnWordDialog, prefillFor
 from mollana.ui.mainwindowui import MainWindowUi, servicePixmap
+from mollana.ui.theme import icon
 
 # ******************************************************************************
 FILE_FILTER: str = "Text files (*.txt *.md *.tex *.csv *.json *.toml);;All files (*)"
@@ -70,7 +70,7 @@ class MainWindow(QMainWindow):
         )
 
         self.recentMenu = QMenu(RECENT_MENU_TITLE, self)
-        self.recentMenu.menuAction().setIcon(icon("document-open-recent.png"))
+        self.recentMenu.menuAction().setIcon(icon("recent-files"))
         self.ui.menuFile.insertMenu(self.ui.actionQuit, self.recentMenu)
 
         self._connectActions()
@@ -468,14 +468,14 @@ class MainWindow(QMainWindow):
             empty = self.recentMenu.addAction("No recent files")
             empty.setEnabled(False)
             return
-        fileIcon = icon("x-office-document.png")
+        fileIcon = icon("document")
         for path in paths:
             action = self.recentMenu.addAction(str(path))
             action.setIcon(fileIcon)
             action.triggered.connect(lambda checked=False, target=path: self.openPath(target))
         self.recentMenu.addSeparator()
         clear = self.recentMenu.addAction("Clear Recent", self.onClearRecent)
-        clear.setIcon(icon("edit-clear.png"))
+        clear.setIcon(icon("clear-recent"))
 
     # **************************************************************************
     def onClearRecent(self) -> None:
@@ -494,11 +494,11 @@ class MainWindow(QMainWindow):
             f"<p>{Rx.Licence}</p>"
             "<h4>Attributions</h4>"
             "<ul>"
-            "<li>Some icons by "
-            '<a href="https://invent.kde.org/frameworks/oxygen-icons">Oxygen Icons</a>'
-            ", licensed under "
-            '<a href="https://www.gnu.org/licenses/lgpl-3.0.en.html">'
-            "GNU Lesser General Public License v3.0</a> License.</li>"
+            "<li>Icons by "
+            '<a href="https://phosphoricons.com">Phosphor Icons</a>'
+            ", licensed under the "
+            '<a href="https://github.com/phosphor-icons/core">MIT License</a>.'
+            "</li>"
             "</ul>",
         )
 
