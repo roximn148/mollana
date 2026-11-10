@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   central area.
 - The spell checker and assist mode entries in the Format menu now show the
   same icons as their status bar indicators.
-- Every menu entry now shows an icon, except the recent files list.
+- Every menu entry now shows an icon, including the recent files list.
 
 ### Fixed
 

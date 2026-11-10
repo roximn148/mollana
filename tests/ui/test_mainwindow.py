@@ -529,6 +529,27 @@ def test_iconsLoadFromTheImageFolder(qapp: QApplication, tmp_path: Path) -> None
     recent = window.recentMenu.menuAction()
     assert not recent.icon().isNull()
     assert _iconPixels(recent.icon()) == _iconPixels(icon("document-open-recent.png"))
+    # The empty-state placeholder is not a file, so it carries no icon.
+    empty = window.recentMenu.actions()[0]
+    assert empty.text() == "No recent files"
+    assert empty.icon().isNull()
+    # Recent file entries carry the simple file icon; Clear Recent the clear icon.
+    source = tmp_path / "recent.txt"
+    source.write_text("x", encoding="utf-8")
+    window.openPath(source)
+    fileIcon = icon("application-octet-stream.png")
+    clearIcon = icon("edit-clear-list.png")
+    assert not fileIcon.isNull()
+    assert not clearIcon.isNull()
+    for action in window.recentMenu.actions():
+        if action.isSeparator():
+            continue
+        if action.text() == str(source):
+            assert not action.icon().isNull()
+            assert _iconPixels(action.icon()) == _iconPixels(fileIcon)
+        elif action.text() == "Clear Recent":
+            assert not action.icon().isNull()
+            assert _iconPixels(action.icon()) == _iconPixels(clearIcon)
     # The changelog claims every menu entry shows an icon: hold it.
     menus = (
         window.ui.menuFile,
@@ -543,6 +564,8 @@ def test_iconsLoadFromTheImageFolder(qapp: QApplication, tmp_path: Path) -> None
                 assert not action.icon().isNull(), action.text()
     # No two actions may be pointed at the same icon file.
     pixels = [_iconPixels(getattr(window.ui, name).icon()) for name in ICON_FILES]
+    pixels.append(_iconPixels(fileIcon))
+    pixels.append(_iconPixels(clearIcon))
     assert len(set(pixels)) == len(pixels)
     window.close()
 
