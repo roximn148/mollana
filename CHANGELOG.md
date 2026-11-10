@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Opening a file is fast again: the dictionary restored at startup is now
+  installed in one step instead of rebuilding the lookup index for every
+  stored word, which could freeze the first open for seconds.
 - Learned words now survive closing the app: the active dictionary is loaded at
   startup, and closing merges this session's words into the file instead of
   replacing it with only the new ones.

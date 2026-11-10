@@ -256,7 +256,10 @@ is one global, per-process choice stored in the dictionary catalogue.
   `QApplication` in a test is fine.
 - `PyRaya`'s shared `localDictionary()` starts empty in every process. `MainWindow`
   loads the active dictionary into it when the first document opens
-  (`_loadActiveDictionary`), and `flushDictionaries()` writes the completed words
+  (`_loadActiveDictionary`), installing a standalone `Vocabulary` through
+  `setLocalDictionary` in one swap — adding the words one by one to the live
+  vocabulary would rebuild the lookup index per word and freeze the first open.
+  `flushDictionaries()` writes the completed words
   through `DictionaryStore.write` on close and on the `AutoSaveInterval` timer
   (default 5 minutes). That write merges frequencies, so another instance's words
   survive, and it is skipped when the completed words are unchanged since the last

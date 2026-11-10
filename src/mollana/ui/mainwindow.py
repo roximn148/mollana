@@ -17,6 +17,7 @@ from pathlib import Path
 from pyraya import PyRaya
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QDialog, QFileDialog, QMainWindow, QMenu, QMessageBox
+from romanalfaz.engine import Vocabulary
 
 from mollana.editor.dictionaries import DictionaryStore
 from mollana.editor.document import Document
@@ -128,14 +129,22 @@ class MainWindow(QMainWindow):
         PyRaya's vocabulary starts empty on every process; without this the
         words saved on the last close would never come back, and the next
         save would overwrite them with only this session's words.
+
+        The words are added to a standalone ``Vocabulary`` and installed in
+        one swap (``setLocalDictionary``). Adding them one by one to the
+        live shared vocabulary would rebuild PyRaya's whole lookup index
+        after every word — an already-attached Vocabulary recompiles on
+        each mutation — which made the first file open take seconds for a
+        stored dictionary of a few dozen words.
         """
         if self._dictionaryLoaded:
             return
         self._dictionaryLoaded = True
-        dictionary = editor.localDictionary()
         stored = self.store.read(self.store.activeId())
+        dictionary = Vocabulary()
         for word, count in stored.items():
             dictionary.add(word, count=count, isCompleted=True)
+        editor.setLocalDictionary(dictionary)
         self._savedDictionaryWords = dict(stored)
 
     # **************************************************************************

@@ -17,6 +17,7 @@ from pyraya import PyRaya
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QIcon, QKeySequence
 from PySide6.QtWidgets import QApplication, QDialog, QDockWidget, QMenu
+from romanalfaz import RomanAlfaz
 
 from mollana.editor.dictionaries import DictionaryStore
 from mollana.editor.session import Session
@@ -449,6 +450,51 @@ def test_startupLoadsTheActiveDictionary(qapp: QApplication, tmp_path: Path) -> 
     dictionary = editor.localDictionary()
     assert dictionary.counter["کتابچہ"] == 5
     assert "کتابچہ" in dictionary.completed
+    window.close()
+
+
+# ******************************************************************************
+def test_startupLoadsTheActiveDictionaryInOneSwap(
+    qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A stored dictionary is installed in one rebuild, not one per word."""
+    words = {
+        "کتاب": 1,
+        "کتابچہ": 2,
+        "دفتر": 3,
+        "میز": 4,
+        "قلم": 5,
+        "دوست": 6,
+        "شہر": 7,
+        "گھر": 8,
+        "اتوار": 9,
+        "احمق": 10,
+        "استقامت": 11,
+        "معزز": 12,
+    }
+    store = DictionaryStore(tmp_path / "dictionaries")
+    store.ensureDefault()
+    store.write("default", words)
+    document = tmp_path / "doc.txt"
+    document.write_text("کتاب", encoding="utf-8")
+
+    rebuilds = 0
+    original = RomanAlfaz.recompileLookup
+
+    def spy(self: RomanAlfaz) -> None:
+        nonlocal rebuilds
+        rebuilds += 1
+        original(self)
+
+    monkeypatch.setattr(RomanAlfaz, "recompileLookup", spy)
+
+    window = MainWindow(Session(), store, StubSettings())
+    window.openPath(document)
+
+    editor = window.ui.tbwEditors.activeEditor()
+    assert editor is not None
+    assert editor.localDictionary().counter["کتابچہ"] == 2
+    assert rebuilds <= 4
     window.close()
 
 
