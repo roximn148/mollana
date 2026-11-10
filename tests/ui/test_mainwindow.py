@@ -176,6 +176,8 @@ ICON_FILES: dict[str, str] = {
     "actionQuit": "shut_down.png",
     "actionUndo": "blue_arrow_down.png",
     "actionRedo": "blue_arrow_up.png",
+    "actionSpellChecker": "tools-check-spelling.png",
+    "actionAssistMode": "globe.png",
     "actionAbout": "help_balloon.png",
 }
 
