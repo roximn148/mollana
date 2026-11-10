@@ -104,8 +104,8 @@ fresh clone needs no code generation before `uv run mollana` or `uv run pytest`.
   alters the user's capability, behavior, install/upgrade path, or data, and internal-only
   changes with no user effect get none. Release announcements need no entry; they land when
   `[Unreleased]` moves to a version.
-- Commit titles: one line, conventional prefix (`feat:`, `fix:`, `ref:`, `chore:`, `docs:`,
-  `ver:`), imperative summary.
+- Commit messages follow Conventional Commits — <type>(<scope>): <summary>, one line, imperative. Types: feat, fix, refactor, perf, style, test, docs, build, chore, revert, plus this project's deps (dependency bumps and pins) and ver (a release's version bump and bookkeeping, kept as ver: <version>).
+- <scope> names the module or subsystem: ui, editor, infra (the three layers), build (packaging: mollana.spec, Inno Setup, scripts/), winget (manifests), ci (release workflow), tests, docs, deps.
 - `uv.lock` is regenerated with `uv lock`, never hand-edited.
 
 ### Version
