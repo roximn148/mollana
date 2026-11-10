@@ -282,6 +282,8 @@ def test_windowLayoutUsesEditorCentreAndExplorerDock(qapp: QApplication, tmp_pat
 
     assert window.ui.menuBar.objectName() == "menuBar"
     assert window.ui.mainToolBar.objectName() == "mainToolBar"
+    assert window.ui.editToolBar.objectName() == "editToolBar"
+    assert window.ui.formatToolBar.objectName() == "formatToolBar"
     assert window.ui.statusBar.objectName() == "statusBar"
     assert window.menuBar() is window.ui.menuBar
     assert window.statusBar() is window.ui.statusBar
@@ -428,10 +430,29 @@ def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) ->
         window.ui.actionOpen,
         window.ui.actionSave,
     ]
-    assert window.toolBarArea(window.ui.mainToolBar) == Qt.ToolBarArea.TopToolBarArea
-    assert not window.ui.mainToolBar.isMovable()
-    assert window.ui.mainToolBar.toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonTextUnderIcon
     assert window.ui.mainToolBar.windowTitle() == "Standard"
+    assert [a.objectName() or "-" for a in window.ui.editToolBar.actions()] == [
+        "actionUndo",
+        "actionRedo",
+        "-",
+        "actionCut",
+        "actionCopy",
+        "actionPaste",
+        "-",
+        "actionSelectAll",
+    ]
+    assert window.ui.editToolBar.windowTitle() == "Edit"
+    assert [a.objectName() for a in window.ui.formatToolBar.actions()] == [
+        "actionWordWrap",
+        "actionSpellChecker",
+        "actionAssistMode",
+    ]
+    assert window.ui.formatToolBar.windowTitle() == "Format"
+
+    for toolbar in (window.ui.mainToolBar, window.ui.editToolBar, window.ui.formatToolBar):
+        assert window.toolBarArea(toolbar) == Qt.ToolBarArea.TopToolBarArea
+        assert not toolbar.isMovable()
+        assert toolbar.toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonIconOnly
     window.close()
 
 

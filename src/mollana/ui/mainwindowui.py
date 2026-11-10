@@ -113,6 +113,17 @@ def _makeMenu(parent: QMenuBar, objectName: str, title: str) -> QMenu:
 
 
 # ******************************************************************************
+def _makeToolBar(window: QMainWindow, objectName: str, title: str) -> QToolBar:
+    """Create a fixed icon-only toolbar and add it to the top area."""
+    toolbar = QToolBar(window)
+    toolbar.setObjectName(objectName)
+    toolbar.setMovable(False)
+    toolbar.setWindowTitle(title)
+    window.addToolBar(Qt.ToolBarArea.TopToolBarArea, toolbar)
+    return toolbar
+
+
+# ******************************************************************************
 class MainWindowUi:
     """Build the main window's widgets and expose them as attributes."""
 
@@ -374,17 +385,26 @@ class MainWindowUi:
 
     # **************************************************************************
     def _buildToolBar(self, window: QMainWindow) -> None:
-        """Create the main toolbar and add its three actions."""
-        self.mainToolBar = QToolBar(window)
-        self.mainToolBar.setObjectName("mainToolBar")
-        self.mainToolBar.setMovable(False)
-        self.mainToolBar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-        self.mainToolBar.setWindowTitle("Standard")
-        window.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.mainToolBar)
-
+        """Create the Standard, Edit, and Format toolbars."""
+        self.mainToolBar = _makeToolBar(window, "mainToolBar", "Standard")
         self.mainToolBar.addAction(self.actionNew)
         self.mainToolBar.addAction(self.actionOpen)
         self.mainToolBar.addAction(self.actionSave)
+
+        self.editToolBar = _makeToolBar(window, "editToolBar", "Edit")
+        self.editToolBar.addAction(self.actionUndo)
+        self.editToolBar.addAction(self.actionRedo)
+        self.editToolBar.addSeparator()
+        self.editToolBar.addAction(self.actionCut)
+        self.editToolBar.addAction(self.actionCopy)
+        self.editToolBar.addAction(self.actionPaste)
+        self.editToolBar.addSeparator()
+        self.editToolBar.addAction(self.actionSelectAll)
+
+        self.formatToolBar = _makeToolBar(window, "formatToolBar", "Format")
+        self.formatToolBar.addAction(self.actionWordWrap)
+        self.formatToolBar.addAction(self.actionSpellChecker)
+        self.formatToolBar.addAction(self.actionAssistMode)
 
     # **************************************************************************
     def _buildStatusBar(self, window: QMainWindow) -> None:

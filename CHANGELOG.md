@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Edit and Format toolbars above the document, mirroring their menus: the
+  Edit toolbar carries Undo, Redo, Cut, Copy, Paste, and Select All; the
+  Format toolbar carries Word Wrap, Spell Checker, and Assist Mode, whose
+  buttons show the on/off state of each service the way the menu entries do.
 - A dockable on-screen Urdu alphabet keyboard (bottom dock, hidden at start;
   toggled from the View menu or with F2) whose keys type into whatever field
   or editor holds the caret.
@@ -32,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The Standard toolbar's buttons are now icons only.
 - The file explorer is now a dock panel that can sit on the left or right edge,
   be closed, and be reopened from the new View menu; the document tabs fill the
   central area.
