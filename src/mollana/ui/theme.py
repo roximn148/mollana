@@ -15,6 +15,7 @@ at render time, so a theme switch recolours icons already installed on actions.
 # ******************************************************************************
 import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
@@ -34,11 +35,6 @@ from PySide6.QtWidgets import QApplication, QStyleFactory
 
 from mollana.infra.logging import getLogger
 from mollana.infra.settings import Themes
-
-# ******************************************************************************
-DARK_WINDOW: QColor = QColor(53, 53, 53)
-DARK_BASE: QColor = QColor(25, 25, 25)
-DARK_HIGHLIGHT: QColor = QColor(42, 130, 218)
 
 # The brand image is theme-independent and never tinted; it keeps its own
 # accessor rather than passing through the icon catalogue.
@@ -268,32 +264,133 @@ def appLogo() -> QIcon:
 
 
 # ******************************************************************************
-def applyTheme(app: QApplication, theme: Themes) -> None:
-    """Apply ``theme`` to ``app``.
+@dataclass(frozen=True)
+class ThemeSpec:
+    """One theme's complete palette: every ``ColorRole``, plus the ``Disabled`` overrides.
 
-    ``Themes.Light`` and ``Themes.HighContrast`` currently keep the platform
-    default; only the dark palette is defined.
+    ``QPalette()`` copies the application palette, so a role left out of
+    ``colors`` keeps the platform value and Fusion would draw bevels and focus
+    frames from it. ``Accent`` is the selection colour, spent on ``Highlight``
+    in every theme; ``ToolTipBase`` and ``ToolTipText`` are the whole tooltip
+    design, the border included, as Qt draws it.
     """
-    if theme == Themes.Dark:
-        app.setStyle(QStyleFactory.create("Fusion"))
-        palette = QPalette()
-        palette.setColor(QPalette.ColorRole.Window, DARK_WINDOW)
-        palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.white)
-        palette.setColor(QPalette.ColorRole.Base, DARK_BASE)
-        palette.setColor(QPalette.ColorRole.AlternateBase, DARK_WINDOW)
-        palette.setColor(QPalette.ColorRole.ToolTipBase, Qt.GlobalColor.white)
-        palette.setColor(QPalette.ColorRole.ToolTipText, Qt.GlobalColor.white)
-        palette.setColor(QPalette.ColorRole.Text, Qt.GlobalColor.white)
-        palette.setColor(QPalette.ColorRole.Button, DARK_WINDOW)
-        palette.setColor(QPalette.ColorRole.ButtonText, Qt.GlobalColor.white)
-        palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
-        palette.setColor(QPalette.ColorRole.Link, DARK_HIGHLIGHT)
-        palette.setColor(QPalette.ColorRole.Highlight, DARK_HIGHLIGHT)
-        palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.black)
-        app.setPalette(palette)
-        app.setStyleSheet(
-            "QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }"
-        )
+
+    colors: dict[QPalette.ColorRole, QColor]
+    disabled: dict[QPalette.ColorRole, QColor]
+
+
+# ******************************************************************************
+THEMES: dict[Themes, ThemeSpec] = {
+    Themes.Light: ThemeSpec(
+        colors={
+            QPalette.ColorRole.Window: QColor("#f0f0f0"),
+            QPalette.ColorRole.WindowText: QColor("#1f1f1f"),
+            QPalette.ColorRole.Base: QColor("#ffffff"),
+            QPalette.ColorRole.AlternateBase: QColor("#f7f7f7"),
+            QPalette.ColorRole.ToolTipBase: QColor("#ffffdc"),
+            QPalette.ColorRole.ToolTipText: QColor("#1f1f1f"),
+            QPalette.ColorRole.Button: QColor("#f0f0f0"),
+            QPalette.ColorRole.ButtonText: QColor("#1f1f1f"),
+            QPalette.ColorRole.BrightText: QColor("#b00020"),
+            QPalette.ColorRole.Highlight: QColor("#0b5cad"),
+            QPalette.ColorRole.HighlightedText: QColor("#ffffff"),
+            QPalette.ColorRole.Link: QColor("#0b5cad"),
+            QPalette.ColorRole.LinkVisited: QColor("#6a1b9a"),
+            QPalette.ColorRole.Text: QColor("#1f1f1f"),
+            QPalette.ColorRole.PlaceholderText: QColor("#6e6e6e"),
+            QPalette.ColorRole.Accent: QColor("#0b5cad"),
+            QPalette.ColorRole.Light: QColor("#ffffff"),
+            QPalette.ColorRole.Midlight: QColor("#e3e3e3"),
+            QPalette.ColorRole.Dark: QColor("#bfbfbf"),
+            QPalette.ColorRole.Mid: QColor("#a9a9a9"),
+            QPalette.ColorRole.Shadow: QColor("#7a7a7a"),
+        },
+        disabled={
+            QPalette.ColorRole.WindowText: QColor("#9a9a9a"),
+            QPalette.ColorRole.Text: QColor("#9a9a9a"),
+            QPalette.ColorRole.ButtonText: QColor("#9a9a9a"),
+        },
+    ),
+    Themes.Dark: ThemeSpec(
+        colors={
+            QPalette.ColorRole.Window: QColor("#353535"),
+            QPalette.ColorRole.WindowText: QColor("#ffffff"),
+            QPalette.ColorRole.Base: QColor("#191919"),
+            QPalette.ColorRole.AlternateBase: QColor("#353535"),
+            QPalette.ColorRole.ToolTipBase: QColor("#2a2a2a"),
+            QPalette.ColorRole.ToolTipText: QColor("#ffffff"),
+            QPalette.ColorRole.Button: QColor("#353535"),
+            QPalette.ColorRole.ButtonText: QColor("#ffffff"),
+            QPalette.ColorRole.BrightText: QColor("#ff8a80"),
+            QPalette.ColorRole.Highlight: QColor("#2a82da"),
+            QPalette.ColorRole.HighlightedText: QColor("#000000"),
+            QPalette.ColorRole.Link: QColor("#7cc0ff"),
+            QPalette.ColorRole.LinkVisited: QColor("#d0a9f5"),
+            QPalette.ColorRole.Text: QColor("#ffffff"),
+            QPalette.ColorRole.PlaceholderText: QColor("#9a9a9a"),
+            QPalette.ColorRole.Accent: QColor("#2a82da"),
+            QPalette.ColorRole.Light: QColor("#4a4a4a"),
+            QPalette.ColorRole.Midlight: QColor("#414141"),
+            QPalette.ColorRole.Dark: QColor("#1f1f1f"),
+            QPalette.ColorRole.Mid: QColor("#2a2a2a"),
+            QPalette.ColorRole.Shadow: QColor("#141414"),
+        },
+        disabled={
+            QPalette.ColorRole.WindowText: QColor("#8a8a8a"),
+            QPalette.ColorRole.Text: QColor("#8a8a8a"),
+            QPalette.ColorRole.ButtonText: QColor("#8a8a8a"),
+        },
+    ),
+    Themes.HighContrast: ThemeSpec(
+        colors={
+            QPalette.ColorRole.Window: QColor("#000000"),
+            QPalette.ColorRole.WindowText: QColor("#ffffff"),
+            QPalette.ColorRole.Base: QColor("#000000"),
+            QPalette.ColorRole.AlternateBase: QColor("#000000"),
+            QPalette.ColorRole.ToolTipBase: QColor("#000000"),
+            QPalette.ColorRole.ToolTipText: QColor("#ffffff"),
+            QPalette.ColorRole.Button: QColor("#000000"),
+            QPalette.ColorRole.ButtonText: QColor("#ffffff"),
+            QPalette.ColorRole.BrightText: QColor("#ff0000"),
+            QPalette.ColorRole.Highlight: QColor("#1aebff"),
+            QPalette.ColorRole.HighlightedText: QColor("#000000"),
+            QPalette.ColorRole.Link: QColor("#ffff00"),
+            QPalette.ColorRole.LinkVisited: QColor("#ffff00"),
+            QPalette.ColorRole.Text: QColor("#ffffff"),
+            QPalette.ColorRole.PlaceholderText: QColor("#a0a0a0"),
+            QPalette.ColorRole.Accent: QColor("#1aebff"),
+            QPalette.ColorRole.Light: QColor("#ffffff"),
+            QPalette.ColorRole.Midlight: QColor("#ffffff"),
+            QPalette.ColorRole.Dark: QColor("#000000"),
+            QPalette.ColorRole.Mid: QColor("#808080"),
+            QPalette.ColorRole.Shadow: QColor("#000000"),
+        },
+        disabled={
+            QPalette.ColorRole.WindowText: QColor("#a0a0a0"),
+            QPalette.ColorRole.Text: QColor("#a0a0a0"),
+            QPalette.ColorRole.ButtonText: QColor("#a0a0a0"),
+        },
+    ),
+}
+
+
+# ******************************************************************************
+def applyTheme(app: QApplication, theme: Themes) -> None:
+    """Apply ``theme`` to ``app``: the Fusion style and the spec's palette.
+
+    Fusion is the style in every theme, and every role is set from the spec,
+    so nothing inherits from the platform and no stylesheet exists: the whole
+    window derives its colour from the palette, and the icon ink follows the
+    palette's ``WindowText`` with no mechanism of its own.
+    """
+    app.setStyle(QStyleFactory.create("Fusion"))
+    spec = THEMES[theme]
+    palette = QPalette()
+    for role, colour in spec.colors.items():
+        palette.setColor(role, colour)
+    for role, colour in spec.disabled.items():
+        palette.setColor(QPalette.ColorGroup.Disabled, role, colour)
+    app.setPalette(palette)
 
 
 # ******************************************************************************

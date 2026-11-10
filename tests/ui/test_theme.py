@@ -11,9 +11,18 @@ import logging
 
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QColor, QIcon, QPalette, Qt
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QStyleFactory
 
-from mollana.ui.theme import ICON_CATALOGUE, TintedIconEngine, _render, icon, imagesDir
+from mollana.infra.settings import Themes
+from mollana.ui.theme import (
+    ICON_CATALOGUE,
+    THEMES,
+    TintedIconEngine,
+    _render,
+    applyTheme,
+    icon,
+    imagesDir,
+)
 
 
 # ******************************************************************************
@@ -146,3 +155,90 @@ def test_catalogueCoversExactlyTheImageFolder() -> None:
         "mollana.ico",
         "mollana64.png",
     }
+
+
+# ******************************************************************************
+def test_themesCoverEveryThemeAndEveryRole() -> None:
+    """Every theme has a spec, and every spec sets every role.
+
+    ``QPalette()`` copies the application palette, so a role left unset keeps
+    the platform value; the coverage guard is what catches an inherited bevel.
+    """
+    assert set(THEMES) == set(Themes)
+    for spec in THEMES.values():
+        assert set(spec.colors) == set(QPalette.ColorRole) - {
+            QPalette.ColorRole.NoRole,
+            QPalette.ColorRole.NColorRoles,
+        }
+        assert set(spec.disabled) == {
+            QPalette.ColorRole.WindowText,
+            QPalette.ColorRole.Text,
+            QPalette.ColorRole.ButtonText,
+        }
+
+
+# ******************************************************************************
+def _linear(channel: int) -> float:
+    """WCAG 2.x sRGB to linear-light for one channel."""
+    value = channel / 255
+    return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+
+
+def _contrast(foreground: QColor, background: QColor) -> float:
+    """The WCAG 2.x contrast ratio of ``foreground`` on ``background``."""
+
+    def luminance(colour: QColor) -> float:
+        red, green, blue = (
+            _linear(colour.red()),
+            _linear(colour.green()),
+            _linear(colour.blue()),
+        )
+        return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+
+    top, bottom = sorted((luminance(foreground), luminance(background)), reverse=True)
+    return (top + 0.05) / (bottom + 0.05)
+
+
+# ******************************************************************************
+def test_contrastFloors() -> None:
+    """Text, selection, and links clear WCAG AA; HighContrast clears AAA."""
+    for theme, spec in THEMES.items():
+        window = spec.colors[QPalette.ColorRole.Window]
+        base = spec.colors[QPalette.ColorRole.Base]
+        highlight = spec.colors[QPalette.ColorRole.Highlight]
+        floor = 7.0 if theme is Themes.HighContrast else 4.5
+        assert _contrast(spec.colors[QPalette.ColorRole.WindowText], window) >= floor
+        assert _contrast(spec.colors[QPalette.ColorRole.Text], base) >= floor
+        assert (
+            _contrast(
+                spec.colors[QPalette.ColorRole.HighlightedText],
+                highlight,
+            )
+            >= floor
+        )
+        assert _contrast(spec.colors[QPalette.ColorRole.Link], window) >= floor
+
+
+# ******************************************************************************
+def test_applyThemeSwitchesPalettes(qapp: QApplication) -> None:
+    """Every theme is drawn by Fusion, and the palettes actually differ.
+
+    ``applyTheme`` is the only writer: it sets the style, installs the
+    palette, and leaves no stylesheet behind for a widget to deviate from.
+    """
+    originalPalette = qapp.palette()
+    originalStyle = qapp.style().objectName()
+    try:
+        windows: list[QColor] = []
+        for theme in Themes:
+            applyTheme(qapp, theme)
+            assert qapp.style().objectName() == "fusion"
+            assert qapp.styleSheet() == ""
+            assert qapp.palette().color(QPalette.ColorRole.Window) == THEMES[theme].colors[
+                QPalette.ColorRole.Window
+            ]
+            windows.append(qapp.palette().color(QPalette.ColorRole.Window))
+        assert len({window.name() for window in windows}) == len(Themes)
+    finally:
+        qapp.setPalette(originalPalette)
+        qapp.setStyle(QStyleFactory.create(originalStyle))

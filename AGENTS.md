@@ -97,6 +97,9 @@ fresh clone needs no code generation before `uv run mollana` or `uv run pytest`.
 - `mollana.*` namespaced imports only; no flat imports.
 - Type hints and docstrings on public functions/classes.
 - Ruff: line length 100, rules `E,F,W,I,UP,B`, `src = ["src"]`.
+- Colour and style are declared only in `theme.py`: `THEMES` holds a complete palette per
+  theme, `applyTheme` sets the Fusion style and installs it, and no widget carries a
+  stylesheet or a colour literal.
 - `CHANGELOG.md` follows Keep a Changelog + SemVer in structure, but its content is the
   **user-facing surface only** — the public user contract of the desktop app: what the end user
   can now do, experience, or hit, in user language. Internal changes (layers, engines, CI, build,

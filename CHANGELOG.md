@@ -52,6 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The menu, toolbar, and status-bar icons are now vector icons drawn in the
   active theme's colours, so they pick up the theme instead of carrying a
   fixed palette.
+- The Light and HighContrast themes now have palettes of their own, and every
+  theme is drawn by the same style: the whole window follows the theme chosen
+  in `preferences.toml`, including the on-screen keyboard and the tooltips,
+  instead of inheriting the Windows look.
 
 ### Fixed
 
