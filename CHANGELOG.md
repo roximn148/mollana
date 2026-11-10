@@ -37,8 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   central area.
 - The spell checker and assist mode entries in the Format menu now show the
   same icons as their status bar indicators.
-- The Close Tab, Recent Files, Cut, Paste, Select All, Word Wrap, File
-  Explorer and Keyboard menu entries now show icons.
+- Every menu entry now shows an icon.
 
 ### Fixed
 

@@ -166,18 +166,19 @@ EXPECTED_TOOLTIPS: dict[str, str] = {
 }
 
 ICON_FILES: dict[str, str] = {
-    "actionNew": "new.png",
-    "actionOpen": "add_to_open_folder.png",
-    "actionOpenFolder": "open_folder_info.png",
-    "actionNewProject": "add_page.png",
-    "actionOpenProject": "office_folders.png",
-    "actionSave": "save.png",
-    "actionSaveAs": "transfer.png",
+    "actionNew": "document-new.png",
+    "actionOpen": "document-open.png",
+    "actionOpenFolder": "document-open-folder.png",
+    "actionNewProject": "folder-new.png",
+    "actionOpenProject": "project-open.png",
+    "actionSave": "document-save.png",
+    "actionSaveAs": "document-save-as.png",
     "actionCloseTab": "tab-close.png",
-    "actionQuit": "shut_down.png",
-    "actionUndo": "blue_arrow_down.png",
-    "actionRedo": "blue_arrow_up.png",
+    "actionQuit": "application-exit.png",
+    "actionUndo": "edit-undo.png",
+    "actionRedo": "edit-redo.png",
     "actionCut": "edit-cut.png",
+    "actionCopy": "edit-copy.png",
     "actionPaste": "edit-paste.png",
     "actionSelectAll": "edit-select-all.png",
     "actionFileExplorer": "view-list-tree.png",
@@ -185,7 +186,7 @@ ICON_FILES: dict[str, str] = {
     "actionWordWrap": "format-justify-fill.png",
     "actionSpellChecker": "tools-check-spelling.png",
     "actionAssistMode": "globe.png",
-    "actionAbout": "help_balloon.png",
+    "actionAbout": "help-about.png",
 }
 
 
@@ -495,7 +496,7 @@ def test_viewMenuTogglesTheUrduKeyboardDock(qapp: QApplication, tmp_path: Path) 
 
 # ******************************************************************************
 def test_iconsLoadFromTheImageFolder(qapp: QApplication, tmp_path: Path) -> None:
-    assert not icon("new.png").isNull()
+    assert not icon("document-new.png").isNull()
 
     window = _window(tmp_path)
     assert _iconPixels(window.windowIcon()) == _iconPixels(icon("mollana64.png"))

@@ -142,7 +142,7 @@ class MainWindowUi:
             window,
             "actionNew",
             "&New",
-            iconName="new.png",
+            iconName="document-new.png",
             shortcut="Ctrl+N",
             tooltip="Create a new document",
         )
@@ -150,7 +150,7 @@ class MainWindowUi:
             window,
             "actionOpen",
             "&Open",
-            iconName="add_to_open_folder.png",
+            iconName="document-open.png",
             shortcut="Ctrl+O",
             tooltip="Open a text file",
         )
@@ -158,7 +158,7 @@ class MainWindowUi:
             window,
             "actionOpenFolder",
             "Open F&older",
-            iconName="open_folder_info.png",
+            iconName="document-open-folder.png",
             shortcut="Ctrl+Shift+O",
             tooltip="Browse a folder without making it a project",
         )
@@ -166,21 +166,21 @@ class MainWindowUi:
             window,
             "actionNewProject",
             "New &Project",
-            iconName="add_page.png",
+            iconName="folder-new.png",
             tooltip="Convert a folder into a Mollana project",
         )
         self.actionOpenProject = _makeAction(
             window,
             "actionOpenProject",
             "Open Pro&ject",
-            iconName="office_folders.png",
+            iconName="project-open.png",
             tooltip="Open a folder that is already a project",
         )
         self.actionSave = _makeAction(
             window,
             "actionSave",
             "&Save",
-            iconName="save.png",
+            iconName="document-save.png",
             shortcut="Ctrl+S",
             tooltip="Save the active document",
         )
@@ -188,7 +188,7 @@ class MainWindowUi:
             window,
             "actionSaveAs",
             "Save &As",
-            iconName="transfer.png",
+            iconName="document-save-as.png",
             shortcut="Ctrl+Shift+S",
             tooltip="Save the active document under another path",
         )
@@ -203,21 +203,21 @@ class MainWindowUi:
             window,
             "actionQuit",
             "&Quit",
-            iconName="shut_down.png",
+            iconName="application-exit.png",
             shortcut="Ctrl+Q",
         )
         self.actionUndo = _makeAction(
             window,
             "actionUndo",
             "&Undo",
-            iconName="blue_arrow_down.png",
+            iconName="edit-undo.png",
             shortcut="Ctrl+Z",
         )
         self.actionRedo = _makeAction(
             window,
             "actionRedo",
             "&Redo",
-            iconName="blue_arrow_up.png",
+            iconName="edit-redo.png",
             shortcut="Ctrl+Shift+Z",
         )
         self.actionCut = _makeAction(
@@ -231,6 +231,7 @@ class MainWindowUi:
             window,
             "actionCopy",
             "&Copy",
+            iconName="edit-copy.png",
             shortcut="Ctrl+C",
         )
         self.actionPaste = _makeAction(
@@ -279,7 +280,7 @@ class MainWindowUi:
             window,
             "actionAbout",
             "&About",
-            iconName="help_balloon.png",
+            iconName="help-about.png",
             shortcut="F1",
         )
 
