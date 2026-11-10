@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the caret was last left.
 - Dictionary suggestions for `ملیں` and `شاید` are corrected, and the
   misspelling `شائد` is no longer treated as a known word.
+- The About box's Oxygen Icons credit now links to the project's home page
+  instead of the old GitHub repository.
 
 ## [0.2.0a1] - 2026-11-06
 

@@ -16,7 +16,7 @@ import pytest
 from pyraya import PyRaya
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QIcon, QKeySequence
-from PySide6.QtWidgets import QApplication, QDialog, QDockWidget, QMenu
+from PySide6.QtWidgets import QApplication, QDialog, QDockWidget, QMenu, QMessageBox
 from romanalfaz import RomanAlfaz
 
 from mollana.editor.dictionaries import DictionaryStore
@@ -433,6 +433,23 @@ def test_iconsLoadFromTheImageFolder(qapp: QApplication, tmp_path: Path) -> None
         action = getattr(window.ui, name)
         assert not action.icon().isNull()
         assert _iconPixels(action.icon()) == _iconPixels(icon(filename))
+    window.close()
+
+
+# ******************************************************************************
+def test_aboutBoxCreditsOxygenIcons(
+    qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The about box credits Oxygen Icons with a link to its home page."""
+    window = _window(tmp_path)
+    captured: list[str] = []
+
+    def fakeAbout(parent: object, title: str, text: str) -> None:
+        captured.append(text)
+
+    monkeypatch.setattr(QMessageBox, "about", staticmethod(fakeAbout))
+    window.onAbout()
+    assert any("https://invent.kde.org/frameworks/oxygen-icons" in text for text in captured)
     window.close()
 
 

@@ -464,8 +464,10 @@ class MainWindow(QMainWindow):
             f"<p>{Rx.Licence}</p>"
             "<h4>Attributions</h4>"
             "<ul>"
-            '<li>Some icons by <a href="https://github.com/KDE/oxygen-icons5">Oxygen Icons</a>, '
-            'licensed under <a href="https://www.gnu.org/licenses/lgpl-3.0.en.html">'
+            "<li>Some icons by "
+            '<a href="https://invent.kde.org/frameworks/oxygen-icons">Oxygen Icons</a>'
+            ", licensed under "
+            '<a href="https://www.gnu.org/licenses/lgpl-3.0.en.html">'
             "GNU Lesser General Public License v3.0</a> License.</li>"
             "</ul>",
         )
