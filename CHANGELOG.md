@@ -22,9 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as tall as the keyboard's keys.
 - Learned words are saved to the active dictionary every `AutoSaveInterval`
   minutes (default 5) while the app runs, as well as on close.
-- The status bar shows a Spell Check and an Assist Mode label at its right
-  edge. Each label is greyed while that service is off for the active document,
-  and both are greyed while no document is open.
+- The status bar shows a spell check icon and an assist mode icon at its
+  right edge, each with a tooltip naming the service. Each icon is greyed
+  while that service is off for the active document, and both are greyed
+  while no document is open.
 
 ### Changed
 

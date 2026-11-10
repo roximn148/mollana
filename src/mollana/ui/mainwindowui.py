@@ -13,7 +13,7 @@ module only builds the window and names its parts.
 
 # ******************************************************************************
 from PySide6.QtCore import QObject, QSize, Qt
-from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import (
     QDockWidget,
     QLabel,
@@ -324,9 +324,9 @@ class MainWindowUi:
 
     # **************************************************************************
     def _buildStatusBar(self, window: QMainWindow) -> None:
-        """Create the status bar and its right-edge service labels.
+        """Create the status bar and its right-edge service icons.
 
-        The labels report the active editor's spell-check and assist-mode
+        The icons report the active editor's spell-check and assist-mode
         state. They are permanent widgets, so a transient message on the left
         never covers them, and they start disabled because no document is
         open yet.
@@ -334,12 +334,21 @@ class MainWindowUi:
         self.statusBar = QStatusBar(window)
         self.statusBar.setObjectName("statusBar")
 
-        self.lblSpellCheck = QLabel("Spell Check", self.statusBar)
+        self.iconSpellCheck = icon("tools-check-spelling.png")
+        self.iconAssist = icon("help-hint.png")
+
+        self.lblSpellCheck = QLabel(self.statusBar)
         self.lblSpellCheck.setObjectName("lblSpellCheck")
+        self.lblSpellCheck.setToolTip("Spell Check")
+        self.lblSpellCheck.setAccessibleName("Spell Check")
+        self.lblSpellCheck.setPixmap(self.iconSpellCheck.pixmap(QSize(16, 16), QIcon.Mode.Disabled))
         self.lblSpellCheck.setEnabled(False)
 
-        self.lblAssist = QLabel("Assist Mode", self.statusBar)
+        self.lblAssist = QLabel(self.statusBar)
         self.lblAssist.setObjectName("lblAssist")
+        self.lblAssist.setToolTip("Assist Mode")
+        self.lblAssist.setAccessibleName("Assist Mode")
+        self.lblAssist.setPixmap(self.iconAssist.pixmap(QSize(16, 16), QIcon.Mode.Disabled))
         self.lblAssist.setEnabled(False)
 
         self.statusBar.addPermanentWidget(self.lblSpellCheck)

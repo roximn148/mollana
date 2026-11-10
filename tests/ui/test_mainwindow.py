@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 from pyraya import PyRaya
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QIcon, QKeySequence
+from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtGui import QIcon, QKeySequence, QPixmap
 from PySide6.QtWidgets import QApplication, QDialog, QDockWidget, QMenu, QMessageBox
 from romanalfaz import RomanAlfaz
 
@@ -303,6 +303,12 @@ def _menuEntries(menu: QMenu) -> list[str]:
 def _iconPixels(source: QIcon) -> bytes:
     """Return the rendered pixels of an icon so two icons can be compared."""
     return bytes(source.pixmap(24, 24).toImage().constBits())
+
+
+# ******************************************************************************
+def _pixmapPixels(pixmap: QPixmap) -> bytes:
+    """Return a pixmap's pixels so two pixmaps can be compared."""
+    return bytes(pixmap.toImage().constBits())
 
 
 # ******************************************************************************
@@ -808,17 +814,35 @@ def test_prefillFailureLeavesTheDockIntact(
 # ******************************************************************************
 # Status indicators
 # ******************************************************************************
-def test_statusBarCarriesTheServiceLabelsOnTheRight(qapp: QApplication, tmp_path: Path) -> None:
-    """Spell check and assist mode are permanent labels on the status bar."""
+def test_statusBarCarriesTheServiceIconsOnTheRight(qapp: QApplication, tmp_path: Path) -> None:
+    """Spell check and assist mode are permanent icons on the status bar."""
     window = _window(tmp_path)
     statusBar = window.ui.statusBar
     spell = window.ui.lblSpellCheck
     assist = window.ui.lblAssist
+    spellIcon = icon("tools-check-spelling.png")
+    assistIcon = icon("help-hint.png")
 
     assert spell.objectName() == "lblSpellCheck"
     assert assist.objectName() == "lblAssist"
-    assert spell.text() == "Spell Check"
-    assert assist.text() == "Assist Mode"
+    # Icon-only: the meaning rides on the tooltip and the accessible name.
+    assert spell.text() == ""
+    assert assist.text() == ""
+    assert spell.toolTip() == "Spell Check"
+    assert assist.toolTip() == "Assist Mode"
+    assert spell.accessibleName() == "Spell Check"
+    assert assist.accessibleName() == "Assist Mode"
+    # The 16-pixel icons are the Oxygen set's, greyed while disabled.
+    spellPixmap = spell.pixmap()
+    assistPixmap = assist.pixmap()
+    assert spellPixmap.size() == QSize(16, 16)
+    assert assistPixmap.size() == QSize(16, 16)
+    assert _pixmapPixels(spellPixmap) == _pixmapPixels(
+        spellIcon.pixmap(QSize(16, 16), QIcon.Mode.Disabled)
+    )
+    assert _pixmapPixels(assistPixmap) == _pixmapPixels(
+        assistIcon.pixmap(QSize(16, 16), QIcon.Mode.Disabled)
+    )
     assert spell.parent() is statusBar
     assert assist.parent() is statusBar
 
@@ -838,26 +862,46 @@ def test_statusBarCarriesTheServiceLabelsOnTheRight(qapp: QApplication, tmp_path
 
 # ******************************************************************************
 def test_statusLabelsFollowTheActiveEditor(qapp: QApplication, tmp_path: Path) -> None:
-    """An open document lights both labels; each service switch greys its own."""
+    """An open document lights both icons; each service switch greys its own."""
     window = _window(tmp_path)
     window.onNew()
     editor = window.ui.tbwEditors.activeEditor()
     assert editor is not None
+    spellIcon = icon("tools-check-spelling.png")
+    assistIcon = icon("help-hint.png")
     assert window.ui.lblSpellCheck.isEnabled()
     assert window.ui.lblAssist.isEnabled()
+    assert _pixmapPixels(window.ui.lblSpellCheck.pixmap()) == _pixmapPixels(
+        spellIcon.pixmap(QSize(16, 16), QIcon.Mode.Normal)
+    )
+    assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
+        assistIcon.pixmap(QSize(16, 16), QIcon.Mode.Normal)
+    )
 
     editor.setSpellCheckEnabled(False)
     assert not window.ui.lblSpellCheck.isEnabled()
     assert window.ui.lblAssist.isEnabled()
+    assert _pixmapPixels(window.ui.lblSpellCheck.pixmap()) == _pixmapPixels(
+        spellIcon.pixmap(QSize(16, 16), QIcon.Mode.Disabled)
+    )
 
     editor.setAssistEnabled(False)
     assert not window.ui.lblSpellCheck.isEnabled()
     assert not window.ui.lblAssist.isEnabled()
+    assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
+        assistIcon.pixmap(QSize(16, 16), QIcon.Mode.Disabled)
+    )
 
     editor.setSpellCheckEnabled(True)
     editor.setAssistEnabled(True)
     assert window.ui.lblSpellCheck.isEnabled()
     assert window.ui.lblAssist.isEnabled()
+    assert _pixmapPixels(window.ui.lblSpellCheck.pixmap()) == _pixmapPixels(
+        spellIcon.pixmap(QSize(16, 16), QIcon.Mode.Normal)
+    )
+    assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
+        assistIcon.pixmap(QSize(16, 16), QIcon.Mode.Normal)
+    )
     window.close()
 
 
