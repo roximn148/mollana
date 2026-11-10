@@ -12,8 +12,8 @@ module only builds the window and names its parts.
 """
 
 # ******************************************************************************
-from PySide6.QtCore import QObject, QSize, Qt
-from PySide6.QtGui import QAction, QIcon, QKeySequence, QPainter, QPixmap
+from PySide6.QtCore import QObject, QSize, Qt, Signal
+from PySide6.QtGui import QAction, QIcon, QKeySequence, QMouseEvent, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QDockWidget,
     QLabel,
@@ -54,6 +54,24 @@ def servicePixmap(source: QIcon, active: bool) -> QPixmap:
     painter.end()
     faded.setDevicePixelRatio(pixmap.devicePixelRatio())
     return faded
+
+
+# ******************************************************************************
+class ServiceIconLabel(QLabel):
+    """A status-bar service icon that reports its clicks.
+
+    Clicks only count while the icon is enabled, which is the window's way of
+    saying a document is open; the fade still carries the service's on/off
+    state, so a faded icon is the clickable "off" state, not a dead one.
+    """
+
+    clicked = Signal()
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        """Emit ``clicked`` on a left-button press while enabled."""
+        if self.isEnabled() and event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
 
 
 # ******************************************************************************
@@ -241,6 +259,15 @@ class MainWindowUi:
             checkable=True,
             checked=True,
         )
+        self.actionAssistMode = _makeAction(
+            window,
+            "actionAssistMode",
+            "&Assist Mode",
+            shortcut="F6",
+            tooltip="Show roman hints under the word being edited",
+            checkable=True,
+            checked=True,
+        )
         self.actionAbout = _makeAction(
             window,
             "actionAbout",
@@ -332,6 +359,7 @@ class MainWindowUi:
 
         self.menuFormat.addAction(self.actionWordWrap)
         self.menuFormat.addAction(self.actionSpellChecker)
+        self.menuFormat.addAction(self.actionAssistMode)
         self.menuHelp.addAction(self.actionAbout)
 
     # **************************************************************************
@@ -353,7 +381,8 @@ class MainWindowUi:
         """Create the status bar and its right-edge service icons.
 
         The icons report the active editor's spell-check and assist-mode
-        state. They are permanent widgets, so a transient message on the left
+        state, and clicking one toggles its service through the matching menu
+        action. They are permanent widgets, so a transient message on the left
         never covers them, and they start disabled because no document is
         open yet.
         """
@@ -363,18 +392,20 @@ class MainWindowUi:
         self.iconSpellCheck = icon("tools-check-spelling.png")
         self.iconAssist = icon("help-hint.png")
 
-        self.lblSpellCheck = QLabel(self.statusBar)
+        self.lblSpellCheck = ServiceIconLabel(self.statusBar)
         self.lblSpellCheck.setObjectName("lblSpellCheck")
         self.lblSpellCheck.setToolTip("Spell Check")
         self.lblSpellCheck.setAccessibleName("Spell Check")
         self.lblSpellCheck.setPixmap(servicePixmap(self.iconSpellCheck, False))
+        self.lblSpellCheck.setCursor(Qt.CursorShape.PointingHandCursor)
         self.lblSpellCheck.setEnabled(False)
 
-        self.lblAssist = QLabel(self.statusBar)
+        self.lblAssist = ServiceIconLabel(self.statusBar)
         self.lblAssist.setObjectName("lblAssist")
         self.lblAssist.setToolTip("Assist Mode")
         self.lblAssist.setAccessibleName("Assist Mode")
         self.lblAssist.setPixmap(servicePixmap(self.iconAssist, False))
+        self.lblAssist.setCursor(Qt.CursorShape.PointingHandCursor)
         self.lblAssist.setEnabled(False)
 
         self.statusBar.addPermanentWidget(self.lblSpellCheck)

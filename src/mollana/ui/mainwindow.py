@@ -101,6 +101,10 @@ class MainWindow(QMainWindow):
 
         ui.actionWordWrap.toggled.connect(self.onWordWrap)
         ui.actionSpellChecker.toggled.connect(self.onSpellChecker)
+        ui.actionAssistMode.toggled.connect(self.onAssistMode)
+
+        ui.lblSpellCheck.clicked.connect(self.onSpellCheckClicked)
+        ui.lblAssist.clicked.connect(self.onAssistModeClicked)
 
         ui.tbwEditors.tabCloseRequested.connect(self.onTabCloseRequested)
         ui.tbwEditors.currentChanged.connect(self.onTabChanged)
@@ -116,6 +120,7 @@ class MainWindow(QMainWindow):
         editor.setAddWordHandler(self.openLearnDialog)
         self._loadActiveDictionary(editor)
         editor.setSpellCheckEnabled(self.ui.actionSpellChecker.isChecked())
+        editor.setAssistEnabled(self.ui.actionAssistMode.isChecked())
         editor.modificationChanged.connect(
             lambda modified, documentId=document.id: self.onDocumentModified(documentId, modified)
         )
@@ -129,14 +134,15 @@ class MainWindow(QMainWindow):
     def refreshEditorStatus(self) -> None:
         """Show the active editor's service state on the status bar.
 
-        Both icons are dimmed while no document is open, and each one is
-        dimmed when its service is off for the active editor.
+        Both icons are clickable while a document is open, and each one is
+        faded when its service is off for the active editor; with no document
+        open both are disabled and faded.
         """
         editor = self.ui.tbwEditors.activeEditor()
         spell = editor is not None and editor.isSpellCheckEnabled()
         assist = editor is not None and editor.isAssistEnabled()
-        self.ui.lblSpellCheck.setEnabled(spell)
-        self.ui.lblAssist.setEnabled(assist)
+        self.ui.lblSpellCheck.setEnabled(editor is not None)
+        self.ui.lblAssist.setEnabled(editor is not None)
         self.ui.lblSpellCheck.setPixmap(servicePixmap(self.ui.iconSpellCheck, spell))
         self.ui.lblAssist.setPixmap(servicePixmap(self.ui.iconAssist, assist))
 
@@ -413,6 +419,21 @@ class MainWindow(QMainWindow):
     def onSpellChecker(self, enabled: bool) -> None:
         """Apply the spell-check toggle to every open editor."""
         self.ui.tbwEditors.setSpellCheckEnabled(enabled)
+
+    # **************************************************************************
+    def onAssistMode(self, enabled: bool) -> None:
+        """Apply the assist-mode toggle to every open editor."""
+        self.ui.tbwEditors.setAssistEnabled(enabled)
+
+    # **************************************************************************
+    def onSpellCheckClicked(self) -> None:
+        """Toggle spell checking through its menu action, like F5."""
+        self.ui.actionSpellChecker.toggle()
+
+    # **************************************************************************
+    def onAssistModeClicked(self) -> None:
+        """Toggle assist mode through its menu action, like F6."""
+        self.ui.actionAssistMode.toggle()
 
     # **************************************************************************
     def _callEditor(self, method: str) -> None:

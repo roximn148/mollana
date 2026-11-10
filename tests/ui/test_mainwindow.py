@@ -14,9 +14,16 @@ from pathlib import Path
 
 import pytest
 from pyraya import PyRaya
-from PySide6.QtCore import QSize, Qt, QTimer
-from PySide6.QtGui import QColor, QIcon, QKeySequence, QPixmap
-from PySide6.QtWidgets import QApplication, QDialog, QDockWidget, QMenu, QMessageBox
+from PySide6.QtCore import QEvent, QSize, Qt, QTimer
+from PySide6.QtGui import QColor, QIcon, QKeySequence, QMouseEvent, QPixmap
+from PySide6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QDockWidget,
+    QMenu,
+    QMessageBox,
+    QWidget,
+)
 from romanalfaz import RomanAlfaz
 
 from mollana.editor.dictionaries import DictionaryStore
@@ -141,6 +148,7 @@ EXPECTED_ACTIONS: dict[str, tuple[str, str, bool, bool]] = {
     "actionSelectAll": ("Select &All", "Ctrl+A", False, False),
     "actionWordWrap": ("Word &Wrap", "", True, True),
     "actionSpellChecker": ("&Spell Checker", "F5", True, True),
+    "actionAssistMode": ("&Assist Mode", "F6", True, True),
     "actionAbout": ("&About", "F1", False, False),
     "actionUrduKeyboard": ("Urdu Keyboard", "F2", True, False),
 }
@@ -154,6 +162,7 @@ EXPECTED_TOOLTIPS: dict[str, str] = {
     "actionSave": "Save the active document",
     "actionSaveAs": "Save the active document under another path",
     "actionSpellChecker": "Underline words the dictionary does not know",
+    "actionAssistMode": "Show roman hints under the word being edited",
 }
 
 ICON_FILES: dict[str, str] = {
@@ -324,6 +333,19 @@ def _meanAlpha(pixmap: QPixmap) -> float:
 
 
 # ******************************************************************************
+def _click(widget: QWidget) -> None:
+    """Press the left mouse button on ``widget`` at its centre."""
+    event = QMouseEvent(
+        QEvent.Type.MouseButtonPress,
+        widget.rect().center(),
+        Qt.MouseButton.LeftButton,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    widget.mousePressEvent(event)
+
+
+# ******************************************************************************
 def _meanLuminance(pixmap: QPixmap, background: str) -> float:
     """Return a pixmap's average luminance, composited on ``background``."""
     image = pixmap.toImage()
@@ -383,7 +405,11 @@ def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) ->
         "actionSelectAll",
     ]
     assert _menuEntries(window.ui.menuView) == ["actionFileExplorer", "actionUrduKeyboard"]
-    assert _menuEntries(window.ui.menuFormat) == ["actionWordWrap", "actionSpellChecker"]
+    assert _menuEntries(window.ui.menuFormat) == [
+        "actionWordWrap",
+        "actionSpellChecker",
+        "actionAssistMode",
+    ]
     assert _menuEntries(window.ui.menuHelp) == ["actionAbout"]
     assert window.ui.menuFile.actions()[-1] is window.ui.actionQuit
 
@@ -876,6 +902,9 @@ def test_statusBarCarriesTheServiceIconsOnTheRight(qapp: QApplication, tmp_path:
     )
     assert spell.parent() is statusBar
     assert assist.parent() is statusBar
+    # The icons are buttons: a pointing hand says they respond to clicks.
+    assert spell.cursor().shape() == Qt.CursorShape.PointingHandCursor
+    assert assist.cursor().shape() == Qt.CursorShape.PointingHandCursor
 
     # No document is open, so neither service is live.
     assert not spell.isEnabled()
@@ -936,16 +965,18 @@ def test_statusLabelsFollowTheActiveEditor(qapp: QApplication, tmp_path: Path) -
         servicePixmap(assistIcon, True)
     )
 
+    # The icons stay clickable while a document is open; the fade carries the
+    # per-service state, not enabledness.
     editor.setSpellCheckEnabled(False)
-    assert not window.ui.lblSpellCheck.isEnabled()
+    assert window.ui.lblSpellCheck.isEnabled()
     assert window.ui.lblAssist.isEnabled()
     assert _pixmapPixels(window.ui.lblSpellCheck.pixmap()) == _pixmapPixels(
         servicePixmap(spellIcon, False)
     )
 
     editor.setAssistEnabled(False)
-    assert not window.ui.lblSpellCheck.isEnabled()
-    assert not window.ui.lblAssist.isEnabled()
+    assert window.ui.lblSpellCheck.isEnabled()
+    assert window.ui.lblAssist.isEnabled()
     assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
         servicePixmap(assistIcon, False)
     )
@@ -973,15 +1004,25 @@ def test_statusLabelsFollowTheActiveTab(qapp: QApplication, tmp_path: Path) -> N
     second = window.ui.tbwEditors.activeEditor()
     assert first is not None
     assert second is not None
+    assistIcon = icon("help-hint.png")
 
     first.setAssistEnabled(False)  # a background tab must not move the labels
     assert window.ui.lblAssist.isEnabled()
+    assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
+        servicePixmap(assistIcon, True)
+    )
 
     window.ui.tbwEditors.setCurrentWidget(first)
-    assert not window.ui.lblAssist.isEnabled()
+    assert window.ui.lblAssist.isEnabled()
+    assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
+        servicePixmap(assistIcon, False)
+    )
 
     window.ui.tbwEditors.setCurrentWidget(second)
     assert window.ui.lblAssist.isEnabled()
+    assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
+        servicePixmap(assistIcon, True)
+    )
     window.close()
 
 
@@ -1010,8 +1051,63 @@ def test_newDocumentInheritsTheSpellCheckSwitch(qapp: QApplication, tmp_path: Pa
     editor = window.ui.tbwEditors.activeEditor()
     assert editor is not None
     assert not editor.isSpellCheckEnabled()
-    assert not window.ui.lblSpellCheck.isEnabled()
+    # The icon stays clickable with a document open; the fade says spell is off.
+    assert window.ui.lblSpellCheck.isEnabled()
+    assert _pixmapPixels(window.ui.lblSpellCheck.pixmap()) == _pixmapPixels(
+        servicePixmap(icon("tools-check-spelling.png"), False)
+    )
     window.close()
 
 
 # ******************************************************************************
+def test_newDocumentsInheritTheAssistMode(qapp: QApplication, tmp_path: Path) -> None:
+    """After F6 off, a new document must not come back in assist mode."""
+    window = _window(tmp_path)
+    window.onNew()
+    window.ui.actionAssistMode.setChecked(False)
+
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    assert editor is not None
+    assert not editor.isAssistEnabled()
+    assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
+        servicePixmap(icon("help-hint.png"), False)
+    )
+    window.close()
+
+
+# ******************************************************************************
+def test_statusIconsToggleTheirService(qapp: QApplication, tmp_path: Path) -> None:
+    """Clicking a status icon toggles that service and its menu action."""
+    window = _window(tmp_path)
+    spell = window.ui.lblSpellCheck
+    assist = window.ui.lblAssist
+
+    # No document is open: the icons are disabled, so clicks do nothing.
+    assert not spell.isEnabled()
+    assert not assist.isEnabled()
+    _click(spell)
+    _click(assist)
+    assert window.ui.actionSpellChecker.isChecked()
+    assert window.ui.actionAssistMode.isChecked()
+
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    assert editor is not None
+
+    _click(spell)
+    assert not editor.isSpellCheckEnabled()
+    assert not window.ui.actionSpellChecker.isChecked()
+
+    _click(spell)
+    assert editor.isSpellCheckEnabled()
+    assert window.ui.actionSpellChecker.isChecked()
+
+    _click(assist)
+    assert not editor.isAssistEnabled()
+    assert not window.ui.actionAssistMode.isChecked()
+
+    _click(assist)
+    assert editor.isAssistEnabled()
+    assert window.ui.actionAssistMode.isChecked()
+    window.close()

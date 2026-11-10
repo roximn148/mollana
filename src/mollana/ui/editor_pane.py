@@ -103,6 +103,12 @@ class EditorPane(QTabWidget):
             editor.setSpellCheckEnabled(enabled)
 
     # **************************************************************************
+    def setAssistEnabled(self, enabled: bool) -> None:
+        """Switch roman assist on every open editor."""
+        for editor in self.editors():
+            editor.setAssistEnabled(enabled)
+
+    # **************************************************************************
     def setLineWrapEnabled(self, enabled: bool) -> None:
         """Switch word wrap on every open editor."""
         mode = (
