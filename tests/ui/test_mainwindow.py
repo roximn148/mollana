@@ -508,6 +508,21 @@ def test_iconsLoadFromTheImageFolder(qapp: QApplication, tmp_path: Path) -> None
     recent = window.recentMenu.menuAction()
     assert not recent.icon().isNull()
     assert _iconPixels(recent.icon()) == _iconPixels(icon("document-open-recent.png"))
+    # The changelog claims every menu entry shows an icon: hold it.
+    menus = (
+        window.ui.menuFile,
+        window.ui.menuEdit,
+        window.ui.menuView,
+        window.ui.menuFormat,
+        window.ui.menuHelp,
+    )
+    for menu in menus:
+        for action in menu.actions():
+            if not action.isSeparator():
+                assert not action.icon().isNull(), action.text()
+    # No two actions may be pointed at the same icon file.
+    pixels = [_iconPixels(getattr(window.ui, name).icon()) for name in ICON_FILES]
+    assert len(set(pixels)) == len(pixels)
     window.close()
 
 
