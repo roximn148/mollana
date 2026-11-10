@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as tall as the keyboard's keys.
 - Learned words are saved to the active dictionary every `AutoSaveInterval`
   minutes (default 5) while the app runs, as well as on close.
+- The status bar shows a Spell Check and an Assist Mode label at its right
+  edge. Each label is greyed while that service is off for the active document,
+  and both are greyed while no document is open.
 
 ### Changed
 
@@ -31,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Turning the spell checker off (F5) now applies to documents opened
+  afterwards too; a new document used to come back with spell check on while
+  the Format menu still showed it off.
 - Opening a file is fast again: the dictionary restored at startup is now
   installed in one step instead of rebuilding the lookup index for every
   stored word, which could freeze the first open for seconds.

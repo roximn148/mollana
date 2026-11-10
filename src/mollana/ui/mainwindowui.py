@@ -14,7 +14,15 @@ module only builds the window and names its parts.
 # ******************************************************************************
 from PySide6.QtCore import QObject, QSize, Qt
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QDockWidget, QMainWindow, QMenu, QMenuBar, QStatusBar, QToolBar
+from PySide6.QtWidgets import (
+    QDockWidget,
+    QLabel,
+    QMainWindow,
+    QMenu,
+    QMenuBar,
+    QStatusBar,
+    QToolBar,
+)
 
 from mollana.ui.editor_pane import EditorPane
 from mollana.ui.explorer import FileExplorer
@@ -316,7 +324,24 @@ class MainWindowUi:
 
     # **************************************************************************
     def _buildStatusBar(self, window: QMainWindow) -> None:
-        """Create the status bar the window reports messages through."""
+        """Create the status bar and its right-edge service labels.
+
+        The labels report the active editor's spell-check and assist-mode
+        state. They are permanent widgets, so a transient message on the left
+        never covers them, and they start disabled because no document is
+        open yet.
+        """
         self.statusBar = QStatusBar(window)
         self.statusBar.setObjectName("statusBar")
+
+        self.lblSpellCheck = QLabel("Spell Check", self.statusBar)
+        self.lblSpellCheck.setObjectName("lblSpellCheck")
+        self.lblSpellCheck.setEnabled(False)
+
+        self.lblAssist = QLabel("Assist Mode", self.statusBar)
+        self.lblAssist.setObjectName("lblAssist")
+        self.lblAssist.setEnabled(False)
+
+        self.statusBar.addPermanentWidget(self.lblSpellCheck)
+        self.statusBar.addPermanentWidget(self.lblAssist)
         window.setStatusBar(self.statusBar)

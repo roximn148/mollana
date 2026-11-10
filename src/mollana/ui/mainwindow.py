@@ -115,12 +115,26 @@ class MainWindow(QMainWindow):
         editor = self.ui.tbwEditors.bind(document, text)
         editor.setAddWordHandler(self.openLearnDialog)
         self._loadActiveDictionary(editor)
+        editor.setSpellCheckEnabled(self.ui.actionSpellChecker.isChecked())
         editor.modificationChanged.connect(
             lambda modified, documentId=document.id: self.onDocumentModified(documentId, modified)
         )
+        editor.spellCheckChanged.connect(self.refreshEditorStatus)
+        editor.assistModeChanged.connect(self.refreshEditorStatus)
         self.selectDocument(document)
         self._updateTitle()
         return document
+
+    # **************************************************************************
+    def refreshEditorStatus(self) -> None:
+        """Show the active editor's service state on the status bar.
+
+        Both labels are greyed while no document is open, and each one is
+        greyed when its service is off for the active editor.
+        """
+        editor = self.ui.tbwEditors.activeEditor()
+        self.ui.lblSpellCheck.setEnabled(editor is not None and editor.isSpellCheckEnabled())
+        self.ui.lblAssist.setEnabled(editor is not None and editor.isAssistEnabled())
 
     # **************************************************************************
     def _loadActiveDictionary(self, editor: PyRaya) -> None:
@@ -416,6 +430,7 @@ class MainWindow(QMainWindow):
             marker = "*" if document.dirty else ""
             parts.append(f"{marker}{document.displayName}")
         self.setWindowTitle(" - ".join(parts))
+        self.refreshEditorStatus()
 
     # **************************************************************************
     def _rebuildRecentMenu(self) -> None:

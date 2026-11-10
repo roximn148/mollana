@@ -789,3 +789,110 @@ def test_prefillFailureLeavesTheDockIntact(
 
 
 # ******************************************************************************
+# Status indicators
+# ******************************************************************************
+def test_statusBarCarriesTheServiceLabelsOnTheRight(qapp: QApplication, tmp_path: Path) -> None:
+    """Spell check and assist mode are permanent labels on the status bar."""
+    window = _window(tmp_path)
+    statusBar = window.ui.statusBar
+    spell = window.ui.lblSpellCheck
+    assist = window.ui.lblAssist
+
+    assert spell.objectName() == "lblSpellCheck"
+    assert assist.objectName() == "lblAssist"
+    assert spell.text() == "Spell Check"
+    assert assist.text() == "Assist Mode"
+    assert spell.parent() is statusBar
+    assert assist.parent() is statusBar
+
+    # No document is open, so neither service is live.
+    assert not spell.isEnabled()
+    assert not assist.isEnabled()
+
+    # Permanent widgets stay put when a transient message takes the left side.
+    window.show()
+    qapp.processEvents()
+    statusBar.showMessage("Browsing somewhere", 4000)
+    qapp.processEvents()
+    assert spell.isVisible()
+    assert assist.isVisible()
+    window.close()
+
+
+# ******************************************************************************
+def test_statusLabelsFollowTheActiveEditor(qapp: QApplication, tmp_path: Path) -> None:
+    """An open document lights both labels; each service switch greys its own."""
+    window = _window(tmp_path)
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    assert editor is not None
+    assert window.ui.lblSpellCheck.isEnabled()
+    assert window.ui.lblAssist.isEnabled()
+
+    editor.setSpellCheckEnabled(False)
+    assert not window.ui.lblSpellCheck.isEnabled()
+    assert window.ui.lblAssist.isEnabled()
+
+    editor.setAssistEnabled(False)
+    assert not window.ui.lblSpellCheck.isEnabled()
+    assert not window.ui.lblAssist.isEnabled()
+
+    editor.setSpellCheckEnabled(True)
+    editor.setAssistEnabled(True)
+    assert window.ui.lblSpellCheck.isEnabled()
+    assert window.ui.lblAssist.isEnabled()
+    window.close()
+
+
+# ******************************************************************************
+def test_statusLabelsFollowTheActiveTab(qapp: QApplication, tmp_path: Path) -> None:
+    """The labels describe the active tab, not whichever one changed last."""
+    window = _window(tmp_path)
+    window.onNew()
+    first = window.ui.tbwEditors.activeEditor()
+    window.onNew()
+    second = window.ui.tbwEditors.activeEditor()
+    assert first is not None
+    assert second is not None
+
+    first.setAssistEnabled(False)  # a background tab must not move the labels
+    assert window.ui.lblAssist.isEnabled()
+
+    window.ui.tbwEditors.setCurrentWidget(first)
+    assert not window.ui.lblAssist.isEnabled()
+
+    window.ui.tbwEditors.setCurrentWidget(second)
+    assert window.ui.lblAssist.isEnabled()
+    window.close()
+
+
+# ******************************************************************************
+def test_closingTheLastTabGreysTheStatusLabels(qapp: QApplication, tmp_path: Path) -> None:
+    """With no document left, both services are reported as unavailable."""
+    window = _window(tmp_path)
+    window.onNew()
+    assert window.ui.lblSpellCheck.isEnabled()
+    assert window.ui.lblAssist.isEnabled()
+
+    window.onTabCloseRequested(0)
+    assert not window.ui.lblSpellCheck.isEnabled()
+    assert not window.ui.lblAssist.isEnabled()
+    window.close()
+
+
+# ******************************************************************************
+def test_newDocumentInheritsTheSpellCheckSwitch(qapp: QApplication, tmp_path: Path) -> None:
+    """After F5 off, a new document must not come back spell-checked."""
+    window = _window(tmp_path)
+    window.onNew()
+    window.ui.actionSpellChecker.setChecked(False)
+
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    assert editor is not None
+    assert not editor.isSpellCheckEnabled()
+    assert not window.ui.lblSpellCheck.isEnabled()
+    window.close()
+
+
+# ******************************************************************************
