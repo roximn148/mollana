@@ -1078,10 +1078,12 @@ def test_newDocumentsInheritTheAssistMode(qapp: QApplication, tmp_path: Path) ->
 
 # ******************************************************************************
 def test_statusIconsToggleTheirService(qapp: QApplication, tmp_path: Path) -> None:
-    """Clicking a status icon toggles that service and its menu action."""
+    """Clicking a status icon toggles that service, its action, and its icon."""
     window = _window(tmp_path)
     spell = window.ui.lblSpellCheck
     assist = window.ui.lblAssist
+    spellIcon = icon("tools-check-spelling.png")
+    assistIcon = icon("help-hint.png")
 
     # No document is open: the icons are disabled, so clicks do nothing.
     assert not spell.isEnabled()
@@ -1098,16 +1100,47 @@ def test_statusIconsToggleTheirService(qapp: QApplication, tmp_path: Path) -> No
     _click(spell)
     assert not editor.isSpellCheckEnabled()
     assert not window.ui.actionSpellChecker.isChecked()
+    assert _pixmapPixels(spell.pixmap()) == _pixmapPixels(servicePixmap(spellIcon, False))
 
     _click(spell)
     assert editor.isSpellCheckEnabled()
     assert window.ui.actionSpellChecker.isChecked()
+    assert _pixmapPixels(spell.pixmap()) == _pixmapPixels(servicePixmap(spellIcon, True))
 
     _click(assist)
     assert not editor.isAssistEnabled()
     assert not window.ui.actionAssistMode.isChecked()
+    assert _pixmapPixels(assist.pixmap()) == _pixmapPixels(servicePixmap(assistIcon, False))
 
     _click(assist)
     assert editor.isAssistEnabled()
     assert window.ui.actionAssistMode.isChecked()
+    assert _pixmapPixels(assist.pixmap()) == _pixmapPixels(servicePixmap(assistIcon, True))
+    window.close()
+
+
+# ******************************************************************************
+def test_statusIconClickAppliesToEveryOpenEditor(qapp: QApplication, tmp_path: Path) -> None:
+    """A status-icon click reaches every open editor, not just the active one."""
+    window = _window(tmp_path)
+    window.onNew()
+    first = window.ui.tbwEditors.activeEditor()
+    window.onNew()
+    second = window.ui.tbwEditors.activeEditor()
+    assert first is not None
+    assert second is not None
+
+    window.ui.actionSpellChecker.toggle()
+    window.ui.actionAssistMode.toggle()
+    assert not first.isSpellCheckEnabled()
+    assert not second.isSpellCheckEnabled()
+    assert not first.isAssistEnabled()
+    assert not second.isAssistEnabled()
+
+    window.ui.actionSpellChecker.toggle()
+    window.ui.actionAssistMode.toggle()
+    assert first.isSpellCheckEnabled()
+    assert second.isSpellCheckEnabled()
+    assert first.isAssistEnabled()
+    assert second.isAssistEnabled()
     window.close()
