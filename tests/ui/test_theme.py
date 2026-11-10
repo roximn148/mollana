@@ -60,17 +60,20 @@ def test_iconTakesTheActiveThemeInk(qapp: QApplication) -> None:
 
 # ******************************************************************************
 def test_themeSwitchRecoloursInstalledIcons(qapp: QApplication) -> None:
-    """A palette change recolours an icon already installed, and turns over the key."""
+    """A palette change recolours an icon already installed.
+
+    The engine's key is its serialisation identity, so a theme switch leaves
+    it alone: recoloring happens at render time, from the palette.
+    """
     installed = icon("save-file")
     engine = TintedIconEngine("save-file")
-    keyBefore = engine.key()
     before = bytes(installed.pixmap(QSize(24, 24)).toImage().constBits())
     original = qapp.palette()
     qapp.setPalette(_darkPalette())
     try:
         after = bytes(installed.pixmap(QSize(24, 24)).toImage().constBits())
         assert after != before
-        assert engine.key() != keyBefore
+        assert engine.key() == "save-file"
     finally:
         qapp.setPalette(original)
 

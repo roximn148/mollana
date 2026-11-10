@@ -188,8 +188,7 @@ class TintedIconEngine(QIconEngine):
 
     The ink is read from the application palette at render time, never captured
     at construction, so an icon already installed on an action recolours when
-    the theme changes. The key turns over with the ink, which is what invalidates
-    ``QIcon``'s pixmap cache on a theme switch.
+    the theme changes.
     """
 
     # **************************************************************************
@@ -211,7 +210,13 @@ class TintedIconEngine(QIconEngine):
 
     # **************************************************************************
     def key(self) -> str:
-        return f"{self._name}|{self._ink().name()}|{self._anchor().name()}"
+        """The engine's serialisation identity: the reference name.
+
+        ``QIcon`` writes ``key()`` into a data stream when it serialises an
+        icon; nothing reads it for caching, so it must not change on a theme
+        switch.
+        """
+        return self._name
 
     # **************************************************************************
     def _ink(self) -> QColor:
