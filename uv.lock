@@ -264,7 +264,7 @@ requires-dist = [
     { name = "confz", specifier = ">=2.1.0" },
     { name = "platformdirs", specifier = ">=4.5.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "pyraya", specifier = ">=0.1.0a12" },
+    { name = "pyraya", specifier = ">=0.1.0a13" },
     { name = "pyside6-essentials", specifier = ">=6.12.0" },
     { name = "romanalfaz", specifier = ">=0.1.0a12" },
     { name = "strenum", specifier = ">=0.4.15" },
@@ -439,15 +439,15 @@ wheels = [
 
 [[package]]
 name = "pyraya"
-version = "0.1.0a12"
+version = "0.1.0a13"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyside6-essentials" },
     { name = "romanalfaz" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b9/7a/3837a3e085733bfc549259a5ddc26f175ec9663bf40ba428a2f2cb2654a3/pyraya-0.1.0a12.tar.gz", hash = "sha256:ce89a2327b288c37716af8f0e29790e86f89b07e7e5525ea1ddfb42dd6b14894", size = 117244, upload-time = "2026-11-10T00:18:24.552Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7b/9b/a93c0614fc57bca3970e117a0553693e3aec6d1923baa35bed0d5f42192b/pyraya-0.1.0a13.tar.gz", hash = "sha256:f1c0fd9ae7e688208cce6350555f49837557f7df64154dc83992bd82f8016556", size = 119824, upload-time = "2026-11-10T03:11:06.353Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/33/c4/73ffc19817c1d395a02d0ca9171cad986690f0dd3e8d2330d6fecb253e6f/pyraya-0.1.0a12-py3-none-any.whl", hash = "sha256:636cd2daa287ac5a61cf03cdd9ed1b6a8424f1651bde16202473b3b008f49e18", size = 117066, upload-time = "2026-11-10T00:18:22.913Z" },
+    { url = "https://files.pythonhosted.org/packages/24/34/1611dacde47caaddbb01ccb70b5ae97c78ee7a4960cd7cf135d8e8163aa1/pyraya-0.1.0a13-py3-none-any.whl", hash = "sha256:b622bdaeeaffe26d1b866548a3120ec96f0ba18e709600c09c915c8b442001d3", size = 119626, upload-time = "2026-11-10T03:11:04.775Z" },
 ]
 
 [[package]]
