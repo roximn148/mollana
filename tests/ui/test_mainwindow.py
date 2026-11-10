@@ -996,7 +996,7 @@ def test_statusIconsFollowTheActiveEditor(qapp: QApplication, tmp_path: Path) ->
 
 # ******************************************************************************
 def test_statusIconsFollowTheActiveTab(qapp: QApplication, tmp_path: Path) -> None:
-    """The labels describe the active tab, not whichever one changed last."""
+    """The icons reflect the active tab, not whichever one changed last."""
     window = _window(tmp_path)
     window.onNew()
     first = window.ui.tbwEditors.activeEditor()
@@ -1006,7 +1006,7 @@ def test_statusIconsFollowTheActiveTab(qapp: QApplication, tmp_path: Path) -> No
     assert second is not None
     assistIcon = icon("globe.png")
 
-    first.setAssistEnabled(False)  # a background tab must not move the labels
+    first.setAssistEnabled(False)  # a background tab must not move the icons
     assert window.ui.lblAssist.isEnabled()
     assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
         servicePixmap(assistIcon, True)
