@@ -21,7 +21,7 @@ panel, the F2 toggle and the window title.
 # ******************************************************************************
 from pyraya import AddWordDialog, ArabicScriptWordChars, PyRaya, wordRuns
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtGui import QAction, QFont, QKeySequence
 from PySide6.QtWidgets import (
     QDialogButtonBox,
     QLabel,
@@ -31,7 +31,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from mollana.ui.fonts import editorFont
 from mollana.ui.keyboard import METRICS, Density, UrduKeyboardPanel
 
 
@@ -88,6 +87,7 @@ class LearnWordDialog(AddWordDialog):
     # **************************************************************************
     def __init__(
         self,
+        font: QFont,
         prefill: str = "",
         hint: str = "",
         parent: QWidget | None = None,
@@ -97,6 +97,8 @@ class LearnWordDialog(AddWordDialog):
         """Build the dialog around ``keyboard``.
 
         Args:
+            font: The editor's typeface, so the field and the roman preview
+                match the document.
             prefill: The Arabic word pre-filled into the field; empty for
                 none.
             hint: The roman text shown while the field is empty.
@@ -113,10 +115,10 @@ class LearnWordDialog(AddWordDialog):
         # The word and its roman preview speak with the editor's typeface.
         field = self.findChild(QLineEdit)
         assert field is not None
-        field.setFont(editorFont())
+        field.setFont(font)
         preview = self.findChild(QLabel)
         assert preview is not None
-        preview.setFont(editorFont())
+        preview.setFont(font)
         preview.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         preview.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred

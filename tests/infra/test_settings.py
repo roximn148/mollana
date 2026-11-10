@@ -12,6 +12,7 @@ from pathlib import Path
 
 from mollana.infra.settings import (
     CONFIG_FILENAME,
+    AppearancesConfig,
     LogLevels,
     MainConfig,
     RSettings,
@@ -26,6 +27,7 @@ from mollana.infra.settings import (
 def test_createdDocumentCarriesEveryField() -> None:
     tdoc = _createConfigToml()
     assert set(tdoc["Main"].keys()) == set(MainConfig.model_fields)
+    assert set(tdoc["Appearances"].keys()) == set(AppearancesConfig.model_fields)
     assert 'ProjectBaseDirectory = "."' in tdoc.as_string()
 
 
@@ -119,6 +121,45 @@ def test_saveRecreatesADeletedFile(tmp_path: Path) -> None:
 
     assert source.tomlFile.is_file()
     assert "Main" in tomllib.loads(source.tomlFile.read_text(encoding="utf-8"))
+
+
+# ******************************************************************************
+def test_loaderResetsAnInvalidAppearancesValue(tmp_path: Path) -> None:
+    source = TomlSource(tomlFile=tmp_path / CONFIG_FILENAME)
+    source.tomlFile.write_text('[Appearances]\nFontSize = "big"\n', encoding="utf-8")
+    config: dict = {}
+
+    TomlLoader.populate_config(config, source)
+
+    assert config["Appearances"].FontSize == 0.0
+    assert config["Appearances"].FontFamily == ""
+
+
+# ******************************************************************************
+def test_settingsLoadTheAppearancesValues(tmp_path: Path) -> None:
+    source = TomlSource(tomlFile=tmp_path / CONFIG_FILENAME)
+    source.tomlFile.write_text(
+        '[Appearances]\nFontFamily = "Noto Naskh Arabic"\nFontSize = 18.0\n',
+        encoding="utf-8",
+    )
+    with RSettings.change_config_sources(source):
+        settings = RSettings()
+        assert settings.Appearances.FontFamily == "Noto Naskh Arabic"
+        assert settings.Appearances.FontSize == 18.0
+
+
+# ******************************************************************************
+def test_saveWritesTheAppearancesValues(tmp_path: Path) -> None:
+    source = TomlSource(tomlFile=tmp_path / CONFIG_FILENAME)
+    with RSettings.change_config_sources(source):
+        settings = RSettings()
+        settings.Appearances.FontFamily = "Noto Naskh Arabic"
+        settings.Appearances.FontSize = 16.0
+        settings.save()
+
+    data = tomllib.loads(source.tomlFile.read_text(encoding="utf-8"))
+    assert data["Appearances"]["FontFamily"] == "Noto Naskh Arabic"
+    assert data["Appearances"]["FontSize"] == 16.0
 
 
 # ******************************************************************************

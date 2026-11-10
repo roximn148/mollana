@@ -50,10 +50,20 @@ class StubMain:
 
 # ******************************************************************************
 @dataclass
+class StubAppearances:
+    """The subset of ``AppearancesConfig`` the window reads."""
+
+    FontFamily: str = ""
+    FontSize: float = 0.0
+
+
+# ******************************************************************************
+@dataclass
 class StubSettings:
     """Stand-in for ``RSettings`` so tests never touch the user's preferences."""
 
     Main: StubMain = field(default_factory=StubMain)
+    Appearances: StubAppearances = field(default_factory=StubAppearances)
     saved: bool = False
 
     def save(self) -> None:
@@ -224,8 +234,14 @@ class StubMain:
     AutoSaveInterval = 5
 
 
+class StubAppearances:
+    FontFamily = ""
+    FontSize = 0.0
+
+
 class StubSettings:
     Main = StubMain()
+    Appearances = StubAppearances()
 
     def save(self):
         pass
@@ -790,6 +806,7 @@ def test_learnDialogBorrowsTheDockKeyboard(
     class StubDialog:
         def __init__(
             self,
+            font=None,
             prefill: str = "",
             hint: str = "",
             parent=None,
@@ -840,6 +857,7 @@ def test_learnDialogKeepsAClosedDockClosed(
     class StubDialog:
         def __init__(
             self,
+            font=None,
             prefill: str = "",
             hint: str = "",
             parent=None,

@@ -8,6 +8,7 @@
 
 # ******************************************************************************
 from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtGui import QFont
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QAbstractButton,
@@ -20,19 +21,29 @@ from PySide6.QtWidgets import (
     QSizePolicy,
 )
 
-from mollana.ui.fonts import editorFont
+from mollana.infra.settings import AppearancesConfig
+from mollana.ui.fonts import editorFont, resolveTypeface
 from mollana.ui.keyboard import METRICS, Density, UrduKeyboardPanel
 from mollana.ui.learn_dialog import LearnWordDialog, prefillFor
 
 
 # ******************************************************************************
 def _dialog(
-    prefill: str = "", hint: str = "slam", keyboardVisible: bool = True
+    prefill: str = "",
+    hint: str = "slam",
+    keyboardVisible: bool = True,
+    font: QFont | None = None,
 ) -> tuple[LearnWordDialog, UrduKeyboardPanel]:
     """A dialog borrowing a standalone panel, as the window hands it one."""
     panel = UrduKeyboardPanel()
+    if font is None:
+        font = editorFont(*resolveTypeface(AppearancesConfig()))
     return LearnWordDialog(
-        prefill, hint=hint, keyboard=panel, keyboardVisible=keyboardVisible
+        font,
+        prefill=prefill,
+        hint=hint,
+        keyboard=panel,
+        keyboardVisible=keyboardVisible,
     ), panel
 
 
@@ -48,13 +59,13 @@ def _okButton(dialog: LearnWordDialog) -> QAbstractButton:
 
 # ******************************************************************************
 def test_dialogTypefaceMatchesTheEditor(qapp: QApplication) -> None:
-    """The word field and the roman preview use PyRaya's typeface."""
-    dialog, _panel = _dialog("سلام")
+    """The word field and the roman preview use the window's editor typeface."""
+    expected = editorFont(*resolveTypeface(AppearancesConfig()))
+    dialog, _panel = _dialog("سلام", font=expected)
     field = dialog.findChild(QLineEdit)
     preview = dialog.findChild(QLabel)
     assert field is not None and preview is not None
 
-    expected = editorFont()
     for widget in (field, preview):
         assert widget.font().families() == expected.families()
         assert widget.font().pointSizeF() == expected.pointSizeF()

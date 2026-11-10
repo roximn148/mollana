@@ -80,6 +80,23 @@ class MainConfig(BaseModel):
 
 
 # ******************************************************************************
+class AppearancesConfig(BaseModel):
+    """Editor appearance options, persisted in the ``[Appearances]`` table."""
+
+    FontFamily: str = Field(
+        default="",
+        description=(
+            "Editor typeface family; empty for the recommended font "
+            "(Baloo Bhaijaan 2, then the Naskh and Nastaliq Noto families)"
+        ),
+    )
+    FontSize: float = Field(
+        default=0.0,
+        description="Editor point size; zero for the recommended size (14 pt)",
+    )
+
+
+# ******************************************************************************
 CONFIG_FILENAME: str = "preferences.toml"
 """Filename of the configurations file."""
 
@@ -96,6 +113,17 @@ def _defaultMainTable() -> Table:
 
 
 # ******************************************************************************
+def _defaultAppearancesTable() -> Table:
+    """Build an ``[Appearances]`` table holding every field's commented default."""
+    appearances = tomlkit.table()
+    for fieldName, fieldInfo in AppearancesConfig.model_fields.items():
+        appearances.add(tomlkit.comment(fieldInfo.description or ""))
+        appearances.add(fieldName, fieldInfo.get_default(call_default_factory=True))
+        appearances.add(tomlkit.nl())
+    return appearances
+
+
+# ******************************************************************************
 def _createConfigToml() -> tomlkit.TOMLDocument:
     """Create a preference document populated with defaults."""
     tdoc = tomlkit.TOMLDocument()
@@ -106,6 +134,7 @@ def _createConfigToml() -> tomlkit.TOMLDocument:
     tdoc.add(tomlkit.comment(f"Application version: {Rx.ApplicationVersion!s}"))
     tdoc.add(tomlkit.nl())
     tdoc["Main"] = _defaultMainTable()
+    tdoc["Appearances"] = _defaultAppearancesTable()
     tdoc.add(separator)
 
     return tdoc
@@ -117,6 +146,14 @@ def _mainTable(tdoc: tomlkit.TOMLDocument) -> dict[str, Any]:
     if "Main" not in tdoc:
         tdoc["Main"] = _defaultMainTable()
     return cast(dict[str, Any], tdoc["Main"])
+
+
+# ******************************************************************************
+def _appearancesTable(tdoc: tomlkit.TOMLDocument) -> dict[str, Any]:
+    """Return ``tdoc``'s ``[Appearances]`` table, creating it when absent."""
+    if "Appearances" not in tdoc:
+        tdoc["Appearances"] = _defaultAppearancesTable()
+    return cast(dict[str, Any], tdoc["Appearances"])
 
 
 # ******************************************************************************
@@ -159,7 +196,19 @@ class TomlLoader(Loader):
         except ValidationError as error:
             mainConfig = cls._repairMainSection(mainTable, error, log)
 
-        configUpdate: dict[str, Any] = {"Main": mainConfig}
+        if "Appearances" not in tdoc:
+            log.warning('"Appearances" section missing from config TOML')
+        appearancesTable = _appearancesTable(tdoc)
+
+        try:
+            appearancesConfig = AppearancesConfig.model_validate(appearancesTable)
+        except ValidationError as error:
+            appearancesConfig = cls._repairAppearancesSection(appearancesTable, error, log)
+
+        configUpdate: dict[str, Any] = {
+            "Main": mainConfig,
+            "Appearances": appearancesConfig,
+        }
         cls.update_dict_recursively(config, configUpdate)
 
     # **************************************************************************
@@ -197,6 +246,25 @@ class TomlLoader(Loader):
 
         return MainConfig.model_validate(mainTable)
 
+    # **************************************************************************
+    @classmethod
+    def _repairAppearancesSection(
+        cls, appearancesTable: dict[str, Any], error: ValidationError, log: logging.Logger
+    ) -> AppearancesConfig:
+        """Reset invalid values to their defaults, and validate again."""
+        log.warning(f'{error.error_count()} error(s) found in preferences "Appearances" section')
+
+        for detail in error.errors():
+            location = detail["loc"]
+            field = str(location[0]) if location else ""
+            log.warning(f'{field}="{detail["input"]}": {detail["msg"]}')
+            if field in AppearancesConfig.model_fields:
+                log.debug(f'Resetting {field}="{detail["input"]}" to default')
+                fieldInfo = AppearancesConfig.model_fields[field]
+                appearancesTable[field] = fieldInfo.get_default(call_default_factory=True)
+
+        return AppearancesConfig.model_validate(appearancesTable)
+
 
 # ******************************************************************************
 register_loader(TomlSource, TomlLoader)
@@ -219,6 +287,7 @@ class RSettings(BaseConfig):
     """Application preferences, loaded from ``preferences.toml``."""
 
     Main: MainConfig = Field(default_factory=MainConfig)
+    Appearances: AppearancesConfig = Field(default_factory=AppearancesConfig)
 
     CONFIG_SOURCES = TomlSource(tomlFile=paths.configDir() / CONFIG_FILENAME)
 
@@ -260,6 +329,10 @@ class RSettings(BaseConfig):
         mainTable = _mainTable(tdoc)
         for fieldName in MainConfig.model_fields:
             mainTable[fieldName] = getattr(self.Main, fieldName)
+
+        appearancesTable = _appearancesTable(tdoc)
+        for fieldName in AppearancesConfig.model_fields:
+            appearancesTable[fieldName] = getattr(self.Appearances, fieldName)
 
         filePath.parent.mkdir(parents=True, exist_ok=True)
         filePath.write_text(tomlkit.dumps(tdoc), encoding="utf-8")

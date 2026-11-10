@@ -27,6 +27,7 @@ from mollana.editor.session import Session
 from mollana.infra.logging import getLogger
 from mollana.infra.meta import Rx
 from mollana.infra.settings import RSettings
+from mollana.ui.fonts import editorFont, resolveTypeface
 from mollana.ui.learn_dialog import LearnWordDialog, prefillFor
 from mollana.ui.mainwindowui import MainWindowUi, servicePixmap
 from mollana.ui.theme import icon
@@ -57,6 +58,10 @@ class MainWindow(QMainWindow):
         self.store = store
         self.settings = settings
         self.log = getLogger("ui")
+        self._editorTypeface = resolveTypeface(self.settings.Appearances)
+        self.log.debug(
+            f"Editor typeface: {self._editorTypeface[0]!r} at {self._editorTypeface[1]}pt"
+        )
         self._dictionaryLoaded = False
         self._savedDictionaryWords: dict[str, int] = {}
         self.autoSaveTimer = QTimer(self)
@@ -119,6 +124,8 @@ class MainWindow(QMainWindow):
         """Add ``document`` to the session and open its tab."""
         self.session.add(document)
         editor = self.ui.tbwEditors.bind(document, text)
+        editor.setFontFamily(self._editorTypeface[0])
+        editor.setFontSize(self._editorTypeface[1])
         editor.setAddWordHandler(self.openLearnDialog)
         self._loadActiveDictionary(editor)
         editor.setSpellCheckEnabled(self.ui.actionSpellChecker.isChecked())
@@ -192,7 +199,8 @@ class MainWindow(QMainWindow):
         dialog: LearnWordDialog | None = None
         try:
             dialog = LearnWordDialog(
-                prefill,
+                editorFont(*self._editorTypeface),
+                prefill=prefill,
                 hint=trigger,
                 parent=self,
                 keyboard=panel,

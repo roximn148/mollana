@@ -33,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   while no document is open.
 - The Format menu has an Assist Mode entry (F6) that shows roman hints under
   the word being edited, checked by default.
+- The editor's typeface is now configurable in `preferences.toml`: the
+  `[Appearances]` section's `FontFamily` takes any installed font family
+  (empty uses the recommended font) and `FontSize` any point size (zero uses
+  the recommended size); the choice applies to every document.
 
 ### Changed
 
