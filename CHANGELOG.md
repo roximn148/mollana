@@ -29,14 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   while no document is open.
 - The Format menu has an Assist Mode entry (F6) that shows roman hints under
   the word being edited, checked by default.
-- The spell checker and assist mode entries in the Format menu now show the
-  same icons as their status bar indicators.
 
 ### Changed
 
 - The file explorer is now a dock panel that can sit on the left or right edge,
   be closed, and be reopened from the new View menu; the document tabs fill the
   central area.
+- The spell checker and assist mode entries in the Format menu now show the
+  same icons as their status bar indicators.
 
 ### Fixed
 
