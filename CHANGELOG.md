@@ -56,6 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   theme is drawn by the same style: the whole window follows the theme chosen
   in `preferences.toml`, including the on-screen keyboard and the tooltips,
   instead of inheriting the Windows look.
+- The editor's text, region tint, spell-check underline, and suggestion list
+  now follow the active theme, so the Dark and HighContrast themes render the
+  document with their own colours instead of the fixed light palette.
 
 ### Fixed
 
