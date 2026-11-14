@@ -47,6 +47,8 @@ __all__ = ["FindWidget", "findMatches"]
 
 MARGIN: int = 8
 RADIUS: int = 6
+WIDEST_COUNT: str = "9999/9999"
+"""The widest count text, sizing the count label's pinned width."""
 
 
 # ******************************************************************************
@@ -95,6 +97,7 @@ class FindWidget(QWidget):
         self.editor = editor
         self._matches: list[tuple[int, int]] = []
         self._current: int = -1
+        self._assist: bool | None = None
         self.setAutoFillBackground(False)
 
         self.findField = QLineEdit(self)
@@ -131,6 +134,13 @@ class FindWidget(QWidget):
             self.replaceAllButton,
         ):
             widget.setFont(appFont)
+
+        # The count sits at the bar's widest four-digit count, so the layout
+        # never reflows and the find field keeps its size.
+        sample = self.countLabel.text()
+        self.countLabel.setText(WIDEST_COUNT)
+        self.countLabel.setMinimumWidth(self.countLabel.sizeHint().width())
+        self.countLabel.setText(sample)
         replaceLayout = QHBoxLayout(self.replaceRow)
         replaceLayout.setContentsMargins(0, 0, 0, 0)
         replaceLayout.addWidget(self.replaceField)
@@ -183,7 +193,16 @@ class FindWidget(QWidget):
         self.raise_()
 
     def openFind(self) -> None:
-        """Show the find row and focus the find field."""
+        """Show the find row, focus the find field, and pause assist.
+
+        Assist stays off for as long as the bar is open — the roman
+        overlay must not take the focus while the fields are being
+        edited — and closeWidget restores the state it had before the
+        bar opened.
+        """
+        if self.isHidden():
+            self._assist = self.editor.isAssistEnabled()
+            self.editor.setAssistEnabled(False)
         self.show()
         self._reposition()
         self._rescan()
@@ -197,6 +216,9 @@ class FindWidget(QWidget):
     def closeWidget(self) -> None:
         """Hide the bar, clear the highlights, and return focus."""
         self.editor.setExtraSelections([])
+        if self._assist is not None:
+            self.editor.setAssistEnabled(self._assist)
+            self._assist = None
         self.hide()
         self.editor.setFocus()
         self.closed.emit()
@@ -259,13 +281,13 @@ class FindWidget(QWidget):
         self.editor.setTextCursor(cursor)
 
     def _updateCountLabel(self) -> None:
-        """'' for an empty query, 'No matches' for zero, 'N of M' otherwise."""
+        """'' for an empty query, '0/0' for zero, 'current/total' otherwise."""
         if not self.findField.text():
             self.countLabel.setText("")
         elif not self._matches:
-            self.countLabel.setText("No matches")
+            self.countLabel.setText("0/0")
         else:
-            self.countLabel.setText(f"{self._current + 1} of {len(self._matches)}")
+            self.countLabel.setText(f"{self._current + 1}/{len(self._matches)}")
 
     def _applyHighlights(self) -> None:
         """Highlight every match; the current one at full strength.
@@ -332,8 +354,10 @@ class FindWidget(QWidget):
                 cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
                 cursor.insertText(self.replaceField.text())
         finally:
-            self.editor.setAssistEnabled(assist)
+            # Roman input's re-enable resets assist to on, so assist is
+            # restored last — it always gets the final word.
             self.editor.setRomanInputEnabled(roman)
+            self.editor.setAssistEnabled(assist)
         self._rescan()
         self.editor.setExtraSelections([])
         return count

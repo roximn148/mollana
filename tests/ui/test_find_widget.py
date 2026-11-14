@@ -94,7 +94,7 @@ def test_findNavigationSelectsMatchesWithWrap(qapp: QApplication) -> None:
     widget.openFind()
     qapp.processEvents()
 
-    assert widget.countLabel.text() == "1 of 2"
+    assert widget.countLabel.text() == "1/2"
     # first match selected by default
     assert (
         editor.toPlainText()[
@@ -105,14 +105,14 @@ def test_findNavigationSelectsMatchesWithWrap(qapp: QApplication) -> None:
 
     widget.findNext()
     assert editor.textCursor().selectionStart() == 8
-    assert widget.countLabel.text() == "2 of 2"
+    assert widget.countLabel.text() == "2/2"
     widget.findNext()  # wraps to the first match
     assert editor.textCursor().selectionStart() == 0
     widget.findPrev()
     assert editor.textCursor().selectionStart() == 8
 
     widget.findField.setText("nope")
-    assert widget.countLabel.text() == "No matches"
+    assert widget.countLabel.text() == "0/0"
     widget.findField.setText("")
     assert widget.countLabel.text() == ""
 
@@ -140,7 +140,7 @@ def test_highlightsGoStaleOnDocumentEdits(qapp: QApplication) -> None:
     cursor = editor.textCursor()
     cursor.insertText("x")  # replaces the selected "abc" -> "x def"
     editor.setTextCursor(cursor)
-    assert widget.countLabel.text() == "1 of 1"  # stale: the text now has "x def"
+    assert widget.countLabel.text() == "1/1"  # stale: the text now has "x def"
     assert len(editor.extraSelections()) == 1  # stale: the span no longer matches
 
 
@@ -157,7 +157,7 @@ def test_replaceCurrentAdvancesToNext(qapp: QApplication) -> None:
     widget.replaceCurrent()
     assert editor.toPlainText() == "xyz def abc"
     assert editor.textCursor().selectionStart() == 8  # advanced to the next match
-    assert widget.countLabel.text() == "1 of 1"
+    assert widget.countLabel.text() == "1/1"
 
 
 def test_replaceAllReplacesEveryMatch(qapp: QApplication) -> None:
@@ -172,14 +172,16 @@ def test_replaceAllReplacesEveryMatch(qapp: QApplication) -> None:
 
     assert widget.replaceAll() == 3
     assert editor.toPlainText() == "xyz xyz xyz"
-    assert editor.isAssistEnabled()  # flags restored
-    assert editor.isRomanInputEnabled()
+    assert editor.isRomanInputEnabled()  # roman input restored
+    assert not editor.isAssistEnabled()  # paused: the bar is still open
     assert len(editor.extraSelections()) == 0
     # PySide6 6.12.0 exposes no undo-group API: one undo step per replacement
     editor.undo()
     editor.undo()
     editor.undo()
     assert editor.toPlainText() == "abc abc abc"
+    widget.closeWidget()
+    assert editor.isAssistEnabled()  # resumed when the bar closes
 
 
 def test_replaceAllWithZeroMatchesEditsNothing(qapp: QApplication) -> None:
@@ -317,3 +319,52 @@ def test_findWidgetFontsAreTheAppFont(qapp: QApplication) -> None:
     # the line edits keep the editor's typeface by inheritance
     assert widget.findField.font() == editor.font()
     assert widget.replaceField.font() == editor.font()
+
+
+def test_findWidgetSilencesAssistWhileOpen(qapp: QApplication) -> None:
+    """Assist pauses while the bar is open and resumes when it closes."""
+    editor = PyRaya()
+    editor.show()
+    editor.setAssistEnabled(True)
+    widget = FindWidget(editor)
+
+    widget.openFind()
+    assert not editor.isAssistEnabled()
+    widget.openFind()  # already open: the pre-open state is not overwritten
+    widget.closeWidget()
+    assert editor.isAssistEnabled()
+
+    editor.setAssistEnabled(False)
+    widget.openFind()
+    widget.closeWidget()
+    assert not editor.isAssistEnabled()  # off before open stays off
+
+
+def test_countLabelKeepsAFourDigitWidth(qapp: QApplication) -> None:
+    """The count sits at the widest ####/#### width; the find field never shrinks."""
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc abc abc")
+    widget = FindWidget(editor)
+    widget.openFind()
+    qapp.processEvents()
+
+    pinned = widget.countLabel.minimumWidth()
+    assert pinned > 0
+    fieldWidth = widget.findField.width()
+
+    widget.findField.setText("abc")
+    qapp.processEvents()
+    assert widget.countLabel.text() == "1/3"
+    assert widget.countLabel.minimumWidth() == pinned
+    # the widest possible count still fits inside the pinned width
+    widget.countLabel.setText("9999/9999")
+    assert widget.countLabel.sizeHint().width() <= pinned
+
+    widget.findField.setText("nope")
+    qapp.processEvents()
+    assert widget.countLabel.text() == "0/0"
+
+    widget.findField.setText("")
+    qapp.processEvents()
+    assert widget.findField.width() == fieldWidth  # the search field keeps its size

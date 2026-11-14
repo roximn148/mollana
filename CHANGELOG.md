@@ -63,11 +63,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The editor's text, region tint, spell-check underline, and suggestion list
   now follow the active theme, so the Dark and HighContrast themes render the
   document with their own colours instead of the fixed light palette.
+- Assist mode pauses while the find bar is open and resumes when it closes.
 
 ### Fixed
 
 - The on-screen keyboard types into the find bar's fields in place, rather
   than into the document behind them, while a find field holds focus.
+- The search field keeps its width: the find bar shows its match count as
+  current/total (0/0 with no matches) at a pinned four-digit width instead
+  of reflowing the bar with every count.
 - Turning the spell checker off (F5) now applies to documents opened
   afterwards too; a new document used to come back with spell check on while
   the Format menu still showed it off.
