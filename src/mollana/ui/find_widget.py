@@ -262,9 +262,12 @@ class FindWidget(QWidget):
         selections = []
         for index, (start, end) in enumerate(self._matches):
             selection = QTextEdit.ExtraSelection()
-            cursor: QTextCursor = cast(QTextCursor, selection.cursor)
+            cursor = self.editor.textCursor()
             cursor.setPosition(start)
             cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+            # The binding stubs ExtraSelection.cursor as EllipsisType, so pyrefly
+            # rejects plain assignment; setattr keeps it clean with no suppression.
+            setattr(selection, "cursor", cursor)  # noqa: B010
             charFormat: QTextCharFormat = cast(QTextCharFormat, selection.format)
             charFormat.setBackground(highlight if index == self._current else dimmed)
             selections.append(selection)
