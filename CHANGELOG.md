@@ -10,7 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Find and replace: a find widget over the active editor (Ctrl+F, Ctrl+H) with
-  match count, case and whole-word toggles, replace, and replace-all.
+  match count, case and whole-word toggles, replace, and replace-all. The bar
+  has rounded corners, a reddish close button, and its controls use the
+  interface font, while its fields keep the editor's typeface.
 - Edit and Format toolbars above the document, mirroring their menus: the
   Edit toolbar carries Undo, Redo, Cut, Copy, Paste, and Select All; the
   Format toolbar carries Word Wrap, Spell Checker, and Assist Mode, whose

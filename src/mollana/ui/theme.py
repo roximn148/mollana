@@ -40,6 +40,9 @@ from mollana.infra.settings import Themes
 # accessor rather than passing through the icon catalogue.
 BRAND_IMAGE: str = "mollana64.png"
 
+# The close glyph's muted red: fixed across themes, not drawn from the ink.
+CLOSE_INK: QColor = QColor(0xC0, 0x39, 0x2B)
+
 # Kebab-case reference name -> Phosphor SVG stem, in ``imagesDir()``.
 ICON_CATALOGUE: dict[str, str] = {
     "new-file": "file-plus",
@@ -196,13 +199,14 @@ class TintedIconEngine(QIconEngine):
     """
 
     # **************************************************************************
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, ink: QColor | None = None) -> None:
         super().__init__()
         self._name = name
+        self._ink_override = ink
 
     # **************************************************************************
     def clone(self) -> QIconEngine:
-        return TintedIconEngine(self._name)
+        return TintedIconEngine(self._name, self._ink_override)
 
     # **************************************************************************
     def isNull(self) -> bool:
@@ -224,7 +228,14 @@ class TintedIconEngine(QIconEngine):
 
     # **************************************************************************
     def _ink(self) -> QColor:
-        """The active theme's text colour, read from the application palette."""
+        """The active theme's text colour, or the fixed ink when tinting one.
+
+        A fixed ink overrides the palette for this icon only, so a glyph
+        can carry a colour of its own (the close button's muted red)
+        without touching the theme's ink.
+        """
+        if self._ink_override is not None:
+            return self._ink_override
         return _application().palette().color(QPalette.ColorRole.WindowText)
 
     # **************************************************************************
@@ -253,17 +264,18 @@ class TintedIconEngine(QIconEngine):
 
 
 # ******************************************************************************
-def icon(name: str) -> QIcon:
+def icon(name: str, ink: QColor | None = None) -> QIcon:
     """Return the theme-tinted icon for the kebab reference ``name``.
 
     An unknown reference returns a null ``QIcon`` and logs a warning, rather
-    than a wrong glyph.
+    than a wrong glyph. When ``ink`` is given it overrides the theme's ink
+    for this icon only.
     """
     stem = ICON_CATALOGUE.get(name)
     if stem is None:
         getLogger("ui").warning("unknown icon reference: %s", name)
         return QIcon()
-    return QIcon(TintedIconEngine(name))
+    return QIcon(TintedIconEngine(name, ink))
 
 
 # ******************************************************************************

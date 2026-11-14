@@ -8,12 +8,14 @@
 
 # ******************************************************************************
 from pyraya import PyRaya
-from PySide6.QtGui import QTextDocument
+from PySide6.QtCore import QSize
+from PySide6.QtGui import QPalette, QTextDocument
 from PySide6.QtWidgets import QApplication
 
 from mollana.editor.document import Document
 from mollana.ui.editor_pane import EditorPane
 from mollana.ui.find_widget import FindWidget, findMatches
+from mollana.ui.theme import CLOSE_INK
 
 
 # ******************************************************************************
@@ -252,3 +254,66 @@ def test_highlightsStoreCorrectSpans(qapp: QApplication) -> None:
         for s in editor.extraSelections()
     ]
     assert spans == [(0, 3), (8, 11)]
+
+
+def test_findWidgetDrawsARoundedBorder(qapp: QApplication) -> None:
+    """The bar paints a rounded rect: the corners stay clear, the fill inside."""
+    editor = PyRaya()
+    editor.show()
+    editor.resize(500, 300)
+    widget = FindWidget(editor)
+    widget.resize(300, 100)
+    widget.show()
+    qapp.processEvents()
+
+    assert not widget.autoFillBackground()  # the corners stay transparent
+    image = editor.grab().toImage()
+    pos = widget.pos()
+    base = editor.palette().color(QPalette.ColorRole.Base)
+    # the corners outside the rounded rect stay clear: the editor shows through
+    assert image.pixelColor(pos.x(), pos.y()) == base
+    assert image.pixelColor(pos.x() + 1, pos.y() + 1) == base  # the arc cuts the corner
+    fill = widget.palette().color(QPalette.ColorRole.Window)
+    assert image.pixelColor(pos.x() + 5, pos.y() + 5) == fill  # the arc fills this close in
+    assert image.pixelColor(pos.x() + 2, pos.y() + 50) == fill  # the edge just inside the stroke
+
+
+def test_closeButtonCarriesTheFixedInk(qapp: QApplication) -> None:
+    """The close glyph carries CLOSE_INK, not the active theme's ink."""
+    editor = PyRaya()
+    widget = FindWidget(editor)
+    image = widget.closeButton.icon().pixmap(QSize(48, 48)).toImage()
+    opaque = [
+        image.pixelColor(x, y)
+        for y in range(image.height())
+        for x in range(image.width())
+        if image.pixelColor(x, y).alpha() == 255
+    ]
+    assert opaque
+    assert all(colour == CLOSE_INK for colour in opaque)
+
+
+def test_findWidgetFontsAreTheAppFont(qapp: QApplication) -> None:
+    """Only the line edits keep the editor's typeface; the rest take the app font."""
+    editor = PyRaya()
+    editor.show()
+    # PyRaya always carries its own typeface, set in its constructor
+    assert editor.font() != QApplication.font()
+    widget = FindWidget(editor)
+
+    appFont = QApplication.font()
+    for control in (
+        widget.caseToggle,
+        widget.wordToggle,
+        widget.countLabel,
+        widget.prevButton,
+        widget.nextButton,
+        widget.replaceToggle,
+        widget.closeButton,
+        widget.replaceButton,
+        widget.replaceAllButton,
+    ):
+        assert control.font() == appFont
+    # the line edits keep the editor's typeface by inheritance
+    assert widget.findField.font() == editor.font()
+    assert widget.replaceField.font() == editor.font()

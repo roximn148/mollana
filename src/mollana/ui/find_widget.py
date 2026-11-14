@@ -15,17 +15,21 @@ the editor's own cursor.
 from typing import cast
 
 from pyraya import PyRaya
-from PySide6.QtCore import QEvent, QObject, Qt, Signal
+from PySide6.QtCore import QEvent, QObject, QRectF, Qt, Signal
 from PySide6.QtGui import (
     QColor,
     QKeyEvent,
+    QPainter,
+    QPaintEvent,
     QPalette,
+    QPen,
     QShowEvent,
     QTextCharFormat,
     QTextCursor,
     QTextDocument,
 )
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
     QHBoxLayout,
     QLabel,
@@ -37,11 +41,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from mollana.ui.theme import icon
+from mollana.ui.theme import CLOSE_INK, icon
 
 __all__ = ["FindWidget", "findMatches"]
 
 MARGIN: int = 8
+RADIUS: int = 6
 
 
 # ******************************************************************************
@@ -90,7 +95,7 @@ class FindWidget(QWidget):
         self.editor = editor
         self._matches: list[tuple[int, int]] = []
         self._current: int = -1
-        self.setAutoFillBackground(True)
+        self.setAutoFillBackground(False)
 
         self.findField = QLineEdit(self)
         self.caseToggle = QCheckBox("Aa", self)
@@ -103,13 +108,29 @@ class FindWidget(QWidget):
         self.replaceToggle = QToolButton(self)
         self.replaceToggle.setCheckable(True)
         self.closeButton = QToolButton(self)
-        self.closeButton.setIcon(icon("close-tab"))
+        self.closeButton.setIcon(icon("close-tab", ink=CLOSE_INK))
 
         self.replaceRow = QWidget(self)
         self.replaceRow.hide()
         self.replaceField = QLineEdit(self.replaceRow)
         self.replaceButton = QPushButton("Replace", self.replaceRow)
         self.replaceAllButton = QPushButton("Replace All", self.replaceRow)
+
+        # The line edits keep the editor's typeface by inheritance; the rest
+        # of the bar takes the application's interface font.
+        appFont = QApplication.font()
+        for widget in (
+            self.caseToggle,
+            self.wordToggle,
+            self.countLabel,
+            self.prevButton,
+            self.nextButton,
+            self.replaceToggle,
+            self.closeButton,
+            self.replaceButton,
+            self.replaceAllButton,
+        ):
+            widget.setFont(appFont)
         replaceLayout = QHBoxLayout(self.replaceRow)
         replaceLayout.setContentsMargins(0, 0, 0, 0)
         replaceLayout.addWidget(self.replaceField)
@@ -328,3 +349,17 @@ class FindWidget(QWidget):
         """Re-anchor whenever the bar is shown."""
         super().showEvent(event)
         self._reposition()
+
+    def paintEvent(self, event: QPaintEvent) -> None:
+        """Draw the rounded border: a window fill and a 1px palette stroke.
+
+        The bar's background is left unfilled, so the corners outside the
+        rounded rect stay transparent over the editor.
+        """
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(QPen(self.palette().color(QPalette.ColorRole.Mid), 1))
+        painter.setBrush(self.palette().color(QPalette.ColorRole.Window))
+        painter.drawRoundedRect(QRectF(self.rect()).adjusted(1.0, 1.0, 1.0, 1.0), RADIUS, RADIUS)
+        painter.end()
