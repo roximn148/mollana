@@ -67,3 +67,55 @@ def test_findWidgetChrome(qapp: QApplication) -> None:
     qapp.processEvents()
     assert widget.isHidden()
     assert editor.hasFocus()
+
+def test_findNavigationSelectsMatchesWithWrap(qapp: QApplication) -> None:
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc def abc def")
+    widget = FindWidget(editor)
+    widget.findField.setText("abc")
+    widget.openFind()
+    qapp.processEvents()
+
+    assert widget.countLabel.text() == "1 of 2"
+    # first match selected by default
+    assert editor.toPlainText()[editor.textCursor().selectionStart():
+                               editor.textCursor().selectionEnd()] == "abc"
+
+    widget.findNext()
+    assert editor.textCursor().selectionStart() == 8
+    assert widget.countLabel.text() == "2 of 2"
+    widget.findNext()  # wraps to the first match
+    assert editor.textCursor().selectionStart() == 0
+    widget.findPrev()
+    assert editor.textCursor().selectionStart() == 8
+
+    widget.findField.setText("nope")
+    assert widget.countLabel.text() == "No matches"
+    widget.findField.setText("")
+    assert widget.countLabel.text() == ""
+
+def test_emptyQueryNavigationIsANoOp(qapp: QApplication) -> None:
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc")
+    widget = FindWidget(editor)
+    widget.openFind()
+    widget.findNext()
+    assert not editor.textCursor().hasSelection()
+    assert widget.countLabel.text() == ""
+
+def test_highlightsGoStaleOnDocumentEdits(qapp: QApplication) -> None:
+    """Known limitation: v1 does not rescan when the document edits."""
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc def")
+    widget = FindWidget(editor)
+    widget.findField.setText("abc")
+    widget.openFind()
+    qapp.processEvents()
+    cursor = editor.textCursor()
+    cursor.insertText("x")  # replaces the selected "abc" -> "x def"
+    editor.setTextCursor(cursor)
+    assert widget.countLabel.text() == "1 of 1"  # stale: the text now has "x def"
+    assert len(editor.extraSelections()) == 1    # stale: the span no longer matches

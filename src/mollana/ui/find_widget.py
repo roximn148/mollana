@@ -13,7 +13,14 @@ the editor's own cursor.
 
 # ******************************************************************************
 from PySide6.QtCore import QEvent, QObject, Signal, Qt
-from PySide6.QtGui import QKeyEvent, QShowEvent, QTextDocument
+from PySide6.QtGui import (
+    QKeyEvent,
+    QPalette,
+    QColor,
+    QShowEvent,
+    QTextCursor,
+    QTextDocument,
+)
 from PySide6.QtWidgets import (
     QCheckBox,
     QHBoxLayout,
@@ -21,6 +28,8 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QVBoxLayout,
+    QPlainTextEdit,
+    QTextEdit,
     QToolButton,
     QWidget,
 )
@@ -77,6 +86,8 @@ class FindWidget(QWidget):
     def __init__(self, editor: PyRaya) -> None:
         super().__init__(editor)
         self.editor = editor
+        self._matches: list[tuple[int, int]] = []
+        self._current: int = -1
         self.setAutoFillBackground(True)
 
         self.findField = QLineEdit(self)
@@ -118,6 +129,9 @@ class FindWidget(QWidget):
         layout.addLayout(findLayout)
         layout.addWidget(self.replaceRow)
 
+        self.findField.textChanged.connect(self._rescan)
+        self.caseToggle.toggled.connect(self._rescan)
+        self.wordToggle.toggled.connect(self._rescan)
         self.prevButton.clicked.connect(self.findPrev)
         self.nextButton.clicked.connect(self.findNext)
         self.closeButton.clicked.connect(self.closeWidget)
@@ -149,6 +163,7 @@ class FindWidget(QWidget):
         """Show the find row and focus the find field."""
         self.show()
         self._reposition()
+        self._rescan()
         self.findField.setFocus()
 
     def openReplace(self) -> None:
@@ -157,16 +172,100 @@ class FindWidget(QWidget):
         self.replaceToggle.setChecked(True)
 
     def closeWidget(self) -> None:
-        """Hide the bar and return focus to the editor."""
+        """Hide the bar, clear the highlights, and return focus."""
+        self.editor.setExtraSelections([])
         self.hide()
         self.editor.setFocus()
         self.closed.emit()
 
     def findNext(self) -> None:
-        """Step to the next match (Task 3)."""
+        """Step to the next match, wrapping to the first at the end."""
+        if not self._matches:
+            return
+        self._current = (self._current + 1) % len(self._matches)
+        self._selectMatch(self._current)
+        self._applyHighlights()
+        self._updateCountLabel()
 
     def findPrev(self) -> None:
-        """Step to the previous match (Task 3)."""
+        """Step to the previous match, wrapping to the last at the start."""
+        if not self._matches:
+            return
+        self._current = (self._current - 1) % len(self._matches)
+        self._selectMatch(self._current)
+        self._applyHighlights()
+        self._updateCountLabel()
+
+    def _rescan(self) -> None:
+        """Recompute the match list from the find field and the toggles.
+
+        Keeps ``_current`` when the editor's current selection still equals
+        that match; otherwise selects the first match.
+        """
+        self._matches = findMatches(
+            self.editor.document(),
+            self.findField.text(),
+            self.caseToggle.isChecked(),
+            self.wordToggle.isChecked(),
+        )
+        if self._matches:
+            old = self._currentSelection()
+            if not (0 <= self._current < len(self._matches)
+                    and self._matches[self._current] == old):
+                self._current = 0
+            self._selectMatch(self._current)
+        else:
+            self._current = -1
+        self._applyHighlights()
+        self._updateCountLabel()
+
+    def _currentSelection(self) -> tuple[int, int] | None:
+        """The editor's current (start, end) span, or None when no selection."""
+        cursor = self.editor.textCursor()
+        if not cursor.hasSelection():
+            return None
+        return (cursor.selectionStart(), cursor.selectionEnd())
+
+    def _selectMatch(self, index: int) -> None:
+        """Select ``_matches[index]`` in the editor via a cursor copy."""
+        start, end = self._matches[index]
+        cursor = self.editor.textCursor()
+        cursor.setPosition(start)
+        cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+        self.editor.setTextCursor(cursor)
+
+    def _updateCountLabel(self) -> None:
+        """'' for an empty query, 'No matches' for zero, 'N of M' otherwise."""
+        if not self.findField.text():
+            self.countLabel.setText("")
+        elif not self._matches:
+            self.countLabel.setText("No matches")
+        else:
+            self.countLabel.setText(f"{self._current + 1} of {len(self._matches)}")
+
+    def _applyHighlights(self) -> None:
+        """Highlight every match; the current one at full strength.
+
+        The current match takes the palette's Highlight background with
+        HighlightedText; the others the same colour at 50% alpha. An empty
+        query clears the list.
+        """
+        if not self.findField.text():
+            self.editor.setExtraSelections([])
+            return
+        highlight = self.editor.palette().color(QPalette.ColorRole.Highlight)
+        dimmed = QColor(highlight)
+        dimmed.setAlphaF(0.5)
+        selections = []
+        for index, (start, end) in enumerate(self._matches):
+            selection = QTextEdit.ExtraSelection()
+            selection.cursor.setPosition(start)
+            selection.cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+            selection.format.setBackground(
+                highlight if index == self._current else dimmed
+            )
+            selections.append(selection)
+        self.editor.setExtraSelections(selections)
 
     def replaceCurrent(self) -> None:
         """Replace the current match (Task 4)."""
