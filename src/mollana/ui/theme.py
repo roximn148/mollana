@@ -66,6 +66,10 @@ ICON_CATALOGUE: dict[str, str] = {
     "recent-files": "clock",
     "document": "file-text",
     "clear-recent": "trash",
+    "find": "magnifying-glass",
+    "replace": "magnifying-glass-plus",
+    "find-prev": "caret-up",
+    "find-next": "caret-down",
 }
 
 # Primitives that Phosphor leaves without a fill attribute: the regular weight

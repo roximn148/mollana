@@ -9,7 +9,11 @@
 # ******************************************************************************
 from PySide6.QtGui import QTextDocument
 
-from mollana.ui.find_widget import findMatches
+from pyraya import PyRaya
+
+from PySide6.QtWidgets import QApplication
+
+from mollana.ui.find_widget import FindWidget, findMatches
 
 
 # ******************************************************************************
@@ -34,3 +38,32 @@ def test_findMatchesEdgeCases():
     assert findMatches(_doc(""), "a") == []
     assert findMatches(_doc("a"), "") == []
     assert findMatches(_doc("abc"), "abcd") == []
+
+def test_findWidgetChrome(qapp: QApplication) -> None:
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc abc")
+    widget = FindWidget(editor)
+
+    assert widget.parent() is editor
+    for name in ("findField", "caseToggle", "wordToggle", "countLabel",
+                 "prevButton", "nextButton", "replaceToggle",
+                 "replaceRow", "replaceField", "replaceButton", "replaceAllButton"):
+        assert getattr(widget, name) is not None
+    assert widget.replaceRow.isHidden()
+    assert widget.replaceToggle.isChecked() is False
+
+    widget.openFind()
+    qapp.processEvents()
+    assert widget.isVisible()
+    assert widget.findField.hasFocus()
+
+    widget.openReplace()
+    qapp.processEvents()
+    assert widget.replaceRow.isVisible()
+    assert widget.replaceToggle.isChecked()
+
+    widget.closeWidget()
+    qapp.processEvents()
+    assert widget.isHidden()
+    assert editor.hasFocus()
