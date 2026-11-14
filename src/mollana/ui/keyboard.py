@@ -40,6 +40,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from mollana.ui.find_widget import FindWidget
+
 # ******************************************************************************
 ALPHABET: list[str] = [
     "\u0622", "\u0627", "\u0628", "\u067e", "\u062a", "\u0679", "\u062b",
@@ -278,11 +280,16 @@ class UrduKeyboardPanel(QWidget):
 
         PyRaya's roman-assist overlay is a child line edit that takes the
         focus while it edits the caret's word; a key click must reach the
-        editor itself, never the overlay's roman strip.
+        editor itself, never the overlay's roman strip. A :class:`FindWidget`
+        is a child of the editor too, but its find and replace fields are
+        edited in place, so the walk stops there rather than reaching the
+        editor behind them.
         """
         while widget is not None:
             if isinstance(widget, PyRaya):
                 return widget
+            if isinstance(widget, FindWidget):
+                return None  # the find bar's fields are edited in place
             if widget.isWindow():
                 return None  # a dialog's keys never leak to an editor behind it
             widget = widget.parentWidget()

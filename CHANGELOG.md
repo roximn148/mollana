@@ -66,6 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The on-screen keyboard types into the find bar's fields in place, rather
+  than into the document behind them, while a find field holds focus.
 - Turning the spell checker off (F5) now applies to documents opened
   afterwards too; a new document used to come back with spell check on while
   the Format menu still showed it off.

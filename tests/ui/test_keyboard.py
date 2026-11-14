@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from mollana.ui.find_widget import FindWidget
 from mollana.ui.keyboard import (
     ALPHABET,
     CONTROL_FONT_SIZE,
@@ -338,6 +339,38 @@ def test_consecutiveKeysTypeIntoTheActivePyrayaDocument(qapp: QApplication) -> N
     qapp.processEvents()
     assert editor.toPlainText().startswith(buttons[4].text())  # selection replaced
     host.close()
+
+
+# ******************************************************************************
+def test_keyboardTypesIntoTheFindFieldsInPlace(qapp: QApplication) -> None:
+    """The find bar's fields take keys in place; the editor behind stays put.
+
+    The fields are children of the editor, so the routing must stop at the
+    FindWidget and never reach the editor behind the bar.
+    """
+    dock = UrduKeyboardDock()
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc")
+    widget = FindWidget(editor)
+    widget.openFind()
+    qapp.processEvents()
+    assert widget.findField.hasFocus()
+
+    keys = dock.findChildren(QPushButton)
+    keys[0].click()
+    assert widget.findField.text() == keys[0].text()
+    assert editor.toPlainText() == "abc"  # nothing leaked to the editor
+    controls = {b.text(): b for b in dock.findChildren(QPushButton)}
+    controls["Bksp"].click()  # the control keys act in place as well
+    assert widget.findField.text() == ""
+
+    widget.openReplace()
+    widget.replaceField.setFocus()
+    qapp.processEvents()
+    keys[1].click()
+    assert widget.replaceField.text() == keys[1].text()
+    assert editor.toPlainText() == "abc"
 
 
 # ******************************************************************************
