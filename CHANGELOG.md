@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Find and replace: a find widget over the active editor (Ctrl+F, Ctrl+H) with
   match count, case and whole-word toggles, replace, and replace-all. The bar
   has rounded corners, a reddish close button, and its controls use the
-  interface font, while its fields keep the editor's typeface.
+  interface font, while its fields keep the editor's typeface. It stays hidden
+  until an action opens it.
 - Edit and Format toolbars above the document, mirroring their menus: the
   Edit toolbar carries Undo, Redo, Cut, Copy, Paste, and Select All; the
   Format toolbar carries Word Wrap, Spell Checker, and Assist Mode, whose
@@ -46,8 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The Standard toolbar's buttons are now icons only.
 - The file explorer is now a dock panel that can sit on the left or right edge,
-  be closed, and be reopened from the new View menu; the document tabs fill the
-  central area.
+  be closed, and be reopened from the new View menu, where it stays hidden
+  until opened; the document tabs fill the central area.
 - The spell checker and assist mode entries in the Format menu now show the
   same icons as their status bar indicators.
 - Every menu entry now shows an icon, including the recent files list.

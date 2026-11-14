@@ -320,7 +320,7 @@ class MainWindowUi:
 
     # **************************************************************************
     def _buildExplorerDock(self, window: QMainWindow) -> None:
-        """Create the file explorer as a left/right dock, left by default."""
+        """Create the file explorer as a left/right dock, hidden by default."""
         self.dockExplorer = QDockWidget("Explorer", window)
         self.dockExplorer.setObjectName("dockExplorer")
         self.dockExplorer.setAllowedAreas(
@@ -337,6 +337,7 @@ class MainWindowUi:
         self.dockExplorer.setWidget(self.trvExplorer)
 
         window.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dockExplorer)
+        self.dockExplorer.setVisible(False)
 
     # **************************************************************************
     def _buildKeyboardDock(self, window: QMainWindow) -> None:

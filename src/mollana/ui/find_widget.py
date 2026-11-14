@@ -99,6 +99,7 @@ class FindWidget(QWidget):
         self._current: int = -1
         self._assist: bool | None = None
         self.setAutoFillBackground(False)
+        self.hide()  # hidden until openFind or openReplace calls for it
 
         self.findField = QLineEdit(self)
         self.caseToggle = QCheckBox("Aa", self)

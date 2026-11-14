@@ -479,6 +479,7 @@ def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) ->
 
 # ******************************************************************************
 def test_viewMenuTogglesTheExplorerDock(qapp: QApplication, tmp_path: Path) -> None:
+    """The explorer dock starts hidden; the View action brings it up and back."""
     window = _window(tmp_path)
     action = window.ui.actionFileExplorer
     dock = window.ui.dockExplorer
@@ -488,20 +489,21 @@ def test_viewMenuTogglesTheExplorerDock(qapp: QApplication, tmp_path: Path) -> N
     assert action.shortcut() == QKeySequence()
     assert action.isCheckable()
     assert not action.isChecked()
+    assert not dock.isVisible()  # hidden until the View action calls for it
     window.show()
+    qapp.processEvents()
+    assert not dock.isVisible()  # still hidden now that the window is up
+
+    action.trigger()
     qapp.processEvents()
     assert dock.isVisible()
     assert action.isChecked()
+    assert window.dockWidgetArea(dock) == Qt.DockWidgetArea.LeftDockWidgetArea
 
     action.trigger()
     qapp.processEvents()
     assert not dock.isVisible()
     assert not action.isChecked()
-
-    action.trigger()
-    qapp.processEvents()
-    assert dock.isVisible()
-    assert action.isChecked()
     window.close()
 
 
@@ -517,7 +519,7 @@ def test_viewMenuTogglesTheUrduKeyboardDock(qapp: QApplication, tmp_path: Path) 
     assert action.shortcut() == QKeySequence("F2")
     assert action.isCheckable()
     assert not action.isChecked()
-    assert not dock.isVisible()  # unlike the explorer, this dock starts hidden
+    assert not dock.isVisible()  # hidden until the View action calls for it
     window.show()
     qapp.processEvents()
     assert not dock.isVisible()  # still hidden now that the window is up
@@ -1249,10 +1251,12 @@ def test_findAndReplaceActionsOpenTheWidget(qapp: QApplication, tmp_path: Path) 
     source.write_text("abc abc", encoding="utf-8")
     window.openPath(source)
 
-    window.ui.actionFind.trigger()
-    qapp.processEvents()
     widget = window.ui.tbwEditors.activeFindWidget()
     assert widget is not None
+    assert not widget.isVisible()  # hidden until an action calls for it
+
+    window.ui.actionFind.trigger()
+    qapp.processEvents()
     assert widget.isVisible()
     assert not widget.replaceRow.isVisible()
 

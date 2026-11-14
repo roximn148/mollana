@@ -68,6 +68,7 @@ def test_findWidgetChrome(qapp: QApplication) -> None:
         assert getattr(widget, name) is not None
     assert widget.replaceRow.isHidden()
     assert widget.replaceToggle.isChecked() is False
+    assert widget.isHidden()  # hidden until openFind or openReplace calls for it
 
     widget.openFind()
     qapp.processEvents()
