@@ -105,6 +105,8 @@ class MainWindow(QMainWindow):
         ui.actionCopy.triggered.connect(lambda: self._callEditor("copy"))
         ui.actionPaste.triggered.connect(lambda: self._callEditor("paste"))
         ui.actionSelectAll.triggered.connect(lambda: self._callEditor("selectAll"))
+        ui.actionFind.triggered.connect(self.onFind)
+        ui.actionReplace.triggered.connect(self.onReplace)
 
         ui.actionWordWrap.toggled.connect(self.onWordWrap)
         ui.actionSpellChecker.toggled.connect(self.onSpellChecker)
@@ -243,6 +245,20 @@ class MainWindow(QMainWindow):
         if editor is not None:
             self.ui.tbwEditors.setCurrentWidget(editor)
         self._updateTitle()
+
+    # **************************************************************************
+    def onFind(self) -> None:
+        """Open the find bar over the active editor."""
+        widget = self.ui.tbwEditors.activeFindWidget()
+        if widget is not None:
+            widget.openFind()
+
+    # **************************************************************************
+    def onReplace(self) -> None:
+        """Open the find bar with the replace row expanded."""
+        widget = self.ui.tbwEditors.activeFindWidget()
+        if widget is not None:
+            widget.openReplace()
 
     # **************************************************************************
     def onNew(self) -> None:

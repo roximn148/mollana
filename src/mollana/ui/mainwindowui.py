@@ -259,6 +259,22 @@ class MainWindowUi:
             iconName="select-all",
             shortcut="Ctrl+A",
         )
+        self.actionFind = _makeAction(
+            window,
+            "actionFind",
+            "&Find",
+            iconName="find",
+            shortcut="Ctrl+F",
+            tooltip="Find text in the document",
+        )
+        self.actionReplace = _makeAction(
+            window,
+            "actionReplace",
+            "Re&place",
+            iconName="replace",
+            shortcut="Ctrl+H",
+            tooltip="Find and replace text in the document",
+        )
         self.actionWordWrap = _makeAction(
             window,
             "actionWordWrap",
@@ -377,6 +393,9 @@ class MainWindowUi:
         self.menuEdit.addAction(self.actionPaste)
         self.menuEdit.addSeparator()
         self.menuEdit.addAction(self.actionSelectAll)
+        self.menuEdit.addSeparator()
+        self.menuEdit.addAction(self.actionFind)
+        self.menuEdit.addAction(self.actionReplace)
 
         self.menuFormat.addAction(self.actionWordWrap)
         self.menuFormat.addAction(self.actionSpellChecker)

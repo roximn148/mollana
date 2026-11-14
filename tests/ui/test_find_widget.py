@@ -11,6 +11,9 @@ from PySide6.QtGui import QTextDocument
 
 from pyraya import PyRaya
 
+from mollana.editor.document import Document
+from mollana.ui.editor_pane import EditorPane
+
 from PySide6.QtWidgets import QApplication
 
 from mollana.ui.find_widget import FindWidget, findMatches
@@ -194,3 +197,16 @@ def test_replaceFiresModificationChanged(qapp: QApplication) -> None:
     editor.modificationChanged.connect(seen.append)
     widget.replaceAll()
     assert seen == [True]
+
+def test_findStatePersistsPerTab(qapp: QApplication) -> None:
+    pane = EditorPane()
+    da, db = Document(), Document()
+    a = pane.bind(da, "abc")
+    b = pane.bind(db, "def")
+    wa, wb = pane.findWidgetFor(da.id), pane.findWidgetFor(db.id)
+    assert wa is not wb
+    wa.findField.setText("abc")
+    pane.setCurrentWidget(b)
+    pane.setCurrentWidget(a)
+    assert wa.findField.text() == "abc"
+    assert wb.findField.text() == ""

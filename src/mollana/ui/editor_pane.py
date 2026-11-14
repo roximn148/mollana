@@ -16,6 +16,7 @@ from pyraya import PyRaya
 from PySide6.QtWidgets import QPlainTextEdit, QTabWidget
 
 from mollana.editor.document import Document
+from mollana.ui.find_widget import FindWidget
 
 # ******************************************************************************
 DOCUMENT_ID_PROPERTY: str = "documentId"
@@ -32,6 +33,7 @@ class EditorPane(QTabWidget):
         self.setTabsClosable(True)
         self.setMovable(True)
         self.setDocumentMode(True)
+        self._findWidgets: dict[str, FindWidget] = {}
 
     # **************************************************************************
     def bind(self, document: Document, text: str = "") -> PyRaya:
@@ -40,6 +42,8 @@ class EditorPane(QTabWidget):
         editor.setProperty(DOCUMENT_ID_PROPERTY, document.id)
         editor.setPlainText(text)
         editor.document().setModified(False)
+
+        self._findWidgets[document.id] = FindWidget(editor)
 
         index = self.addTab(editor, document.displayName)
         self.setTabToolTip(index, str(document.path) if document.path else "Untitled")
@@ -84,8 +88,22 @@ class EditorPane(QTabWidget):
         """Close the tab bound to ``documentId``, if any."""
         editor = self.editorFor(documentId)
         if editor is not None:
+            self._findWidgets.pop(documentId, None)
             self.removeTab(self.indexOf(editor))
             editor.deleteLater()
+
+    # **************************************************************************
+    def findWidgetFor(self, documentId: str) -> FindWidget | None:
+        """Return the find widget bound to ``documentId``, or ``None``."""
+        return self._findWidgets.get(documentId)
+
+    # **************************************************************************
+    def activeFindWidget(self) -> FindWidget | None:
+        """Return the find widget of the active tab, or ``None``."""
+        editor = self.activeEditor()
+        if editor is None:
+            return None
+        return self.findWidgetFor(str(editor.property(DOCUMENT_ID_PROPERTY)))
 
     # **************************************************************************
     def refreshTitle(self, document: Document) -> None:

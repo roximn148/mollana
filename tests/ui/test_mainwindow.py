@@ -191,6 +191,8 @@ ICON_NAMES: dict[str, str] = {
     "actionCopy": "copy",
     "actionPaste": "paste",
     "actionSelectAll": "select-all",
+    "actionFind": "find",
+    "actionReplace": "replace",
     "actionFileExplorer": "file-tree",
     "actionUrduKeyboard": "keyboard",
     "actionWordWrap": "justify",
@@ -431,6 +433,9 @@ def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) ->
         "actionPaste",
         "-",
         "actionSelectAll",
+        "-",
+        "actionFind",
+        "actionReplace",
     ]
     assert _menuEntries(window.ui.menuView) == ["actionFileExplorer", "actionUrduKeyboard"]
     assert _menuEntries(window.ui.menuFormat) == [
@@ -1234,4 +1239,25 @@ def test_statusIconClickAppliesToEveryOpenEditor(qapp: QApplication, tmp_path: P
     assert second.isSpellCheckEnabled()
     assert first.isAssistEnabled()
     assert second.isAssistEnabled()
+    window.close()
+
+# ******************************************************************************
+def test_findAndReplaceActionsOpenTheWidget(qapp: QApplication, tmp_path: Path) -> None:
+    window = _window(tmp_path)
+    window.show()
+    source = tmp_path / "doc.txt"
+    source.write_text("abc abc", encoding="utf-8")
+    window.openPath(source)
+
+    window.ui.actionFind.trigger()
+    qapp.processEvents()
+    widget = window.ui.tbwEditors.activeFindWidget()
+    assert widget is not None
+    assert widget.isVisible()
+    assert not widget.replaceRow.isVisible()
+
+    window.ui.actionReplace.trigger()
+    qapp.processEvents()
+    assert widget.replaceRow.isVisible()
+    assert widget.findField.hasFocus()
     window.close()
