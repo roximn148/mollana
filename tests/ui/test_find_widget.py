@@ -7,15 +7,12 @@
 """The find widget's match enumeration over QTextDocument.find."""
 
 # ******************************************************************************
-from PySide6.QtGui import QTextDocument
-
 from pyraya import PyRaya
+from PySide6.QtGui import QTextDocument
+from PySide6.QtWidgets import QApplication
 
 from mollana.editor.document import Document
 from mollana.ui.editor_pane import EditorPane
-
-from PySide6.QtWidgets import QApplication
-
 from mollana.ui.find_widget import FindWidget, findMatches
 
 
@@ -25,10 +22,12 @@ def _doc(text: str) -> QTextDocument:
     doc.setPlainText(text)
     return doc
 
+
 def test_findMatchesCaseInsensitiveAndSensitive():
     doc = _doc("abc Abc")
     assert findMatches(doc, "abc") == [(0, 3), (4, 7)]
     assert findMatches(doc, "abc", caseSensitive=True) == [(0, 3)]
+
 
 def test_findMatchesWholeWord():
     doc = _doc("cat category")
@@ -37,10 +36,12 @@ def test_findMatchesWholeWord():
     # an Arabic neighbour is a word character: it blocks the embedded match
     assert findMatches(_doc("اcat cat"), "cat", wholeWord=True) == [(5, 8)]
 
+
 def test_findMatchesEdgeCases():
     assert findMatches(_doc(""), "a") == []
     assert findMatches(_doc("a"), "") == []
     assert findMatches(_doc("abc"), "abcd") == []
+
 
 def test_findWidgetChrome(qapp: QApplication) -> None:
     editor = PyRaya()
@@ -49,9 +50,19 @@ def test_findWidgetChrome(qapp: QApplication) -> None:
     widget = FindWidget(editor)
 
     assert widget.parent() is editor
-    for name in ("findField", "caseToggle", "wordToggle", "countLabel",
-                 "prevButton", "nextButton", "replaceToggle",
-                 "replaceRow", "replaceField", "replaceButton", "replaceAllButton"):
+    for name in (
+        "findField",
+        "caseToggle",
+        "wordToggle",
+        "countLabel",
+        "prevButton",
+        "nextButton",
+        "replaceToggle",
+        "replaceRow",
+        "replaceField",
+        "replaceButton",
+        "replaceAllButton",
+    ):
         assert getattr(widget, name) is not None
     assert widget.replaceRow.isHidden()
     assert widget.replaceToggle.isChecked() is False
@@ -71,6 +82,7 @@ def test_findWidgetChrome(qapp: QApplication) -> None:
     assert widget.isHidden()
     assert editor.hasFocus()
 
+
 def test_findNavigationSelectsMatchesWithWrap(qapp: QApplication) -> None:
     editor = PyRaya()
     editor.show()
@@ -82,8 +94,12 @@ def test_findNavigationSelectsMatchesWithWrap(qapp: QApplication) -> None:
 
     assert widget.countLabel.text() == "1 of 2"
     # first match selected by default
-    assert editor.toPlainText()[editor.textCursor().selectionStart():
-                               editor.textCursor().selectionEnd()] == "abc"
+    assert (
+        editor.toPlainText()[
+            editor.textCursor().selectionStart() : editor.textCursor().selectionEnd()
+        ]
+        == "abc"
+    )
 
     widget.findNext()
     assert editor.textCursor().selectionStart() == 8
@@ -98,6 +114,7 @@ def test_findNavigationSelectsMatchesWithWrap(qapp: QApplication) -> None:
     widget.findField.setText("")
     assert widget.countLabel.text() == ""
 
+
 def test_emptyQueryNavigationIsANoOp(qapp: QApplication) -> None:
     editor = PyRaya()
     editor.show()
@@ -107,6 +124,7 @@ def test_emptyQueryNavigationIsANoOp(qapp: QApplication) -> None:
     widget.findNext()
     assert not editor.textCursor().hasSelection()
     assert widget.countLabel.text() == ""
+
 
 def test_highlightsGoStaleOnDocumentEdits(qapp: QApplication) -> None:
     """Known limitation: v1 does not rescan when the document edits."""
@@ -121,7 +139,8 @@ def test_highlightsGoStaleOnDocumentEdits(qapp: QApplication) -> None:
     cursor.insertText("x")  # replaces the selected "abc" -> "x def"
     editor.setTextCursor(cursor)
     assert widget.countLabel.text() == "1 of 1"  # stale: the text now has "x def"
-    assert len(editor.extraSelections()) == 1    # stale: the span no longer matches
+    assert len(editor.extraSelections()) == 1  # stale: the span no longer matches
+
 
 def test_replaceCurrentAdvancesToNext(qapp: QApplication) -> None:
     editor = PyRaya()
@@ -137,6 +156,7 @@ def test_replaceCurrentAdvancesToNext(qapp: QApplication) -> None:
     assert editor.toPlainText() == "xyz def abc"
     assert editor.textCursor().selectionStart() == 8  # advanced to the next match
     assert widget.countLabel.text() == "1 of 1"
+
 
 def test_replaceAllReplacesEveryMatch(qapp: QApplication) -> None:
     editor = PyRaya()
@@ -154,8 +174,11 @@ def test_replaceAllReplacesEveryMatch(qapp: QApplication) -> None:
     assert editor.isRomanInputEnabled()
     assert len(editor.extraSelections()) == 0
     # PySide6 6.12.0 exposes no undo-group API: one undo step per replacement
-    editor.undo(); editor.undo(); editor.undo()
+    editor.undo()
+    editor.undo()
+    editor.undo()
     assert editor.toPlainText() == "abc abc abc"
+
 
 def test_replaceAllWithZeroMatchesEditsNothing(qapp: QApplication) -> None:
     editor = PyRaya()
@@ -170,8 +193,10 @@ def test_replaceAllWithZeroMatchesEditsNothing(qapp: QApplication) -> None:
     assert editor.toPlainText() == "abc"
     assert not editor.document().isUndoAvailable()
 
+
 def test_replacePreservesAdjacentRegionTags(qapp: QApplication) -> None:
     from pyraya import RegionType
+
     editor = PyRaya()
     editor.show()
     editor.setPlainText("abc def ghi")
@@ -183,6 +208,7 @@ def test_replacePreservesAdjacentRegionTags(qapp: QApplication) -> None:
     qapp.processEvents()
     widget.replaceAll()
     assert editor.regionTypeAt(6) is RegionType.Native  # shifted from 8 to 6
+
 
 def test_replaceFiresModificationChanged(qapp: QApplication) -> None:
     editor = PyRaya()
@@ -197,6 +223,7 @@ def test_replaceFiresModificationChanged(qapp: QApplication) -> None:
     editor.modificationChanged.connect(seen.append)
     widget.replaceAll()
     assert seen == [True]
+
 
 def test_findStatePersistsPerTab(qapp: QApplication) -> None:
     pane = EditorPane()

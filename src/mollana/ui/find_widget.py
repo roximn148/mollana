@@ -12,12 +12,16 @@ the editor's own cursor.
 """
 
 # ******************************************************************************
-from PySide6.QtCore import QEvent, QObject, Signal, Qt
+from typing import cast
+
+from pyraya import PyRaya
+from PySide6.QtCore import QEvent, QObject, Qt, Signal
 from PySide6.QtGui import (
+    QColor,
     QKeyEvent,
     QPalette,
-    QColor,
     QShowEvent,
+    QTextCharFormat,
     QTextCursor,
     QTextDocument,
 )
@@ -27,14 +31,11 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
-    QVBoxLayout,
-    QPlainTextEdit,
     QTextEdit,
     QToolButton,
+    QVBoxLayout,
     QWidget,
 )
-
-from pyraya import PyRaya
 
 from mollana.ui.theme import icon
 
@@ -72,6 +73,7 @@ def findMatches(
         matches.append((cursor.selectionStart(), cursor.selectionEnd()))
         position = cursor.selectionEnd()
     return matches
+
 
 class FindWidget(QWidget):
     """The non-modal find-and-replace bar anchored over a PyRaya.
@@ -210,8 +212,9 @@ class FindWidget(QWidget):
         )
         if self._matches:
             old = self._currentSelection()
-            if not (0 <= self._current < len(self._matches)
-                    and self._matches[self._current] == old):
+            if not (
+                0 <= self._current < len(self._matches) and self._matches[self._current] == old
+            ):
                 self._current = 0
             self._selectMatch(self._current)
         else:
@@ -259,11 +262,11 @@ class FindWidget(QWidget):
         selections = []
         for index, (start, end) in enumerate(self._matches):
             selection = QTextEdit.ExtraSelection()
-            selection.cursor.setPosition(start)
-            selection.cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
-            selection.format.setBackground(
-                highlight if index == self._current else dimmed
-            )
+            cursor: QTextCursor = cast(QTextCursor, selection.cursor)
+            cursor.setPosition(start)
+            cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+            charFormat: QTextCharFormat = cast(QTextCharFormat, selection.format)
+            charFormat.setBackground(highlight if index == self._current else dimmed)
             selections.append(selection)
         self.editor.setExtraSelections(selections)
 
