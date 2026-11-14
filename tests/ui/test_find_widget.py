@@ -119,3 +119,78 @@ def test_highlightsGoStaleOnDocumentEdits(qapp: QApplication) -> None:
     editor.setTextCursor(cursor)
     assert widget.countLabel.text() == "1 of 1"  # stale: the text now has "x def"
     assert len(editor.extraSelections()) == 1    # stale: the span no longer matches
+
+def test_replaceCurrentAdvancesToNext(qapp: QApplication) -> None:
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc def abc")
+    widget = FindWidget(editor)
+    widget.findField.setText("abc")
+    widget.replaceField.setText("xyz")
+    widget.openFind()
+    qapp.processEvents()
+
+    widget.replaceCurrent()
+    assert editor.toPlainText() == "xyz def abc"
+    assert editor.textCursor().selectionStart() == 8  # advanced to the next match
+    assert widget.countLabel.text() == "1 of 1"
+
+def test_replaceAllReplacesEveryMatch(qapp: QApplication) -> None:
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc abc abc")
+    widget = FindWidget(editor)
+    widget.findField.setText("abc")
+    widget.replaceField.setText("xyz")
+    widget.openFind()
+    qapp.processEvents()
+
+    assert widget.replaceAll() == 3
+    assert editor.toPlainText() == "xyz xyz xyz"
+    assert editor.isAssistEnabled()  # flags restored
+    assert editor.isRomanInputEnabled()
+    assert len(editor.extraSelections()) == 0
+    # PySide6 6.12.0 exposes no undo-group API: one undo step per replacement
+    editor.undo(); editor.undo(); editor.undo()
+    assert editor.toPlainText() == "abc abc abc"
+
+def test_replaceAllWithZeroMatchesEditsNothing(qapp: QApplication) -> None:
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc")
+    widget = FindWidget(editor)
+    widget.findField.setText("zzz")
+    widget.replaceField.setText("q")
+    widget.openFind()
+    qapp.processEvents()
+    assert widget.replaceAll() == 0
+    assert editor.toPlainText() == "abc"
+    assert not editor.document().isUndoAvailable()
+
+def test_replacePreservesAdjacentRegionTags(qapp: QApplication) -> None:
+    from pyraya import RegionType
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc def ghi")
+    editor.setRegionType(RegionType.Native, 8, 11)  # tag "ghi"
+    widget = FindWidget(editor)
+    widget.findField.setText("abc")
+    widget.replaceField.setText("z")
+    widget.openFind()
+    qapp.processEvents()
+    widget.replaceAll()
+    assert editor.regionTypeAt(6) is RegionType.Native  # shifted from 8 to 6
+
+def test_replaceFiresModificationChanged(qapp: QApplication) -> None:
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc")
+    widget = FindWidget(editor)
+    widget.findField.setText("abc")
+    widget.replaceField.setText("z")
+    widget.openFind()
+    qapp.processEvents()
+    seen = []
+    editor.modificationChanged.connect(seen.append)
+    widget.replaceAll()
+    assert seen == [True]

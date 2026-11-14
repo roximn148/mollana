@@ -268,10 +268,48 @@ class FindWidget(QWidget):
         self.editor.setExtraSelections(selections)
 
     def replaceCurrent(self) -> None:
-        """Replace the current match (Task 4)."""
+        """Replace the current match, then rescan onto the next one.
 
-    def replaceAll(self) -> None:
-        """Replace every match (Task 4)."""
+        No-op unless the query is non-empty, a match list exists, and the
+        editor's current selection equals ``_matches[_current]``.
+        """
+        if not self.findField.text() or not self._matches:
+            return
+        if self._currentSelection() != self._matches[self._current]:
+            return
+        cursor = self.editor.textCursor()
+        cursor.insertText(self.replaceField.text())
+        self.editor.setTextCursor(cursor)
+        self._rescan()
+
+    def replaceAll(self) -> int:
+        """Replace every match; return the replacement count.
+
+        The roman assist and roman-input flags are held off for the duration
+        so PyRaya's overlay stays quiet, and the replacements are applied
+        last-to-first over fresh cursor copies without touching the widget's
+        cursor in between.
+        """
+        if not self._matches:
+            return 0
+        count = len(self._matches)
+        assist = self.editor.isAssistEnabled()
+        roman = self.editor.isRomanInputEnabled()
+        self.editor.setAssistEnabled(False)
+        self.editor.setRomanInputEnabled(False)
+        try:
+            for index in range(count - 1, -1, -1):
+                start, end = self._matches[index]
+                cursor = self.editor.textCursor()
+                cursor.setPosition(start)
+                cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+                cursor.insertText(self.replaceField.text())
+        finally:
+            self.editor.setAssistEnabled(assist)
+            self.editor.setRomanInputEnabled(roman)
+        self._rescan()
+        self.editor.setExtraSelections([])
+        return count
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         """Esc closes the bar and refocuses the editor."""
