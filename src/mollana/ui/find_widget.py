@@ -341,7 +341,9 @@ class FindWidget(QWidget):
         """Replace the current match, then rescan onto the next one.
 
         No-op unless the query is non-empty, a match list exists, and the
-        editor's current selection equals ``_matches[_current]``.
+        editor's current selection equals ``_matches[_current]``. The
+        highlight lands on the first match at or after the replaced text —
+        the next target — wrapping to the first match past the end.
         """
         if not self.findField.text() or not self._matches:
             return
@@ -349,8 +351,21 @@ class FindWidget(QWidget):
             return
         cursor = self.editor.textCursor()
         cursor.insertText(self.replaceField.text())
+        replacedEnd = cursor.position()
         self.editor.setTextCursor(cursor)
         self._rescan()
+        # The rescan has lost the replaced selection, so it would fall back
+        # to the first match — backwards. Advance to the first match that
+        # starts at or after the replaced text instead; nothing there means
+        # the rescan's own first match, which wraps.
+        for index, (start, _) in enumerate(self._matches):
+            if start >= replacedEnd:
+                if index != self._current:
+                    self._current = index
+                    self._selectMatch(index)
+                    self._applyHighlights()
+                    self._updateCountLabel()
+                return
 
     def replaceAll(self) -> int:
         """Replace every match; return the replacement count.

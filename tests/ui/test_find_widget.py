@@ -229,6 +229,38 @@ def test_replaceCurrentAdvancesToNext(qapp: QApplication) -> None:
     assert widget.countLabel.text() == "1/1"
 
 
+def test_replaceCurrentAdvancesForwardAfterTheReplacement(qapp: QApplication) -> None:
+    """The highlight lands on the next target after the replaced text, never back.
+
+    Replacing the quote after ``c`` in ``"abc" xyz "def"`` must select the
+    quote before ``def`` — not the one before ``abc``.
+    """
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText('"abc" xyz "def"')
+    widget = FindWidget(editor)
+    widget.findField.setText('"')
+    widget.replaceField.setText("'")
+    widget.openFind()
+    qapp.processEvents()
+
+    widget.findNext()  # current is now the quote after c
+    widget.replaceCurrent()
+    assert editor.toPlainText() == '"abc\' xyz "def"'
+    assert editor.textCursor().selectionStart() == 10  # the quote before def
+    assert widget.countLabel.text() == "2/3"
+
+    widget.replaceCurrent()
+    assert editor.toPlainText() == "\"abc' xyz 'def\""
+    assert editor.textCursor().selectionStart() == 14
+    assert widget.countLabel.text() == "2/2"
+
+    widget.replaceCurrent()  # the last one: wrap to the first target
+    assert editor.toPlainText() == "\"abc' xyz 'def'"
+    assert editor.textCursor().selectionStart() == 0
+    assert widget.countLabel.text() == "1/1"
+
+
 def test_replaceAllReplacesEveryMatch(qapp: QApplication) -> None:
     editor = PyRaya()
     editor.show()

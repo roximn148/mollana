@@ -84,6 +84,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   buttons are as tall as the replace field beside them.
 - The find bar's replace-row toggle now shows the same replace glyph as the
   Edit menu's Replace action instead of appearing unmarked.
+- Replacing the current match now moves the highlight to the next target
+  after the replaced text instead of jumping back to the document's first
+  match, wrapping to the start past the end.
 - Turning the spell checker off (F5) now applies to documents opened
   afterwards too; a new document used to come back with spell check on while
   the Format menu still showed it off.
