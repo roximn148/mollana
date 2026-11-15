@@ -67,11 +67,13 @@ def test_themeSwitchRecoloursInstalledIcons(qapp: QApplication) -> None:
     """
     installed = icon("save-file")
     engine = TintedIconEngine("save-file")
-    before = bytes(installed.pixmap(QSize(24, 24)).toImage().constBits())
+    beforeImage = installed.pixmap(QSize(24, 24)).toImage()  # bound: live memory
+    before = bytes(beforeImage.constBits())
     original = qapp.palette()
     qapp.setPalette(_darkPalette())
     try:
-        after = bytes(installed.pixmap(QSize(24, 24)).toImage().constBits())
+        afterImage = installed.pixmap(QSize(24, 24)).toImage()  # bound: live memory
+        after = bytes(afterImage.constBits())
         assert after != before
         assert engine.key() == "save-file"
     finally:

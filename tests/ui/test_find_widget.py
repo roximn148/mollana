@@ -394,9 +394,10 @@ def test_replaceToggleCarriesTheReplaceIcon(qapp: QApplication) -> None:
     editor = PyRaya()
     widget = FindWidget(editor)
     assert not widget.replaceToggle.icon().isNull()
-    assert bytes(widget.replaceToggle.icon().pixmap(24, 24).toImage().constBits()) == bytes(
-        icon("replace").pixmap(24, 24).toImage().constBits()
-    )
+    # each QImage is bound so bytes() reads live memory, not a freed view
+    rendered = widget.replaceToggle.icon().pixmap(24, 24).toImage()
+    catalogue = icon("replace").pixmap(24, 24).toImage()
+    assert bytes(rendered.constBits()) == bytes(catalogue.constBits())
 
 
 def test_closeButtonCarriesTheFixedInk(qapp: QApplication) -> None:

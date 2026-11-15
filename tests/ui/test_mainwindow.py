@@ -341,14 +341,25 @@ def _menuEntries(menu: QMenu) -> list[str]:
 
 # ******************************************************************************
 def _iconPixels(source: QIcon) -> bytes:
-    """Return the rendered pixels of an icon so two icons can be compared."""
-    return bytes(source.pixmap(24, 24).toImage().constBits())
+    """Return the rendered pixels of an icon so two icons can be compared.
+
+    The ``QImage`` is bound first: PySide6's ``constBits()`` keeps viewing
+    the buffer after the temporary image is collected, and ``bytes()`` on
+    that view would read freed heap memory — whose first block bytes hold
+    allocator bookkeeping — so one-expression chains compare garbage.
+    """
+    image = source.pixmap(24, 24).toImage()
+    return bytes(image.constBits())
 
 
 # ******************************************************************************
 def _pixmapPixels(pixmap: QPixmap) -> bytes:
-    """Return a pixmap's pixels so two pixmaps can be compared."""
-    return bytes(pixmap.toImage().constBits())
+    """Return a pixmap's pixels so two pixmaps can be compared.
+
+    The ``QImage`` is bound first; see :func:`_iconPixels`.
+    """
+    image = pixmap.toImage()
+    return bytes(image.constBits())
 
 
 # ******************************************************************************
