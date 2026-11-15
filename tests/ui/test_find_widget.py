@@ -118,6 +118,27 @@ def test_findNavigationSelectsMatchesWithWrap(qapp: QApplication) -> None:
     assert widget.countLabel.text() == ""
 
 
+def test_expandingTheReplaceRowResizesTheBar(qapp: QApplication) -> None:
+    """Ctrl+F then Ctrl+H grows the bar to the two-row height; collapse shrinks it back."""
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc abc")
+    widget = FindWidget(editor)
+    widget.openFind()
+    qapp.processEvents()
+
+    oneRow = widget.height()
+    widget.replaceToggle.setChecked(True)
+    qapp.processEvents()
+    assert widget.height() == widget.sizeHint().height()  # the full two rows
+    # no child is crushed: the fields share the row height
+    assert widget.findField.height() == widget.replaceField.height()
+
+    widget.replaceToggle.setChecked(False)
+    qapp.processEvents()
+    assert widget.height() == oneRow
+
+
 def test_emptyQueryNavigationIsANoOp(qapp: QApplication) -> None:
     editor = PyRaya()
     editor.show()

@@ -77,6 +77,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in the document.
 - The find bar's right and bottom borders are drawn in full instead of
   being clipped away.
+- Opening replace over an open find bar (Ctrl+F, then Ctrl+H) now grows the
+  bar to its full two-row height instead of squeezing both rows into the
+  one-row bar.
 - Turning the spell checker off (F5) now applies to documents opened
   afterwards too; a new document used to come back with spell check on while
   the Format menu still showed it off.

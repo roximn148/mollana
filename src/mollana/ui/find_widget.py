@@ -187,6 +187,12 @@ class FindWidget(QWidget):
             self.replaceRow.show()
         else:
             self.replaceRow.hide()
+        # The bar is a plain child widget: nothing resizes it when the row's
+        # visibility changes the layout, so it would keep its old height and
+        # crush the rows. Take the layout's size hint and stay anchored
+        # top-right.
+        self.adjustSize()
+        self._reposition()
 
     def _reposition(self) -> None:
         """Anchor top-right over the editor with a MARGIN inset."""
