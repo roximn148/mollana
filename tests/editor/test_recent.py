@@ -21,6 +21,17 @@ def test_newestPathComesFirst() -> None:
 
 
 # ******************************************************************************
+def test_loadPreservesTheSavedOrder() -> None:
+    """A saved most-recent-first list loads in the same order, bounded."""
+    saved = [Path("b.txt"), Path("a.txt"), Path("c.txt")]
+    recent = RecentFiles(saved)
+    assert recent.paths == saved
+
+    trimmed = RecentFiles(saved, limit=2)
+    assert trimmed.paths == [Path("b.txt"), Path("a.txt")]
+
+
+# ******************************************************************************
 def test_readdingMovesToFrontWithoutDuplicating() -> None:
     recent = RecentFiles([Path("a.txt"), Path("b.txt")])
     recent.add(Path("a.txt"))

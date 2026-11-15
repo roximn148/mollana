@@ -17,10 +17,20 @@ class RecentFiles:
 
     # **************************************************************************
     def __init__(self, paths: Iterable[Path | str] = (), limit: int = 10) -> None:
+        """Load the saved list, which is already most-recent-first.
+
+        The order is preserved as given — calling :meth:`add` here would
+        reverse the list and flip the menu on every restart. Later
+        duplicates are dropped (the first occurrence is the most recent)
+        and the list is bounded to ``limit``.
+        """
         self.limit = max(1, limit)
         self._paths: list[Path] = []
         for path in paths:
-            self.add(path)
+            candidate = Path(path)
+            if candidate not in self._paths:
+                self._paths.append(candidate)
+        del self._paths[self.limit :]
 
     # **************************************************************************
     @property

@@ -87,6 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replacing the current match now moves the highlight to the next target
   after the replaced text instead of jumping back to the document's first
   match, wrapping to the start past the end.
+- The Recent Files menu keeps its order between sessions instead of
+  shuffling on every restart.
 - Turning the spell checker off (F5) now applies to documents opened
   afterwards too; a new document used to come back with spell check on while
   the Format menu still showed it off.
