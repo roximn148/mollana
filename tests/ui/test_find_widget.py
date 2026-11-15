@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QApplication
 from mollana.editor.document import Document
 from mollana.ui.editor_pane import EditorPane
 from mollana.ui.find_widget import FindWidget, findMatches
-from mollana.ui.theme import CLOSE_INK
+from mollana.ui.theme import CLOSE_INK, icon
 
 
 # ******************************************************************************
@@ -355,6 +355,16 @@ def test_findWidgetDrawsARoundedBorder(qapp: QApplication) -> None:
     assert image.pixelColor(pos.x() + 50, pos.y()).getRgb() == mid  # top
     assert image.pixelColor(pos.x() + 299, pos.y() + 50).getRgb() == mid  # right
     assert image.pixelColor(pos.x() + 50, pos.y() + 99).getRgb() == mid  # bottom
+
+
+def test_replaceToggleCarriesTheReplaceIcon(qapp: QApplication) -> None:
+    """The replace-row toggle shows the same glyph as the Edit menu's Replace action."""
+    editor = PyRaya()
+    widget = FindWidget(editor)
+    assert not widget.replaceToggle.icon().isNull()
+    assert bytes(widget.replaceToggle.icon().pixmap(24, 24).toImage().constBits()) == bytes(
+        icon("replace").pixmap(24, 24).toImage().constBits()
+    )
 
 
 def test_closeButtonCarriesTheFixedInk(qapp: QApplication) -> None:

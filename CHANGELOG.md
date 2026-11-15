@@ -82,6 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one-row bar.
 - The whole-word toggle reads "Word", and the Replace and Replace All
   buttons are as tall as the replace field beside them.
+- The find bar's replace-row toggle now shows the same replace glyph as the
+  Edit menu's Replace action instead of appearing unmarked.
 - Turning the spell checker off (F5) now applies to documents opened
   afterwards too; a new document used to come back with spell check on while
   the Format menu still showed it off.

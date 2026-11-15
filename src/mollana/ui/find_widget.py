@@ -112,6 +112,8 @@ class FindWidget(QWidget):
         self.nextButton.setIcon(icon("find-next"))
         self.replaceToggle = QToolButton(self)
         self.replaceToggle.setCheckable(True)
+        # the same glyph the Edit menu's Replace action carries
+        self.replaceToggle.setIcon(icon("replace"))
         self.closeButton = QToolButton(self)
         self.closeButton.setIcon(icon("close-tab", ink=CLOSE_INK))
 
