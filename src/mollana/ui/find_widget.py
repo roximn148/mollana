@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QSizePolicy,
     QTextEdit,
     QToolButton,
     QVBoxLayout,
@@ -103,7 +104,7 @@ class FindWidget(QWidget):
 
         self.findField = QLineEdit(self)
         self.caseToggle = QCheckBox("Aa", self)
-        self.wordToggle = QCheckBox("word", self)
+        self.wordToggle = QCheckBox("Word", self)
         self.countLabel = QLabel(self)
         self.prevButton = QToolButton(self)
         self.prevButton.setIcon(icon("find-prev"))
@@ -119,6 +120,11 @@ class FindWidget(QWidget):
         self.replaceField = QLineEdit(self.replaceRow)
         self.replaceButton = QPushButton("Replace", self.replaceRow)
         self.replaceAllButton = QPushButton("Replace All", self.replaceRow)
+        # the buttons stretch to whatever the row is tall — the field's height
+        for button in (self.replaceButton, self.replaceAllButton):
+            policy = button.sizePolicy()
+            policy.setVerticalPolicy(QSizePolicy.Policy.Expanding)
+            button.setSizePolicy(policy)
 
         # The line edits keep the editor's typeface by inheritance; the rest
         # of the bar takes the application's interface font.

@@ -118,6 +118,24 @@ def test_findNavigationSelectsMatchesWithWrap(qapp: QApplication) -> None:
     assert widget.countLabel.text() == ""
 
 
+def test_wordToggleIsLabelledWord(qapp: QApplication) -> None:
+    """The whole-word toggle reads 'Word' with a capital W."""
+    editor = PyRaya()
+    widget = FindWidget(editor)
+    assert widget.wordToggle.text() == "Word"
+
+
+def test_replaceButtonsMatchTheFieldHeight(qapp: QApplication) -> None:
+    """Replace and Replace All stretch to the replace field's height."""
+    editor = PyRaya()
+    editor.show()
+    widget = FindWidget(editor)
+    widget.openReplace()
+    qapp.processEvents()
+    assert widget.replaceButton.height() == widget.replaceField.height()
+    assert widget.replaceAllButton.height() == widget.replaceField.height()
+
+
 def test_expandingTheReplaceRowResizesTheBar(qapp: QApplication) -> None:
     """Ctrl+F then Ctrl+H grows the bar to the two-row height; collapse shrinks it back."""
     editor = PyRaya()
