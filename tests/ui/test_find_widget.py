@@ -309,6 +309,14 @@ def test_findWidgetDrawsARoundedBorder(qapp: QApplication) -> None:
     assert image.pixelColor(pos.x() + 5, pos.y() + 5) == fill  # the arc fills this close in
     assert image.pixelColor(pos.x() + 2, pos.y() + 50) == fill  # the edge just inside the stroke
 
+    # every edge carries the border ink: nothing is clipped off the widget
+    # (Mid is a Fusion-derived colour, so compare rounded RGB, not QColor)
+    mid = widget.palette().color(QPalette.ColorRole.Mid).getRgb()
+    assert image.pixelColor(pos.x(), pos.y() + 50).getRgb() == mid  # left
+    assert image.pixelColor(pos.x() + 50, pos.y()).getRgb() == mid  # top
+    assert image.pixelColor(pos.x() + 299, pos.y() + 50).getRgb() == mid  # right
+    assert image.pixelColor(pos.x() + 50, pos.y() + 99).getRgb() == mid  # bottom
+
 
 def test_closeButtonCarriesTheFixedInk(qapp: QApplication) -> None:
     """The close glyph carries CLOSE_INK, not the active theme's ink."""

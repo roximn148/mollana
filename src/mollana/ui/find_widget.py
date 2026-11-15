@@ -395,5 +395,5 @@ class FindWidget(QWidget):
         # Half-pixel inset: the pen's one-pixel bands sit fully inside the
         # widget — adjusted(1, 1, 1, 1) would push the right and bottom
         # edges outward, where they clip away.
-        painter.drawRoundedRect(QRectF(self.rect()).adjusted(1.0, 1.0, 1.0, 1.0), RADIUS, RADIUS)
+        painter.drawRoundedRect(QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5), RADIUS, RADIUS)
         painter.end()
