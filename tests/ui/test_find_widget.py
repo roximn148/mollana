@@ -9,7 +9,7 @@
 # ******************************************************************************
 from pyraya import PyRaya
 from PySide6.QtCore import QSize
-from PySide6.QtGui import QPalette, QTextDocument
+from PySide6.QtGui import QPalette, QTextCursor, QTextDocument
 from PySide6.QtWidgets import QApplication
 
 from mollana.editor.document import Document
@@ -127,6 +127,35 @@ def test_emptyQueryNavigationIsANoOp(qapp: QApplication) -> None:
     widget.findNext()
     assert not editor.textCursor().hasSelection()
     assert widget.countLabel.text() == ""
+
+
+def test_zeroHitsClearTheEditorSelection(qapp: QApplication) -> None:
+    """Nothing residual stays highlighted in the editor when the query matches nothing."""
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc abc")
+    widget = FindWidget(editor)
+    widget.openFind()
+    widget.findField.setText("abc")
+    qapp.processEvents()
+    assert editor.textCursor().hasSelection()  # a real match is highlighted
+
+    widget.findField.setText("zzz")
+    qapp.processEvents()
+    assert widget.countLabel.text() == "0/0"
+    assert len(editor.extraSelections()) == 0
+    assert not editor.textCursor().hasSelection()
+
+    # an empty query never wipes a selection the user made by hand
+    widget.findField.setText("")
+    widget.caseToggle.setChecked(True)  # triggers a rescan with an empty query
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    cursor.setPosition(3, QTextCursor.MoveMode.KeepAnchor)
+    editor.setTextCursor(cursor)
+    widget.wordToggle.setChecked(True)
+    qapp.processEvents()
+    assert editor.textCursor().hasSelection()
 
 
 def test_highlightsGoStaleOnDocumentEdits(qapp: QApplication) -> None:

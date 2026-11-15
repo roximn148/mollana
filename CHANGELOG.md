@@ -73,6 +73,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The search field keeps its width: the find bar shows its match count as
   current/total (0/0 with no matches) at a pinned four-digit width instead
   of reflowing the bar with every count.
+- A search with no matches no longer leaves the last found text highlighted
+  in the document.
 - Turning the spell checker off (F5) now applies to documents opened
   afterwards too; a new document used to come back with spell check on while
   the Format menu still showed it off.

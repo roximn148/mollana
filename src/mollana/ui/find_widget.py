@@ -262,6 +262,12 @@ class FindWidget(QWidget):
                 self._current = 0
             self._selectMatch(self._current)
         else:
+            # collapse the editor's cursor selection too — the last matched
+            # highlight would otherwise linger as the document's selection
+            if self._current >= 0:
+                cursor = self.editor.textCursor()
+                cursor.clearSelection()
+                self.editor.setTextCursor(cursor)
             self._current = -1
         self._applyHighlights()
         self._updateCountLabel()
@@ -386,5 +392,8 @@ class FindWidget(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(QPen(self.palette().color(QPalette.ColorRole.Mid), 1))
         painter.setBrush(self.palette().color(QPalette.ColorRole.Window))
+        # Half-pixel inset: the pen's one-pixel bands sit fully inside the
+        # widget — adjusted(1, 1, 1, 1) would push the right and bottom
+        # edges outward, where they clip away.
         painter.drawRoundedRect(QRectF(self.rect()).adjusted(1.0, 1.0, 1.0, 1.0), RADIUS, RADIUS)
         painter.end()
