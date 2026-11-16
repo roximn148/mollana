@@ -99,8 +99,8 @@ def _tint(svg: bytes, ink: QColor) -> bytes:
     inserting the ink as a fill covers the fill weight and duotone backdrop.
     """
     text = svg.decode("utf-8")
-    text = text.replace('<svg ', f'<svg color="{ink.name()}" ', 1)
-    text = _NO_FILL.sub(lambda match: f"<{match.group(1)} fill=\"{ink.name()}\"", text)
+    text = text.replace("<svg ", f'<svg color="{ink.name()}" ', 1)
+    text = _NO_FILL.sub(lambda match: f'<{match.group(1)} fill="{ink.name()}"', text)
     return text.encode("utf-8")
 
 
@@ -160,9 +160,11 @@ def _disabledRemap(pixmap: QPixmap, anchor: QColor) -> QPixmap:
 
     intensity = (77 * anchorRed + 150 * anchorGreen + 28 * anchorBlue) // 255
     factor = 191
-    if (anchorRed - factor > anchorGreen and anchorRed - factor > anchorBlue) or (
-        anchorGreen - factor > anchorRed and anchorGreen - factor > anchorBlue
-    ) or (anchorBlue - factor > anchorRed and anchorBlue - factor > anchorGreen):
+    if (
+        (anchorRed - factor > anchorGreen and anchorRed - factor > anchorBlue)
+        or (anchorGreen - factor > anchorRed and anchorGreen - factor > anchorBlue)
+        or (anchorBlue - factor > anchorRed and anchorBlue - factor > anchorGreen)
+    ):
         intensity = min(255, intensity + 91)
     elif intensity <= 128:
         intensity -= 51

@@ -120,9 +120,7 @@ class LearnWordDialog(AddWordDialog):
         assert preview is not None
         preview.setFont(font)
         preview.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        preview.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
-        )
+        preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
         # The buttons grow to the compact key height, so the dialog reads as
         # one piece rather than a keyboard under a strip of small buttons.

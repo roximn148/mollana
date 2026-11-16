@@ -44,14 +44,51 @@ from mollana.ui.find_widget import FindWidget
 
 # ******************************************************************************
 ALPHABET: list[str] = [
-    "\u0622", "\u0627", "\u0628", "\u067e", "\u062a", "\u0679", "\u062b",
-    "\u062c", "\u0686", "\u062d", "\u062e", "\u062f", "\u0688", "\u0630",
-    "\u0631", "\u0691", "\u0632", "\u0698", "\u0633", "\u0634", "\u0635",
-    "\u0636", "\u0637", "\u0638", "\u0639", "\u063a", "\u0641", "\u0642",
-    "\u06a9", "\u06af", "\u0644", "\u0645", "\u0646", "\u06BA", "\u0648",
-    "\u06c1", "\u0629", "\u06be", "\u0621", "\u0626", "\u06cc", "\u06d2",
+    "\u0622",
+    "\u0627",
+    "\u0628",
+    "\u067e",
+    "\u062a",
+    "\u0679",
+    "\u062b",
+    "\u062c",
+    "\u0686",
+    "\u062d",
+    "\u062e",
+    "\u062f",
+    "\u0688",
+    "\u0630",
+    "\u0631",
+    "\u0691",
+    "\u0632",
+    "\u0698",
+    "\u0633",
+    "\u0634",
+    "\u0635",
+    "\u0636",
+    "\u0637",
+    "\u0638",
+    "\u0639",
+    "\u063a",
+    "\u0641",
+    "\u0642",
+    "\u06a9",
+    "\u06af",
+    "\u0644",
+    "\u0645",
+    "\u0646",
+    "\u06ba",
+    "\u0648",
+    "\u06c1",
+    "\u0629",
+    "\u06be",
+    "\u0621",
+    "\u0626",
+    "\u06cc",
+    "\u06d2",
 ]
 """The Urdu alphabet in its one-character glyph order, verbatim from py12."""
+
 
 # ******************************************************************************
 @dataclass(frozen=True)
@@ -139,9 +176,7 @@ class UrduKeyboardPanel(QWidget):
         self._glyphGrid = QGridLayout()
         self._controlGrid = QGridLayout()
         self._buildCharacterGrid()
-        self._groupSpacer = QSpacerItem(
-            0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum
-        )
+        self._groupSpacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
         self._contentLayout.addItem(self._groupSpacer)
         self._buildControlGrid()
         self._contentLayout.addStretch()

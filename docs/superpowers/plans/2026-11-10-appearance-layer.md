@@ -88,9 +88,10 @@ Tint rules (the two-rule algorithm, pinned here so Task 3 reuses it verbatim):
 ```python
 _NO_FILL = re.compile(r"<(path|rect|circle|ellipse|polygon|polyline|line)(?![^>]*\sfill=)")
 
+
 def tint(svg: bytes, ink: str) -> bytes:
     text = svg.decode("utf-8")
-    text = text.replace('<svg ', f'<svg color="{ink}" ', 1)
+    text = text.replace("<svg ", f'<svg color="{ink}" ', 1)
     text = _NO_FILL.sub(lambda m: f'<{m.group(1)} fill="{ink}"', text)
     return text.encode("utf-8")
 ```
@@ -287,7 +288,8 @@ Delete the 24 Oxygen PNGs (every file in `src/mollana/ui/resources/images/` exce
 - `onAbout`: replace the Oxygen attribution with:
 
 ```python
-"<li>Icons by "
+"<li>Icons by"
+
 '<a href="https://phosphoricons.com">Phosphor Icons</a>'
 ", licensed under the "
 '<a href="https://github.com/phosphor-icons/core">MIT License</a>.'

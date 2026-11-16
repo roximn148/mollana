@@ -343,6 +343,7 @@ def test_findStatePersistsPerTab(qapp: QApplication) -> None:
     assert wa.findField.text() == "abc"
     assert wb.findField.text() == ""
 
+
 def test_highlightsStoreCorrectSpans(qapp: QApplication) -> None:
     """The stored highlight spans must equal the match spans, not null cursors."""
     editor = PyRaya()
@@ -352,10 +353,7 @@ def test_highlightsStoreCorrectSpans(qapp: QApplication) -> None:
     widget.findField.setText("abc")
     widget.openFind()
     qapp.processEvents()
-    spans = [
-        (s.cursor.selectionStart(), s.cursor.selectionEnd())
-        for s in editor.extraSelections()
-    ]
+    spans = [(s.cursor.selectionStart(), s.cursor.selectionEnd()) for s in editor.extraSelections()]
     assert spans == [(0, 3), (8, 11)]
 
 

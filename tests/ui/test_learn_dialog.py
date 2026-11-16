@@ -246,9 +246,7 @@ def test_modalDialogReceivesTheKeyClicks(qapp: QApplication) -> None:
 
     def typeAndAccept() -> None:
         assert dialog.findChildren(UrduKeyboardPanel) == [panel]
-        button = next(
-            b for b in panel.findChildren(QPushButton) if b.text() == "\u0628"
-        )
+        button = next(b for b in panel.findChildren(QPushButton) if b.text() == "\u0628")
         QTest.mouseClick(button, Qt.MouseButton.LeftButton)  # the real delivery path
         qapp.processEvents()
         field = dialog.findChild(QLineEdit)

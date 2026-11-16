@@ -686,9 +686,7 @@ def test_startupLoadsTheActiveDictionaryInOneSwap(
 
 
 # ******************************************************************************
-def test_closingKeepsEarlierWordsAndAddsNew(
-    qapp: QApplication, tmp_path: Path
-) -> None:
+def test_closingKeepsEarlierWordsAndAddsNew(qapp: QApplication, tmp_path: Path) -> None:
     """A word learned now must not wipe the dictionary saved earlier."""
     store = DictionaryStore(tmp_path / "dictionaries")
     store.ensureDefault()
@@ -707,9 +705,7 @@ def test_closingKeepsEarlierWordsAndAddsNew(
 
 
 # ******************************************************************************
-def test_closeMergesWordsSavedByAnotherInstance(
-    qapp: QApplication, tmp_path: Path
-) -> None:
+def test_closeMergesWordsSavedByAnotherInstance(qapp: QApplication, tmp_path: Path) -> None:
     """Saving merges with the disk instead of replacing another instance's words."""
     store = DictionaryStore(tmp_path / "dictionaries")
     store.ensureDefault()
@@ -728,9 +724,7 @@ def test_closeMergesWordsSavedByAnotherInstance(
 
 
 # ******************************************************************************
-def test_autoSaveTimerFlushesTheVocabulary(
-    qapp: QApplication, tmp_path: Path
-) -> None:
+def test_autoSaveTimerFlushesTheVocabulary(qapp: QApplication, tmp_path: Path) -> None:
     """A timer tick persists a learned word without closing the app."""
     store = DictionaryStore(tmp_path / "dictionaries")
     store.ensureDefault()
@@ -749,9 +743,7 @@ def test_autoSaveTimerFlushesTheVocabulary(
 
 
 # ******************************************************************************
-def test_autoSaveTimerUsesTheConfiguredInterval(
-    qapp: QApplication, tmp_path: Path
-) -> None:
+def test_autoSaveTimerUsesTheConfiguredInterval(qapp: QApplication, tmp_path: Path) -> None:
     """The timer runs at the configured minutes, converted to milliseconds."""
     settings = StubSettings()
     settings.Main.AutoSaveInterval = 3
@@ -815,9 +807,7 @@ def test_newDocumentInstallsTheLearnHandler(
 
 
 # ******************************************************************************
-def test_learnDialogBorrowsTheDockKeyboard(
-    qapp: QApplication, tmp_path: Path, monkeypatch
-) -> None:
+def test_learnDialogBorrowsTheDockKeyboard(qapp: QApplication, tmp_path: Path, monkeypatch) -> None:
     """An open dock lends its panel to the dialog and takes it back."""
     created: dict[str, object] = {}
 
@@ -831,9 +821,7 @@ def test_learnDialogBorrowsTheDockKeyboard(
             keyboard=None,
             keyboardVisible: bool = True,
         ) -> None:
-            created.update(
-                prefill=prefill, hint=hint, keyboard=keyboard, visible=keyboardVisible
-            )
+            created.update(prefill=prefill, hint=hint, keyboard=keyboard, visible=keyboardVisible)
 
         def exec(self) -> QDialog.DialogCode:
             created["dockHiddenDuring"] = not dock.isVisible()
@@ -867,9 +855,7 @@ def test_learnDialogBorrowsTheDockKeyboard(
 
 
 # ******************************************************************************
-def test_learnDialogKeepsAClosedDockClosed(
-    qapp: QApplication, tmp_path: Path, monkeypatch
-) -> None:
+def test_learnDialogKeepsAClosedDockClosed(qapp: QApplication, tmp_path: Path, monkeypatch) -> None:
     """A closed dock lends a hidden keyboard and stays closed afterwards."""
 
     class StubDialog:
@@ -924,9 +910,7 @@ def test_learnDialogRoundTripReturnsThePanel(qapp: QApplication, tmp_path: Path)
     def accept() -> None:
         modal = QApplication.activeModalWidget()
         seen["isOurs"] = isinstance(modal, LearnWordDialog)
-        seen["borrowed"] = (
-            modal is not None and modal.findChild(UrduKeyboardPanel) is panel
-        )
+        seen["borrowed"] = modal is not None and modal.findChild(UrduKeyboardPanel) is panel
         seen["dockHidden"] = not dock.isVisible()
         if isinstance(modal, LearnWordDialog):
             modal.accept()
@@ -935,8 +919,7 @@ def test_learnDialogRoundTripReturnsThePanel(qapp: QApplication, tmp_path: Path)
     QTimer.singleShot(
         5000,
         window,
-        lambda: QApplication.activeModalWidget()
-        and QApplication.activeModalWidget().close(),
+        lambda: QApplication.activeModalWidget() and QApplication.activeModalWidget().close(),
     )
     assert window.openLearnDialog("سلام") == "سلام"
 
@@ -950,9 +933,7 @@ def test_learnDialogRoundTripReturnsThePanel(qapp: QApplication, tmp_path: Path)
 
 
 # ******************************************************************************
-def test_prefillFailureLeavesTheDockIntact(
-    qapp: QApplication, tmp_path: Path, monkeypatch
-) -> None:
+def test_prefillFailureLeavesTheDockIntact(qapp: QApplication, tmp_path: Path, monkeypatch) -> None:
     """The panel is only lent once the prefill succeeded."""
 
     def boom(*_args, **_kwargs) -> str:
@@ -1253,6 +1234,7 @@ def test_statusIconClickAppliesToEveryOpenEditor(qapp: QApplication, tmp_path: P
     assert first.isAssistEnabled()
     assert second.isAssistEnabled()
     window.close()
+
 
 # ******************************************************************************
 def test_findAndReplaceActionsOpenTheWidget(qapp: QApplication, tmp_path: Path) -> None:

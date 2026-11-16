@@ -114,15 +114,23 @@ def test_allPhosphorWeightsTakeTheInk(qapp: QApplication) -> None:
 
     svgRoot = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">'
     emptyCanvas = '<rect width="256" height="256" fill="none"/>'
-    regular = svgRoot + emptyCanvas + (
-        f'<path d="{square}" fill="none" stroke="currentColor" stroke-width="16"/>'
-    ) + "</svg>"
+    regular = (
+        svgRoot
+        + emptyCanvas
+        + (f'<path d="{square}" fill="none" stroke="currentColor" stroke-width="16"/>')
+        + "</svg>"
+    )
     fillWeight = svgRoot + emptyCanvas + f'<path d="{square}"/>' + "</svg>"
-    duotone = svgRoot + emptyCanvas + (
-        '<polygon points="32 32 224 32 224 224 32 224" opacity="0.2"/>'
-        '<polyline points="32 32 224 32 224 224 32 224" fill="none"'
-        ' stroke="currentColor" stroke-width="16"/>'
-    ) + "</svg>"
+    duotone = (
+        svgRoot
+        + emptyCanvas
+        + (
+            '<polygon points="32 32 224 32 224 224 32 224" opacity="0.2"/>'
+            '<polyline points="32 32 224 32 224 224 32 224" fill="none"'
+            ' stroke="currentColor" stroke-width="16"/>'
+        )
+        + "</svg>"
+    )
 
     # The regular weight: a stroked outline, transparent interior.
     outline = _render(regular.encode("utf-8"), ink, QSize(32, 32), 1.0).toImage()
@@ -239,9 +247,10 @@ def test_applyThemeSwitchesPalettes(qapp: QApplication) -> None:
             applyTheme(qapp, theme)
             assert qapp.style().objectName() == "fusion"
             assert qapp.styleSheet() == ""
-            assert qapp.palette().color(QPalette.ColorRole.Window) == THEMES[theme].colors[
-                QPalette.ColorRole.Window
-            ]
+            assert (
+                qapp.palette().color(QPalette.ColorRole.Window)
+                == THEMES[theme].colors[QPalette.ColorRole.Window]
+            )
             windows.append(qapp.palette().color(QPalette.ColorRole.Window))
         assert len({window.name() for window in windows}) == len(Themes)
     finally:
