@@ -65,6 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now follow the active theme, so the Dark and HighContrast themes render the
   document with their own colours instead of the fixed light palette.
 - Assist mode pauses while the find bar is open and resumes when it closes.
+- The editor's typeface now applies its localized letter forms (the 'locl'
+  OpenType feature), pairing the font's Urdu forms with the Urdu locale.
 
 ### Fixed
 

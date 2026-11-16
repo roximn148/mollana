@@ -9,7 +9,7 @@
 # ******************************************************************************
 from pyraya import PyRaya
 from PySide6.QtCore import QSize
-from PySide6.QtGui import QPalette, QTextCursor, QTextDocument
+from PySide6.QtGui import QFont, QPalette, QTextCursor, QTextDocument
 from PySide6.QtWidgets import QApplication
 
 from mollana.editor.document import Document
@@ -435,7 +435,12 @@ def test_findWidgetFontsAreTheAppFont(qapp: QApplication) -> None:
         widget.replaceButton,
         widget.replaceAllButton,
     ):
-        assert control.font() == appFont
+        # the bar pins the editor's 'locl' feature off on the app font, so
+        # the comparison ignores feature settings — the contract is that the
+        # controls carry the application font's attributes
+        controlFont = QFont(control.font())
+        controlFont.clearFeatures()
+        assert controlFont == appFont
     # the line edits keep the editor's typeface by inheritance
     assert widget.findField.font() == editor.font()
     assert widget.replaceField.font() == editor.font()

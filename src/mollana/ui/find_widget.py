@@ -18,6 +18,7 @@ from pyraya import PyRaya
 from PySide6.QtCore import QEvent, QObject, QRectF, Qt, Signal
 from PySide6.QtGui import (
     QColor,
+    QFont,
     QKeyEvent,
     QPainter,
     QPaintEvent,
@@ -50,6 +51,9 @@ MARGIN: int = 8
 RADIUS: int = 6
 WIDEST_COUNT: str = "9999/9999"
 """The widest count text, sizing the count label's pinned width."""
+
+_LoclTag = QFont.Tag.fromString("locl")
+"""The 'locl' feature PyRaya pins on its typeface; see the font note below."""
 
 
 # ******************************************************************************
@@ -129,8 +133,12 @@ class FindWidget(QWidget):
             button.setSizePolicy(policy)
 
         # The line edits keep the editor's typeface by inheritance; the rest
-        # of the bar takes the application's interface font.
+        # of the bar takes the application's interface font. PyRaya's typeface
+        # pins the 'locl' OpenType feature, and Qt resolves feature settings
+        # into child fonts that leave them unset — so the feature is pinned
+        # off here, keeping the controls on the application font's shaping.
         appFont = QApplication.font()
+        appFont.setFeature(_LoclTag, False)
         for widget in (
             self.caseToggle,
             self.wordToggle,

@@ -22,9 +22,9 @@ dependencies = [
     "confz>=2.1.0",
     "platformdirs>=4.5.0",
     "pydantic>=2.12.5",
-    "pyraya>=0.1.0a14",
+    "pyraya>=0.1.0a15",
     "pyside6-essentials>=6.12.0",
-    "romanalfaz>=0.1.0a12",
+    "romanalfaz>=0.2.0a1",
     "strenum>=0.4.15",
     "tomlkit>=0.13.3",
 ]
