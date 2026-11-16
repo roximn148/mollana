@@ -27,7 +27,7 @@ from mollana.editor.session import Session
 from mollana.infra.logging import getLogger
 from mollana.infra.meta import Rx
 from mollana.infra.settings import RSettings
-from mollana.ui.fonts import editorFont, resolveTypeface
+from mollana.ui.fonts import editorFont, gutterFont, resolveTypeface
 from mollana.ui.learn_dialog import LearnWordDialog, prefillFor
 from mollana.ui.mainwindowui import MainWindowUi, servicePixmap
 from mollana.ui.theme import icon
@@ -64,6 +64,10 @@ class MainWindow(QMainWindow):
         )
         self._dictionaryLoaded = False
         self._savedDictionaryWords: dict[str, int] = {}
+        # Seed the toggle states before wiring: the handlers persist on change,
+        # and a startup sync must not write the file back unchanged.
+        self.ui.actionLineNumbers.setChecked(self.settings.Editor.LineNumbers)
+        self.ui.actionAutoEnveloping.setChecked(self.settings.Editor.AutoEnveloping)
         self.autoSaveTimer = QTimer(self)
         self.autoSaveTimer.setInterval(self.settings.Main.AutoSaveInterval * 60_000)
         self.autoSaveTimer.timeout.connect(self.flushDictionaries)
@@ -111,6 +115,8 @@ class MainWindow(QMainWindow):
         ui.actionWordWrap.toggled.connect(self.onWordWrap)
         ui.actionSpellChecker.toggled.connect(self.onSpellChecker)
         ui.actionAssistMode.toggled.connect(self.onAssistMode)
+        ui.actionLineNumbers.toggled.connect(self.onLineNumbers)
+        ui.actionAutoEnveloping.toggled.connect(self.onAutoEnveloping)
 
         ui.lblSpellCheck.clicked.connect(self.onSpellCheckClicked)
         ui.lblAssist.clicked.connect(self.onAssistModeClicked)
@@ -128,6 +134,9 @@ class MainWindow(QMainWindow):
         editor = self.ui.tbwEditors.bind(document, text)
         editor.setFontFamily(self._editorTypeface[0])
         editor.setFontSize(self._editorTypeface[1])
+        editor.setGutterFont(gutterFont(self._editorTypeface[1]))
+        editor.setGutterEnabled(self.ui.actionLineNumbers.isChecked())
+        editor.setAutoWrapEnabled(self.ui.actionAutoEnveloping.isChecked())
         editor.setAddWordHandler(self.openLearnDialog)
         self._loadActiveDictionary(editor)
         editor.setSpellCheckEnabled(self.ui.actionSpellChecker.isChecked())
@@ -450,6 +459,20 @@ class MainWindow(QMainWindow):
     def onAssistMode(self, enabled: bool) -> None:
         """Apply the assist-mode toggle to every open editor."""
         self.ui.tbwEditors.setAssistEnabled(enabled)
+
+    # **************************************************************************
+    def onLineNumbers(self, enabled: bool) -> None:
+        """Apply the line-numbers toggle to every open editor, and remember it."""
+        self.ui.tbwEditors.setLineNumbersEnabled(enabled)
+        self.settings.Editor.LineNumbers = enabled
+        self.settings.save()
+
+    # **************************************************************************
+    def onAutoEnveloping(self, enabled: bool) -> None:
+        """Apply the auto-enveloping toggle to every open editor, and remember it."""
+        self.ui.tbwEditors.setAutoEnvelopingEnabled(enabled)
+        self.settings.Editor.AutoEnveloping = enabled
+        self.settings.save()
 
     # **************************************************************************
     def onSpellCheckClicked(self) -> None:

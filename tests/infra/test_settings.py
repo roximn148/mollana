@@ -13,6 +13,7 @@ from pathlib import Path
 from mollana.infra.settings import (
     CONFIG_FILENAME,
     AppearancesConfig,
+    EditorConfig,
     LogLevels,
     MainConfig,
     RSettings,
@@ -28,6 +29,7 @@ def test_createdDocumentCarriesEveryField() -> None:
     tdoc = _createConfigToml()
     assert set(tdoc["Main"].keys()) == set(MainConfig.model_fields)
     assert set(tdoc["Appearances"].keys()) == set(AppearancesConfig.model_fields)
+    assert set(tdoc["Editor"].keys()) == set(EditorConfig.model_fields)
     assert 'ProjectBaseDirectory = "."' in tdoc.as_string()
 
 
@@ -160,6 +162,52 @@ def test_saveWritesTheAppearancesValues(tmp_path: Path) -> None:
     data = tomllib.loads(source.tomlFile.read_text(encoding="utf-8"))
     assert data["Appearances"]["FontFamily"] == "Noto Naskh Arabic"
     assert data["Appearances"]["FontSize"] == 16.0
+
+
+# ******************************************************************************
+def test_editorDefaultsSwitchBothFeaturesOn() -> None:
+    config = EditorConfig()
+    assert config.LineNumbers is True
+    assert config.AutoEnveloping is True
+
+
+# ******************************************************************************
+def test_settingsLoadTheEditorValues(tmp_path: Path) -> None:
+    source = TomlSource(tomlFile=tmp_path / CONFIG_FILENAME)
+    source.tomlFile.write_text(
+        "[Editor]\nLineNumbers = false\nAutoEnveloping = false\n",
+        encoding="utf-8",
+    )
+    with RSettings.change_config_sources(source):
+        settings = RSettings()
+        assert settings.Editor.LineNumbers is False
+        assert settings.Editor.AutoEnveloping is False
+
+
+# ******************************************************************************
+def test_saveWritesTheEditorValues(tmp_path: Path) -> None:
+    source = TomlSource(tomlFile=tmp_path / CONFIG_FILENAME)
+    with RSettings.change_config_sources(source):
+        settings = RSettings()
+        settings.Editor.LineNumbers = False
+        settings.Editor.AutoEnveloping = False
+        settings.save()
+
+    data = tomllib.loads(source.tomlFile.read_text(encoding="utf-8"))
+    assert data["Editor"]["LineNumbers"] is False
+    assert data["Editor"]["AutoEnveloping"] is False
+
+
+# ******************************************************************************
+def test_loaderResetsAnInvalidEditorValue(tmp_path: Path) -> None:
+    source = TomlSource(tomlFile=tmp_path / CONFIG_FILENAME)
+    source.tomlFile.write_text('[Editor]\nLineNumbers = "yes"\n', encoding="utf-8")
+    config: dict = {}
+
+    TomlLoader.populate_config(config, source)
+
+    assert config["Editor"].LineNumbers is True
+    assert config["Editor"].AutoEnveloping is True
 
 
 # ******************************************************************************

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Line numbers: a gutter of Eastern Arabic digits beside the text, shown by
+  default and toggled from the View menu. Its digits are set in Noto Naskh
+  Arabic at the editor's point size, and the choice is remembered in
+  `preferences.toml` (`[Editor] LineNumbers`) for the next run.
+- Auto Enveloping: typing a quote, bracket, or guillemet around a selection
+  envelopes the selection with that pair, on by default and toggled from the
+  Format menu. The choice is remembered in `preferences.toml`
+  (`[Editor] AutoEnveloping`) for the next run.
 - Find and replace: a find widget over the active editor (Ctrl+F, Ctrl+H) with
   match count, case and whole-word toggles, replace, and replace-all. The bar
   has rounded corners, a reddish close button, and its controls use the
@@ -16,8 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   until an action opens it.
 - Edit and Format toolbars above the document, mirroring their menus: the
   Edit toolbar carries Undo, Redo, Cut, Copy, Paste, and Select All; the
-  Format toolbar carries Word Wrap, Spell Checker, and Assist Mode, whose
-  buttons show the on/off state of each service the way the menu entries do.
+  Format toolbar carries Word Wrap, Spell Checker, Assist Mode, and Auto
+  Enveloping, whose buttons show the on/off state of each service the way
+  the menu entries do.
 - A dockable on-screen Urdu alphabet keyboard (bottom dock, hidden at start;
   toggled from the View menu or with F2) whose keys type into whatever field
   or editor holds the caret.

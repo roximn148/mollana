@@ -97,6 +97,23 @@ class AppearancesConfig(BaseModel):
 
 
 # ******************************************************************************
+class EditorConfig(BaseModel):
+    """Editor behaviour options, persisted in the ``[Editor]`` table."""
+
+    LineNumbers: bool = Field(
+        default=True,
+        description="Show the line-number gutter in every editor. Default is true",
+    )
+    AutoEnveloping: bool = Field(
+        default=True,
+        description=(
+            "Envelope a selection by typing its surrounding character "
+            "(a quote, bracket, or guillemet). Default is true"
+        ),
+    )
+
+
+# ******************************************************************************
 CONFIG_FILENAME: str = "preferences.toml"
 """Filename of the configurations file."""
 
@@ -124,6 +141,17 @@ def _defaultAppearancesTable() -> Table:
 
 
 # ******************************************************************************
+def _defaultEditorTable() -> Table:
+    """Build an ``[Editor]`` table holding every field's commented default."""
+    editor = tomlkit.table()
+    for fieldName, fieldInfo in EditorConfig.model_fields.items():
+        editor.add(tomlkit.comment(fieldInfo.description or ""))
+        editor.add(fieldName, fieldInfo.get_default(call_default_factory=True))
+        editor.add(tomlkit.nl())
+    return editor
+
+
+# ******************************************************************************
 def _createConfigToml() -> tomlkit.TOMLDocument:
     """Create a preference document populated with defaults."""
     tdoc = tomlkit.TOMLDocument()
@@ -135,6 +163,7 @@ def _createConfigToml() -> tomlkit.TOMLDocument:
     tdoc.add(tomlkit.nl())
     tdoc["Main"] = _defaultMainTable()
     tdoc["Appearances"] = _defaultAppearancesTable()
+    tdoc["Editor"] = _defaultEditorTable()
     tdoc.add(separator)
 
     return tdoc
@@ -154,6 +183,14 @@ def _appearancesTable(tdoc: tomlkit.TOMLDocument) -> dict[str, Any]:
     if "Appearances" not in tdoc:
         tdoc["Appearances"] = _defaultAppearancesTable()
     return cast(dict[str, Any], tdoc["Appearances"])
+
+
+# ******************************************************************************
+def _editorTable(tdoc: tomlkit.TOMLDocument) -> dict[str, Any]:
+    """Return ``tdoc``'s ``[Editor]`` table, creating it when absent."""
+    if "Editor" not in tdoc:
+        tdoc["Editor"] = _defaultEditorTable()
+    return cast(dict[str, Any], tdoc["Editor"])
 
 
 # ******************************************************************************
@@ -205,9 +242,19 @@ class TomlLoader(Loader):
         except ValidationError as error:
             appearancesConfig = cls._repairAppearancesSection(appearancesTable, error, log)
 
+        if "Editor" not in tdoc:
+            log.warning('"Editor" section missing from config TOML')
+        editorTable = _editorTable(tdoc)
+
+        try:
+            editorConfig = EditorConfig.model_validate(editorTable)
+        except ValidationError as error:
+            editorConfig = cls._repairEditorSection(editorTable, error, log)
+
         configUpdate: dict[str, Any] = {
             "Main": mainConfig,
             "Appearances": appearancesConfig,
+            "Editor": editorConfig,
         }
         cls.update_dict_recursively(config, configUpdate)
 
@@ -265,6 +312,25 @@ class TomlLoader(Loader):
 
         return AppearancesConfig.model_validate(appearancesTable)
 
+    # **************************************************************************
+    @classmethod
+    def _repairEditorSection(
+        cls, editorTable: dict[str, Any], error: ValidationError, log: logging.Logger
+    ) -> EditorConfig:
+        """Reset invalid values to their defaults, and validate again."""
+        log.warning(f'{error.error_count()} error(s) found in preferences "Editor" section')
+
+        for detail in error.errors():
+            location = detail["loc"]
+            field = str(location[0]) if location else ""
+            log.warning(f'{field}="{detail["input"]}": {detail["msg"]}')
+            if field in EditorConfig.model_fields:
+                log.debug(f'Resetting {field}="{detail["input"]}" to default')
+                fieldInfo = EditorConfig.model_fields[field]
+                editorTable[field] = fieldInfo.get_default(call_default_factory=True)
+
+        return EditorConfig.model_validate(editorTable)
+
 
 # ******************************************************************************
 register_loader(TomlSource, TomlLoader)
@@ -288,6 +354,7 @@ class RSettings(BaseConfig):
 
     Main: MainConfig = Field(default_factory=MainConfig)
     Appearances: AppearancesConfig = Field(default_factory=AppearancesConfig)
+    Editor: EditorConfig = Field(default_factory=EditorConfig)
 
     CONFIG_SOURCES = TomlSource(tomlFile=paths.configDir() / CONFIG_FILENAME)
 
@@ -333,6 +400,10 @@ class RSettings(BaseConfig):
         appearancesTable = _appearancesTable(tdoc)
         for fieldName in AppearancesConfig.model_fields:
             appearancesTable[fieldName] = getattr(self.Appearances, fieldName)
+
+        editorTable = _editorTable(tdoc)
+        for fieldName in EditorConfig.model_fields:
+            editorTable[fieldName] = getattr(self.Editor, fieldName)
 
         filePath.parent.mkdir(parents=True, exist_ok=True)
         filePath.write_text(tomlkit.dumps(tdoc), encoding="utf-8")

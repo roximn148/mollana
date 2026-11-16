@@ -63,6 +63,8 @@ ICON_CATALOGUE: dict[str, str] = {
     "justify": "text-align-justify",
     "spell-check": "text-aa",
     "assist": "globe",
+    "line-numbers": "list-numbers",
+    "enveloping": "quotes",
     "about": "info",
     "file-tree": "tree-view",
     "keyboard": "keyboard",

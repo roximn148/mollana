@@ -137,5 +137,17 @@ class EditorPane(QTabWidget):
         for editor in self.editors():
             editor.setLineWrapMode(mode)
 
+    # **************************************************************************
+    def setLineNumbersEnabled(self, enabled: bool) -> None:
+        """Switch the line-number gutter on every open editor."""
+        for editor in self.editors():
+            editor.setGutterEnabled(enabled)
+
+    # **************************************************************************
+    def setAutoEnvelopingEnabled(self, enabled: bool) -> None:
+        """Switch selection enveloping on every open editor."""
+        for editor in self.editors():
+            editor.setAutoWrapEnabled(enabled)
+
 
 # ******************************************************************************

@@ -16,7 +16,9 @@ from mollana.infra.settings import AppearancesConfig
 from mollana.ui.fonts import (
     EDITOR_FONT_FAMILIES,
     EDITOR_FONT_SIZE,
+    GUTTER_FONT_FAMILY,
     editorFont,
+    gutterFont,
     resolveTypeface,
 )
 
@@ -71,4 +73,14 @@ def test_editorFontMatchesTheResolution(qapp: QApplication) -> None:
     family, size = resolveTypeface(AppearancesConfig())
     font = editorFont(family, size)
     assert font.families()[0] == family
+    assert font.pointSizeF() == size
+
+
+# ******************************************************************************
+def test_gutterFontIsNaskhAtTheEditorSize(qapp: QApplication) -> None:
+    """The gutter digits are Noto Naskh Arabic, sized to the editor's size."""
+    _, size = resolveTypeface(AppearancesConfig())
+    font = gutterFont(size)
+    assert GUTTER_FONT_FAMILY == "Noto Naskh Arabic"
+    assert font.families()[0] == "Noto Naskh Arabic"
     assert font.pointSizeF() == size

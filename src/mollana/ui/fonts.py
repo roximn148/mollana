@@ -27,6 +27,9 @@ EDITOR_FONT_FAMILIES: tuple[str, ...] = PyRayaFonts
 EDITOR_FONT_SIZE: float = DefaultFontSize
 """PyRaya's default point size."""
 
+GUTTER_FONT_FAMILY: str = "Noto Naskh Arabic"
+"""Family of the line-number gutter's digits."""
+
 
 # ******************************************************************************
 def _firstInstalled(available: set[str]) -> str:
@@ -69,3 +72,9 @@ def editorFont(family: str, size: float) -> QFont:
     font.setFamilies([family, "Noto Sans"])
     font.setPointSizeF(size)
     return font
+
+
+# ******************************************************************************
+def gutterFont(size: float) -> QFont:
+    """A font for the line-number gutter: Naskh digits at the editor's size."""
+    return editorFont(GUTTER_FONT_FAMILY, size)

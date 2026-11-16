@@ -303,6 +303,24 @@ class MainWindowUi:
             checkable=True,
             checked=True,
         )
+        self.actionLineNumbers = _makeAction(
+            window,
+            "actionLineNumbers",
+            "Line &Numbers",
+            iconName="line-numbers",
+            tooltip="Show the line-number gutter in every editor",
+            checkable=True,
+            checked=True,
+        )
+        self.actionAutoEnveloping = _makeAction(
+            window,
+            "actionAutoEnveloping",
+            "Auto &Enveloping",
+            iconName="enveloping",
+            tooltip="Envelope a selection by typing its surrounding character",
+            checkable=True,
+            checked=True,
+        )
         self.actionAbout = _makeAction(
             window,
             "actionAbout",
@@ -373,6 +391,9 @@ class MainWindowUi:
         self.actionUrduKeyboard.setIcon(icon("keyboard"))
         self.menuView.addAction(self.actionUrduKeyboard)
 
+        self.menuView.addSeparator()
+        self.menuView.addAction(self.actionLineNumbers)
+
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addAction(self.actionOpenFolder)
@@ -401,6 +422,7 @@ class MainWindowUi:
         self.menuFormat.addAction(self.actionWordWrap)
         self.menuFormat.addAction(self.actionSpellChecker)
         self.menuFormat.addAction(self.actionAssistMode)
+        self.menuFormat.addAction(self.actionAutoEnveloping)
         self.menuHelp.addAction(self.actionAbout)
 
     # **************************************************************************
@@ -425,6 +447,7 @@ class MainWindowUi:
         self.formatToolBar.addAction(self.actionWordWrap)
         self.formatToolBar.addAction(self.actionSpellChecker)
         self.formatToolBar.addAction(self.actionAssistMode)
+        self.formatToolBar.addAction(self.actionAutoEnveloping)
 
     # **************************************************************************
     def _buildStatusBar(self, window: QMainWindow) -> None:

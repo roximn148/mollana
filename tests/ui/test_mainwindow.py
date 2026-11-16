@@ -30,6 +30,7 @@ from mollana.editor.dictionaries import DictionaryStore
 from mollana.editor.session import Session
 from mollana.ui.editor_pane import EditorPane
 from mollana.ui.explorer import FileExplorer
+from mollana.ui.fonts import resolveTypeface
 from mollana.ui.keyboard import Density, UrduKeyboardPanel
 from mollana.ui.learn_dialog import LearnWordDialog
 from mollana.ui.mainwindow import MainWindow
@@ -59,11 +60,21 @@ class StubAppearances:
 
 # ******************************************************************************
 @dataclass
+class StubEditor:
+    """The subset of ``EditorConfig`` the window reads."""
+
+    LineNumbers: bool = True
+    AutoEnveloping: bool = True
+
+
+# ******************************************************************************
+@dataclass
 class StubSettings:
     """Stand-in for ``RSettings`` so tests never touch the user's preferences."""
 
     Main: StubMain = field(default_factory=StubMain)
     Appearances: StubAppearances = field(default_factory=StubAppearances)
+    Editor: StubEditor = field(default_factory=StubEditor)
     saved: bool = False
 
     def save(self) -> None:
@@ -159,6 +170,8 @@ EXPECTED_ACTIONS: dict[str, tuple[str, str, bool, bool]] = {
     "actionWordWrap": ("Word &Wrap", "", True, True),
     "actionSpellChecker": ("&Spell Checker", "F5", True, True),
     "actionAssistMode": ("&Assist Mode", "F6", True, True),
+    "actionLineNumbers": ("Line &Numbers", "", True, True),
+    "actionAutoEnveloping": ("Auto &Enveloping", "", True, True),
     "actionAbout": ("&About", "F1", False, False),
     "actionUrduKeyboard": ("Urdu Keyboard", "F2", True, False),
 }
@@ -173,6 +186,8 @@ EXPECTED_TOOLTIPS: dict[str, str] = {
     "actionSaveAs": "Save the active document under another path",
     "actionSpellChecker": "Underline words the dictionary does not know",
     "actionAssistMode": "Show roman hints under the word being edited",
+    "actionLineNumbers": "Show the line-number gutter in every editor",
+    "actionAutoEnveloping": "Envelope a selection by typing its surrounding character",
 }
 
 ICON_NAMES: dict[str, str] = {
@@ -198,6 +213,8 @@ ICON_NAMES: dict[str, str] = {
     "actionWordWrap": "justify",
     "actionSpellChecker": "spell-check",
     "actionAssistMode": "assist",
+    "actionLineNumbers": "line-numbers",
+    "actionAutoEnveloping": "enveloping",
     "actionAbout": "about",
 }
 
@@ -241,9 +258,15 @@ class StubAppearances:
     FontSize = 0.0
 
 
+class StubEditor:
+    LineNumbers = True
+    AutoEnveloping = True
+
+
 class StubSettings:
     Main = StubMain()
     Appearances = StubAppearances()
+    Editor = StubEditor()
 
     def save(self):
         pass
@@ -448,11 +471,17 @@ def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) ->
         "actionFind",
         "actionReplace",
     ]
-    assert _menuEntries(window.ui.menuView) == ["actionFileExplorer", "actionUrduKeyboard"]
+    assert _menuEntries(window.ui.menuView) == [
+        "actionFileExplorer",
+        "actionUrduKeyboard",
+        "-",
+        "actionLineNumbers",
+    ]
     assert _menuEntries(window.ui.menuFormat) == [
         "actionWordWrap",
         "actionSpellChecker",
         "actionAssistMode",
+        "actionAutoEnveloping",
     ]
     assert _menuEntries(window.ui.menuHelp) == ["actionAbout"]
     assert window.ui.menuFile.actions()[-1] is window.ui.actionQuit
@@ -474,12 +503,13 @@ def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) ->
         "actionSelectAll",
     ]
     assert window.ui.editToolBar.windowTitle() == "Edit"
+    assert window.ui.formatToolBar.windowTitle() == "Format"
     assert [a.objectName() for a in window.ui.formatToolBar.actions()] == [
         "actionWordWrap",
         "actionSpellChecker",
         "actionAssistMode",
+        "actionAutoEnveloping",
     ]
-    assert window.ui.formatToolBar.windowTitle() == "Format"
 
     for toolbar in (window.ui.mainToolBar, window.ui.editToolBar, window.ui.formatToolBar):
         assert window.toolBarArea(toolbar) == Qt.ToolBarArea.TopToolBarArea
@@ -1163,6 +1193,60 @@ def test_newDocumentsInheritTheAssistMode(qapp: QApplication, tmp_path: Path) ->
     assert _pixmapPixels(window.ui.lblAssist.pixmap()) == _pixmapPixels(
         servicePixmap(icon("assist"), False)
     )
+    window.close()
+
+
+# ******************************************************************************
+def test_viewMenuTogglesTheLineNumbersGutter(qapp: QApplication, tmp_path: Path) -> None:
+    """Line numbers start on, the toggle fans out, and the choice persists."""
+    window = _window(tmp_path)
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    assert editor is not None
+
+    action = window.ui.actionLineNumbers
+    assert action.isCheckable()
+    assert action.isChecked()
+    assert editor.isGutterEnabled()
+    # The gutter digits: Noto Naskh Arabic at the editor's point size.
+    _, size = resolveTypeface(window.settings.Appearances)
+    assert editor.gutterFont().families()[0] == "Noto Naskh Arabic"
+    assert editor.gutterFont().pointSizeF() == size
+
+    action.setChecked(False)
+    assert not editor.isGutterEnabled()
+    assert window.settings.Editor.LineNumbers is False
+    assert window.settings.saved  # the choice was persisted
+
+    window.onNew()
+    newEditor = window.ui.tbwEditors.activeEditor()
+    assert newEditor is not None
+    assert not newEditor.isGutterEnabled()  # a new tab inherits the switch
+    window.close()
+
+
+# ******************************************************************************
+def test_formatMenuTogglesAutoEnveloping(qapp: QApplication, tmp_path: Path) -> None:
+    """Auto enveloping starts on, the toggle fans out, and the choice persists."""
+    window = _window(tmp_path)
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    assert editor is not None
+
+    action = window.ui.actionAutoEnveloping
+    assert action.isCheckable()
+    assert action.isChecked()
+    assert editor.isAutoWrapEnabled()
+
+    action.setChecked(False)
+    assert not editor.isAutoWrapEnabled()
+    assert window.settings.Editor.AutoEnveloping is False
+    assert window.settings.saved  # the choice was persisted
+
+    window.onNew()
+    newEditor = window.ui.tbwEditors.activeEditor()
+    assert newEditor is not None
+    assert not newEditor.isAutoWrapEnabled()  # a new tab inherits the switch
     window.close()
 
 
