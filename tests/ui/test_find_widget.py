@@ -9,7 +9,7 @@
 # ******************************************************************************
 from pyraya import PyRaya
 from PySide6.QtCore import QSize
-from PySide6.QtGui import QFont, QPalette, QTextCursor, QTextDocument
+from PySide6.QtGui import QColor, QFont, QPalette, QTextCursor, QTextDocument
 from PySide6.QtWidgets import QApplication
 
 from mollana.editor.document import Document
@@ -491,3 +491,55 @@ def test_countLabelKeepsAFourDigitWidth(qapp: QApplication) -> None:
     widget.findField.setText("")
     qapp.processEvents()
     assert widget.findField.width() == fieldWidth  # the search field keeps its size
+
+
+# ******************************************************************************
+def test_findWidgetStaysAboveTheGutter(qapp: QApplication) -> None:
+    """The bar keeps top Z over PyRaya's gutter, across resizes and re-enables.
+
+    The bar's right edge reaches into the gutter strip, and PyRaya raises
+    the gutter from its own ``resizeEvent`` — after the bar's raise from
+    the resize filter. The bar must still end up above, or the gutter's
+    background paints over the bar's right end.
+    """
+
+    def barFillPixel(editor: PyRaya, bar: FindWidget) -> QColor:
+        """One pixel inside the bar's right margin band.
+
+        The bar is anchored right, so a fixed editor-relative point drifts
+        across the bar's controls as the editor resizes; the margin band
+        always holds the bar's own fill. It reads the fill while the bar is
+        on top, the gutter's background when the gutter has climbed over.
+        """
+        image = editor.grab().toImage()
+        x = bar.x() + bar.width() - 4
+        y = bar.y() + 20
+        return image.pixelColor(x, y)
+
+    from pyraya import GutterArea
+
+    editor = PyRaya()
+    editor.show()
+    editor.resize(600, 400)
+    editor.setGutterEnabled(True)
+    widget = FindWidget(editor)
+    widget.openFind()
+    qapp.processEvents()
+    assert editor.findChildren(GutterArea)  # the strip exists under the bar
+    fill = widget.palette().color(QPalette.ColorRole.Window)
+
+    assert barFillPixel(editor, widget) == fill  # bar on top before the resize
+
+    # A resize runs the bar's raise (from the editor's filter) and then the
+    # gutter's raise (from PyRaya's resizeEvent); the bar must end above.
+    editor.resize(640, 400)
+    qapp.processEvents()
+    qapp.processEvents()
+    assert barFillPixel(editor, widget) == fill, "gutter painted over the bar after a resize"
+
+    # Toggling the gutter off and on re-raises it over the open bar too.
+    editor.setGutterEnabled(False)
+    editor.setGutterEnabled(True)
+    qapp.processEvents()
+    qapp.processEvents()
+    assert barFillPixel(editor, widget) == fill, "gutter painted over the bar after a re-enable"

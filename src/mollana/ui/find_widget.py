@@ -14,8 +14,8 @@ the editor's own cursor.
 # ******************************************************************************
 from typing import cast
 
-from pyraya import PyRaya
-from PySide6.QtCore import QEvent, QObject, QRectF, Qt, Signal
+from pyraya import GutterArea, PyRaya
+from PySide6.QtCore import QEvent, QObject, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import (
     QColor,
     QFont,
@@ -191,10 +191,29 @@ class FindWidget(QWidget):
         editor.installEventFilter(self)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
-        """Re-anchor when the editor resizes."""
+        """Re-anchor after the editor resizes, and after the gutter moves.
+
+        Both raises happen inside the editor's own event handling: the bar's
+        raise runs from this filter, which Qt delivers *before* the editor's
+        ``resizeEvent``, and PyRaya raises the gutter again from that
+        ``resizeEvent`` and from every gutter width change. Re-anchoring
+        immediately would therefore be covered over again a moment later,
+        so the raise is deferred to a zero-timer — it lands after PyRaya's
+        own event handling finishes, and the bar stays on top.
+        """
         editor = getattr(self, "editor", None)
-        if editor is not None and watched is editor and event.type() == QEvent.Type.Resize:
-            self._reposition()
+        if editor is None:
+            return super().eventFilter(watched, event)
+        if watched is editor:
+            if event.type() == QEvent.Type.Resize:
+                QTimer.singleShot(0, self._reposition)
+            return super().eventFilter(watched, event)
+        if isinstance(watched, GutterArea) and event.type() in (
+            QEvent.Type.Show,
+            QEvent.Type.Move,
+            QEvent.Type.Resize,
+        ):
+            QTimer.singleShot(0, self._reposition)
         return super().eventFilter(watched, event)
 
     def _toggleReplaceRow(self, checked: bool) -> None:
@@ -214,6 +233,12 @@ class FindWidget(QWidget):
         """Anchor top-right over the editor with a MARGIN inset."""
         self.move(self.editor.width() - self.width() - MARGIN, MARGIN)
         self.raise_()
+        # Watch the gutter for further geometry changes: PyRaya raises it
+        # on every reposition, and its Show/Move/Resize events re-arm this
+        # filter so the bar climbs back above. Installing an installed
+        # filter object again is a no-op, so this stays cheap.
+        for gutter in self.editor.findChildren(GutterArea):
+            gutter.installEventFilter(self)
 
     def openFind(self) -> None:
         """Show the find row, focus the find field, and pause assist.

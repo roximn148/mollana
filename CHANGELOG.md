@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The find bar no longer disappears under the line-number gutter: resizing
+  the window or toggling the gutter while the bar is open used to let the
+  gutter paint over the bar's right end. The bar now climbs back above
+  PyRaya's gutter whenever the editor resizes or the gutter moves.
+
 ### Added
 
 - Line numbers: a gutter of Eastern Arabic digits beside the text, shown by
