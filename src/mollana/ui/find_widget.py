@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QScrollBar,
     QSizePolicy,
     QTextEdit,
     QToolButton,
@@ -191,6 +192,9 @@ class FindWidget(QWidget):
         self.replaceAllButton.clicked.connect(self.replaceAll)
         self.replaceToggle.toggled.connect(self._toggleReplaceRow)
         editor.installEventFilter(self)
+        # The scrollbar's Show/Hide re-arms the same filter: the strip can
+        # appear or disappear without the editor itself ever resizing.
+        editor.verticalScrollBar().installEventFilter(self)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         """Re-anchor after the editor resizes, and after the gutter moves.
@@ -209,6 +213,11 @@ class FindWidget(QWidget):
         if watched is editor:
             if event.type() == QEvent.Type.Resize:
                 QTimer.singleShot(0, self._reposition)
+            return super().eventFilter(watched, event)
+        if isinstance(watched, QScrollBar) and event.type() in (QEvent.Type.Show, QEvent.Type.Hide):
+            # The vertical strip's visibility changed: its width joins or
+            # leaves the margin, so re-anchor after the editor settles.
+            QTimer.singleShot(0, self._reposition)
             return super().eventFilter(watched, event)
         if isinstance(watched, GutterArea) and event.type() in (
             QEvent.Type.Show,
@@ -232,8 +241,17 @@ class FindWidget(QWidget):
         self._reposition()
 
     def _reposition(self) -> None:
-        """Anchor top-left over the editor with a MARGIN inset."""
-        self.move(MARGIN, MARGIN)
+        """Anchor top-left over the editor, clear of the vertical scrollbar.
+
+        PyRaya is right-to-left, so Qt runs the vertical scrollbar down
+        the editor's left edge; while it is on screen its width widens
+        the MARGIN inset, so the bar never hangs over the strip.
+        """
+        offset = 0
+        scrollbar = self.editor.verticalScrollBar()
+        if scrollbar.isVisible():
+            offset = scrollbar.width()
+        self.move(MARGIN + offset, MARGIN)
         self.raise_()
         # Watch the gutter for further geometry changes: PyRaya raises it
         # on every reposition, and its Show/Move/Resize events re-arm this

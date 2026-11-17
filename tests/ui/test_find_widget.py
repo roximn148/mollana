@@ -513,6 +513,37 @@ def test_findWidgetAnchorsTopLeft(qapp: QApplication) -> None:
 
 
 # ******************************************************************************
+def test_findWidgetClearsTheVerticalScrollbar(qapp: QApplication) -> None:
+    """The bar hangs beyond the vertical scrollbar strip, never over it.
+
+    PyRaya is laid out right-to-left, so Qt runs the vertical scrollbar
+    down the editor's left edge; the bar's margin widens by the
+    scrollbar while it is shown, and reverts when it disappears.
+    """
+    editor = PyRaya()
+    editor.show()
+    editor.resize(600, 400)
+    editor.setPlainText("\n".join(f"line {i}" for i in range(200)))
+    qapp.processEvents()
+    scrollbar = editor.verticalScrollBar()
+    assert scrollbar.isVisible()  # the strip is on screen
+    widget = FindWidget(editor)
+    widget.openFind()
+    qapp.processEvents()
+
+    assert widget.x() == MARGIN + scrollbar.width()
+    stripRight = scrollbar.mapTo(editor, scrollbar.rect().topRight()).x()
+    assert widget.x() > stripRight  # nothing of the bar over the strip
+
+    # and when the scrollbar disappears, the margin reverts
+    editor.setPlainText("short")
+    qapp.processEvents()
+    qapp.processEvents()
+    assert not scrollbar.isVisible()
+    assert widget.x() == MARGIN
+
+
+# ******************************************************************************
 def test_openFindSeedsTheSelection(qapp: QApplication) -> None:
     """An active selection seeds the field and is searched immediately."""
     editor = PyRaya()
