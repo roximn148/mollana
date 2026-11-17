@@ -267,6 +267,22 @@ class MainWindowUi:
             shortcut="Ctrl+F",
             tooltip="Find text in the document",
         )
+        self.actionFindNext = _makeAction(
+            window,
+            "actionFindNext",
+            "Find &Next",
+            iconName="find-next",
+            shortcut="F3",
+            tooltip="Find the next match",
+        )
+        self.actionFindPrev = _makeAction(
+            window,
+            "actionFindPrev",
+            "Find &Previous",
+            iconName="find-prev",
+            shortcut="Shift+F3",
+            tooltip="Find the previous match",
+        )
         self.actionReplace = _makeAction(
             window,
             "actionReplace",
@@ -417,6 +433,8 @@ class MainWindowUi:
         self.menuEdit.addAction(self.actionSelectAll)
         self.menuEdit.addSeparator()
         self.menuEdit.addAction(self.actionFind)
+        self.menuEdit.addAction(self.actionFindNext)
+        self.menuEdit.addAction(self.actionFindPrev)
         self.menuEdit.addAction(self.actionReplace)
 
         self.menuFormat.addAction(self.actionWordWrap)

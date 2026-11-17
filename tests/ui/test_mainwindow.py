@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 from pyraya import PyRaya
 from PySide6.QtCore import QEvent, QSize, Qt, QTimer
-from PySide6.QtGui import QColor, QIcon, QKeySequence, QMouseEvent, QPixmap
+from PySide6.QtGui import QColor, QIcon, QKeySequence, QMouseEvent, QPixmap, QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -167,6 +167,10 @@ EXPECTED_ACTIONS: dict[str, tuple[str, str, bool, bool]] = {
     "actionCopy": ("&Copy", "Ctrl+C", False, False),
     "actionPaste": ("&Paste", "Ctrl+V", False, False),
     "actionSelectAll": ("Select &All", "Ctrl+A", False, False),
+    "actionFind": ("&Find", "Ctrl+F", False, False),
+    "actionFindNext": ("Find &Next", "F3", False, False),
+    "actionFindPrev": ("Find &Previous", "Shift+F3", False, False),
+    "actionReplace": ("Re&place", "Ctrl+H", False, False),
     "actionWordWrap": ("Word &Wrap", "", True, True),
     "actionSpellChecker": ("&Spell Checker", "F5", True, True),
     "actionAssistMode": ("&Assist Mode", "F6", True, True),
@@ -186,6 +190,8 @@ EXPECTED_TOOLTIPS: dict[str, str] = {
     "actionSaveAs": "Save the active document under another path",
     "actionSpellChecker": "Underline words the dictionary does not know",
     "actionAssistMode": "Show roman hints under the word being edited",
+    "actionFindNext": "Find the next match",
+    "actionFindPrev": "Find the previous match",
     "actionLineNumbers": "Show the line-number gutter in every editor",
     "actionAutoEnveloping": "Envelope a selection by typing its surrounding character",
 }
@@ -207,6 +213,8 @@ ICON_NAMES: dict[str, str] = {
     "actionPaste": "paste",
     "actionSelectAll": "select-all",
     "actionFind": "find",
+    "actionFindNext": "find-next",
+    "actionFindPrev": "find-prev",
     "actionReplace": "replace",
     "actionFileExplorer": "file-tree",
     "actionUrduKeyboard": "keyboard",
@@ -469,6 +477,8 @@ def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) ->
         "actionSelectAll",
         "-",
         "actionFind",
+        "actionFindNext",
+        "actionFindPrev",
         "actionReplace",
     ]
     assert _menuEntries(window.ui.menuView) == [
@@ -1341,4 +1351,80 @@ def test_findAndReplaceActionsOpenTheWidget(qapp: QApplication, tmp_path: Path) 
     qapp.processEvents()
     assert widget.replaceRow.isVisible()
     assert widget.findField.hasFocus()
+    window.close()
+
+
+# ******************************************************************************
+def test_actionFindSeedsTheSelection(qapp: QApplication, tmp_path: Path) -> None:
+    """Ctrl+F with an active selection seeds the field and searches at once."""
+    window = _window(tmp_path)
+    window.show()
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    editor.setPlainText("abc def abc")
+    cursor = editor.textCursor()
+    cursor.setPosition(4)
+    cursor.setPosition(7, QTextCursor.MoveMode.KeepAnchor)  # "def"
+    editor.setTextCursor(cursor)
+
+    window.ui.actionFind.trigger()
+    qapp.processEvents()
+
+    widget = window.ui.tbwEditors.activeFindWidget()
+    assert widget is not None
+    assert widget.findField.text() == "def"
+    assert widget.isVisible()
+    assert editor.textCursor().selectionStart() == 4  # searched immediately
+    window.close()
+
+
+# ******************************************************************************
+def test_actionFindReseedsWhileAlreadyOpen(qapp: QApplication, tmp_path: Path) -> None:
+    """A fresh selection re-seeds the open bar through Ctrl+F."""
+    window = _window(tmp_path)
+    window.show()
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    editor.setPlainText("abc def abc ghi")
+    window.ui.actionFind.trigger()
+    widget = window.ui.tbwEditors.activeFindWidget()
+    assert widget is not None
+    widget.findField.setText("abc")
+    qapp.processEvents()
+
+    cursor = editor.textCursor()
+    cursor.setPosition(8)
+    cursor.setPosition(11, QTextCursor.MoveMode.KeepAnchor)  # the second "abc"
+    editor.setTextCursor(cursor)
+    window.ui.actionFind.trigger()
+    qapp.processEvents()
+
+    assert widget.findField.text() == "abc"
+    assert editor.textCursor().selectionStart() == 8  # the re-seed's own match
+    window.close()
+
+
+# ******************************************************************************
+def test_findNextAndPrevActionsNavigate(qapp: QApplication, tmp_path: Path) -> None:
+    """F3 and Shift+F3 step through the matches, wrapping at both ends."""
+    window = _window(tmp_path)
+    window.show()
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    editor.setPlainText("abc def abc")
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    cursor.setPosition(3, QTextCursor.MoveMode.KeepAnchor)  # "abc"
+    editor.setTextCursor(cursor)
+    window.ui.actionFind.trigger()  # seeds "abc", selects the first match
+    assert editor.textCursor().selectionStart() == 0
+
+    window.ui.actionFindNext.trigger()
+    assert editor.textCursor().selectionStart() == 8
+
+    window.ui.actionFindPrev.trigger()
+    assert editor.textCursor().selectionStart() == 0
+
+    window.ui.actionFindPrev.trigger()  # wraps back to the last match
+    assert editor.textCursor().selectionStart() == 8
     window.close()

@@ -14,7 +14,7 @@ from PySide6.QtWidgets import QApplication
 
 from mollana.editor.document import Document
 from mollana.ui.editor_pane import EditorPane
-from mollana.ui.find_widget import FindWidget, findMatches
+from mollana.ui.find_widget import MARGIN, FindWidget, findMatches
 from mollana.ui.theme import CLOSE_INK, icon
 
 
@@ -494,6 +494,112 @@ def test_countLabelKeepsAFourDigitWidth(qapp: QApplication) -> None:
 
 
 # ******************************************************************************
+def test_findWidgetAnchorsTopLeft(qapp: QApplication) -> None:
+    """The bar hangs from the editor's top-left corner, inside the margin."""
+    editor = PyRaya()
+    editor.show()
+    editor.resize(600, 400)
+    widget = FindWidget(editor)
+    widget.openFind()
+    qapp.processEvents()
+    assert widget.x() == MARGIN
+    assert widget.y() == MARGIN
+    # and it re-anchors after a resize
+    editor.resize(640, 400)
+    qapp.processEvents()
+    qapp.processEvents()
+    assert widget.x() == MARGIN
+    assert widget.y() == MARGIN
+
+
+# ******************************************************************************
+def test_openFindSeedsTheSelection(qapp: QApplication) -> None:
+    """An active selection seeds the field and is searched immediately."""
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc def abc")
+    widget = FindWidget(editor)
+    cursor = editor.textCursor()
+    cursor.setPosition(4)
+    cursor.setPosition(7, QTextCursor.MoveMode.KeepAnchor)  # "def"
+    editor.setTextCursor(cursor)
+
+    widget.openFind()
+    qapp.processEvents()
+
+    assert widget.findField.text() == "def"
+    assert widget.countLabel.text() == "1/1"
+    # the seeded match is selected right away, not waiting for Enter
+    assert editor.textCursor().selectionStart() == 4
+
+
+# ******************************************************************************
+def test_openFindReseedsWhileAlreadyOpen(qapp: QApplication) -> None:
+    """Triggering find with a new selection re-seeds the open bar."""
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc def abc ghi")
+    widget = FindWidget(editor)
+    widget.openFind()
+    qapp.processEvents()
+    widget.findField.setText("abc")
+    qapp.processEvents()
+    assert widget.countLabel.text() == "1/2"  # searching "abc"
+
+    cursor = editor.textCursor()
+    cursor.setPosition(8)
+    cursor.setPosition(11, QTextCursor.MoveMode.KeepAnchor)  # the second "abc"
+    editor.setTextCursor(cursor)
+    widget.openFind()  # already open: still re-seeds
+    qapp.processEvents()
+
+    assert widget.findField.text() == "abc"
+    # the re-seed lands on the selection that seeded it, not the first match
+    assert editor.textCursor().selectionStart() == 8
+
+
+# ******************************************************************************
+def test_openFindKeepsTheQueryWithoutASelection(qapp: QApplication) -> None:
+    """Without a selection, re-triggering find never clobbers the query."""
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc")
+    widget = FindWidget(editor)
+    widget.openFind()
+    widget.findField.setText("abc")
+    cursor = editor.textCursor()
+    cursor.setPosition(2)
+    editor.setTextCursor(cursor)  # a caret, not a selection
+    widget.openFind()
+    assert widget.findField.text() == "abc"
+
+
+# ******************************************************************************
+def test_openFindReplacesParagraphSeparators(qapp: QApplication) -> None:
+    """A selection spanning a hard newline seeds as one searchable phrase."""
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc\ndef")
+    widget = FindWidget(editor)
+    cursor = editor.textCursor()
+    cursor.setPosition(2)
+    cursor.setPosition(5, QTextCursor.MoveMode.KeepAnchor)  # "c\nd"
+    editor.setTextCursor(cursor)
+
+    widget.openFind()
+    assert widget.findField.text() == "c d"
+
+
+# ******************************************************************************
+def test_findButtonsCarryShortcutTooltips(qapp: QApplication) -> None:
+    """The bar's prev/next buttons name their menu shortcuts in their tooltips."""
+    editor = PyRaya()
+    widget = FindWidget(editor)
+    assert widget.nextButton.toolTip() == "Find Next (F3)"
+    assert widget.prevButton.toolTip() == "Find Previous (Shift+F3)"
+
+
+# ******************************************************************************
 def test_findWidgetStaysAboveTheGutter(qapp: QApplication) -> None:
     """The bar keeps top Z over PyRaya's gutter, across resizes and re-enables.
 
@@ -504,15 +610,15 @@ def test_findWidgetStaysAboveTheGutter(qapp: QApplication) -> None:
     """
 
     def barFillPixel(editor: PyRaya, bar: FindWidget) -> QColor:
-        """One pixel inside the bar's right margin band.
+        """One pixel inside the bar's left margin band.
 
-        The bar is anchored right, so a fixed editor-relative point drifts
-        across the bar's controls as the editor resizes; the margin band
-        always holds the bar's own fill. It reads the fill while the bar is
-        on top, the gutter's background when the gutter has climbed over.
+        The bar is anchored top-left, so this point stays inside both the
+        bar and the editor at any size. It reads the bar's fill while the
+        bar is on top, the gutter's background when the gutter has climbed
+        over.
         """
         image = editor.grab().toImage()
-        x = bar.x() + bar.width() - 4
+        x = bar.x() + 4
         y = bar.y() + 20
         return image.pixelColor(x, y)
 

@@ -90,7 +90,7 @@ def findMatches(
 class FindWidget(QWidget):
     """The non-modal find-and-replace bar anchored over a PyRaya.
 
-    Anchored top-right over its parent editor. Row one is the find row;
+    Anchored top-left over its parent editor. Row one is the find row;
     row two (the replace row) collapses behind ``replaceToggle``. Esc closes
     the bar and returns focus to the editor.
     """
@@ -112,8 +112,10 @@ class FindWidget(QWidget):
         self.countLabel = QLabel(self)
         self.prevButton = QToolButton(self)
         self.prevButton.setIcon(icon("find-prev"))
+        self.prevButton.setToolTip("Find Previous (Shift+F3)")
         self.nextButton = QToolButton(self)
         self.nextButton.setIcon(icon("find-next"))
+        self.nextButton.setToolTip("Find Next (F3)")
         self.replaceToggle = QToolButton(self)
         self.replaceToggle.setCheckable(True)
         # the same glyph the Edit menu's Replace action carries
@@ -225,13 +227,13 @@ class FindWidget(QWidget):
         # The bar is a plain child widget: nothing resizes it when the row's
         # visibility changes the layout, so it would keep its old height and
         # crush the rows. Take the layout's size hint and stay anchored
-        # top-right.
+        # top-left.
         self.adjustSize()
         self._reposition()
 
     def _reposition(self) -> None:
-        """Anchor top-right over the editor with a MARGIN inset."""
-        self.move(self.editor.width() - self.width() - MARGIN, MARGIN)
+        """Anchor top-left over the editor with a MARGIN inset."""
+        self.move(MARGIN, MARGIN)
         self.raise_()
         # Watch the gutter for further geometry changes: PyRaya raises it
         # on every reposition, and its Show/Move/Resize events re-arm this
@@ -243,11 +245,21 @@ class FindWidget(QWidget):
     def openFind(self) -> None:
         """Show the find row, focus the find field, and pause assist.
 
+        An active selection seeds the query on every trigger, open or not,
+        and is searched immediately — the field's ``textChanged`` rescan
+        selects the first match before the user touches a key. A selection
+        that spans a hard newline seeds with the paragraph separator
+        (U+2029) replaced by a space, so the phrase stays searchable in the
+        single-line field. Without a selection the query is left alone.
+
         Assist stays off for as long as the bar is open — the roman
         overlay must not take the focus while the fields are being
         edited — and closeWidget restores the state it had before the
         bar opened.
         """
+        selection = self.editor.textCursor().selectedText().replace("\u2029", " ")
+        if selection:
+            self.findField.setText(selection)
         if self.isHidden():
             self._assist = self.editor.isAssistEnabled()
             self.editor.setAssistEnabled(False)
@@ -292,8 +304,9 @@ class FindWidget(QWidget):
     def _rescan(self) -> None:
         """Recompute the match list from the find field and the toggles.
 
-        Keeps ``_current`` when the editor's current selection still equals
-        that match; otherwise selects the first match.
+        Keeps the editor's current selection as the active match when it is
+        one of them — at any index, so a re-seed from a fresh selection
+        lands on that selection — otherwise selects the first match.
         """
         self._matches = findMatches(
             self.editor.document(),
@@ -303,9 +316,9 @@ class FindWidget(QWidget):
         )
         if self._matches:
             old = self._currentSelection()
-            if not (
-                0 <= self._current < len(self._matches) and self._matches[self._current] == old
-            ):
+            if old in self._matches:
+                self._current = self._matches.index(old)
+            else:
                 self._current = 0
             self._selectMatch(self._current)
         else:

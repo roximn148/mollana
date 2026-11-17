@@ -111,6 +111,8 @@ class MainWindow(QMainWindow):
         ui.actionSelectAll.triggered.connect(lambda: self._callEditor("selectAll"))
         ui.actionFind.triggered.connect(self.onFind)
         ui.actionReplace.triggered.connect(self.onReplace)
+        ui.actionFindNext.triggered.connect(lambda: self._callFindWidget("findNext"))
+        ui.actionFindPrev.triggered.connect(lambda: self._callFindWidget("findPrev"))
 
         ui.actionWordWrap.toggled.connect(self.onWordWrap)
         ui.actionSpellChecker.toggled.connect(self.onSpellChecker)
@@ -490,6 +492,13 @@ class MainWindow(QMainWindow):
         editor = self.ui.tbwEditors.activeEditor()
         if editor is not None:
             getattr(editor, method)()
+
+    # **************************************************************************
+    def _callFindWidget(self, method: str) -> None:
+        """Call ``method`` on the active tab's find bar, if there is one."""
+        widget = self.ui.tbwEditors.activeFindWidget()
+        if widget is not None:
+            getattr(widget, method)()
 
     # **************************************************************************
     # Chrome

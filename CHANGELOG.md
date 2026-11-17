@@ -26,9 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`[Editor] AutoEnveloping`) for the next run.
 - Find and replace: a find widget over the active editor (Ctrl+F, Ctrl+H) with
   match count, case and whole-word toggles, replace, and replace-all. The bar
-  has rounded corners, a reddish close button, and its controls use the
-  interface font, while its fields keep the editor's typeface. It stays hidden
-  until an action opens it.
+  hangs from the editor's top-left corner, has rounded corners, a reddish
+  close button, and its controls use the interface font, while its fields
+  keep the editor's typeface. It stays hidden until an action opens it, and
+  an active selection seeds the query on every trigger — open or not — and is
+  searched immediately. Find Next (F3) and Find Previous (Shift+F3) sit in
+  the Edit menu after Find and step through the matches in both directions.
 - Edit and Format toolbars above the document, mirroring their menus: the
   Edit toolbar carries Undo, Redo, Cut, Copy, Paste, and Select All; the
   Format toolbar carries Word Wrap, Spell Checker, Assist Mode, and Auto
