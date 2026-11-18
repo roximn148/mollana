@@ -606,6 +606,45 @@ def test_openFindKeepsTheQueryWithoutASelection(qapp: QApplication) -> None:
 
 
 # ******************************************************************************
+def test_triggerReplaceOpensTheRowFirst(qapp: QApplication) -> None:
+    """The first Ctrl+H expands the replace row over the find row."""
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc abc")
+    widget = FindWidget(editor)
+    widget.triggerReplace()
+    qapp.processEvents()
+    assert widget.isVisible()
+    assert widget.replaceRow.isVisible()
+    assert widget.findField.text() == ""  # the query is untouched
+    assert editor.toPlainText() == "abc abc"  # nothing was replaced
+
+
+# ******************************************************************************
+def test_triggerReplaceActsAsTheButtonWhenTheRowShows(qapp: QApplication) -> None:
+    """With the replace row showing, Ctrl+H is the Replace button's click."""
+    editor = PyRaya()
+    editor.show()
+    editor.setPlainText("abc abc")
+    widget = FindWidget(editor)
+    widget.openFind()
+    widget.findField.setText("abc")
+    qapp.processEvents()  # the first match is selected
+    widget.triggerReplace()  # expands the row
+    widget.replaceField.setText("xyz")
+
+    widget.triggerReplace()
+    qapp.processEvents()
+    assert editor.toPlainText() == "xyz abc"  # the first match replaced
+
+    # and it keeps stepping: the next Ctrl+H replaces the remaining match
+    widget.triggerReplace()
+    qapp.processEvents()
+    assert editor.toPlainText() == "xyz xyz"
+    assert widget.countLabel.text() == "0/0"
+
+
+# ******************************************************************************
 def test_openFindReplacesParagraphSeparators(qapp: QApplication) -> None:
     """A selection spanning a hard newline seeds as one searchable phrase."""
     editor = PyRaya()

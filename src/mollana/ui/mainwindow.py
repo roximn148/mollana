@@ -266,10 +266,10 @@ class MainWindow(QMainWindow):
 
     # **************************************************************************
     def onReplace(self) -> None:
-        """Open the find bar with the replace row expanded."""
+        """Open the replace row, or replace the match when it is showing."""
         widget = self.ui.tbwEditors.activeFindWidget()
         if widget is not None:
-            widget.openReplace()
+            widget.triggerReplace()
 
     # **************************************************************************
     def onNew(self) -> None:

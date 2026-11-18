@@ -34,7 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   opens it, and an active selection seeds the query on every trigger — open or
   not — and is searched immediately. Find Next (F3) and Find Previous
   (Shift+F3) sit in the Edit menu after Find and step through the matches in
-  both directions.
+  both directions. Ctrl+H opens the replace row the first time; while that
+  row is showing it is the Replace button itself, replacing the current match
+  and stepping to the next with every press.
 - Edit and Format toolbars above the document, mirroring their menus: the
   Edit toolbar carries Undo, Redo, Cut, Copy, Paste, and Select All; the
   Format toolbar carries Word Wrap, Spell Checker, Assist Mode, and Auto

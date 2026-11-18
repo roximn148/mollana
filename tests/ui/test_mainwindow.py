@@ -1405,6 +1405,41 @@ def test_actionFindReseedsWhileAlreadyOpen(qapp: QApplication, tmp_path: Path) -
 
 
 # ******************************************************************************
+# ******************************************************************************
+def test_actionReplaceReplacesWhenTheRowShows(qapp: QApplication, tmp_path: Path) -> None:
+    """Ctrl+H opens the replace row first, then acts as the Replace button."""
+    window = _window(tmp_path)
+    window.show()
+    window.onNew()
+    editor = window.ui.tbwEditors.activeEditor()
+    editor.setPlainText("abc abc")
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    cursor.setPosition(3, QTextCursor.MoveMode.KeepAnchor)  # "abc"
+    editor.setTextCursor(cursor)
+    window.ui.actionFind.trigger()  # seeds "abc", selects the first match
+    widget = window.ui.tbwEditors.activeFindWidget()
+    assert widget is not None
+    assert widget.findField.text() == "abc"
+
+    window.ui.actionReplace.trigger()  # the row opens, nothing is replaced
+    qapp.processEvents()
+    assert widget.replaceRow.isVisible()
+    assert editor.toPlainText() == "abc abc"
+
+    widget.replaceField.setText("xyz")
+    window.ui.actionReplace.trigger()  # the row shows: the button's click
+    qapp.processEvents()
+    assert editor.toPlainText() == "xyz abc"
+
+    window.ui.actionReplace.trigger()  # and it steps to the remaining match
+    qapp.processEvents()
+    assert editor.toPlainText() == "xyz xyz"
+    window.session.active.dirty = False  # the replace dirtied it; close clean
+    window.close()
+
+
+# ******************************************************************************
 def test_findNextAndPrevActionsNavigate(qapp: QApplication, tmp_path: Path) -> None:
     """F3 and Shift+F3 step through the matches, wrapping at both ends."""
     window = _window(tmp_path)

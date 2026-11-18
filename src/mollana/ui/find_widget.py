@@ -291,6 +291,18 @@ class FindWidget(QWidget):
         self.openFind()
         self.replaceToggle.setChecked(True)
 
+    def triggerReplace(self) -> None:
+        """The Ctrl+H action: expand the row, or replace when it shows.
+
+        The first Ctrl+H opens the replace row over the find row. While
+        that row is showing, the shortcut is the Replace button's click —
+        it replaces the current match and steps to the next.
+        """
+        if self.isVisible() and self.replaceRow.isVisible():
+            self.replaceCurrent()
+        else:
+            self.openReplace()
+
     def closeWidget(self) -> None:
         """Hide the bar, clear the highlights, and return focus."""
         self.editor.setExtraSelections([])
