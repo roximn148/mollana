@@ -47,7 +47,7 @@ Features
 * Urdu text as it appears in print: paragraphs flow right to left in a Nastaliq/Naskh font.
 * Mollana underlines misspelled words against a built-in dictionary of Urdu words, and it can learn any word it does not know.
 * Open several files at once in tabs, and browse any folder from the file panel.
-* Turn a folder into a project, and Mollana keeps track of the files in it.
+* Open a folder and Mollana remembers your workspace: the files you had open, the tab you were working in, and even where your caret was. Closing and reopening the folder puts you exactly back where you left off, and unsaved drafts survive a crash.
 * Switch between a dark theme and a light theme.
 
 Developer Section
@@ -56,7 +56,8 @@ Developer Section
 The editor widget and the transliteration engine are separate packages —
 [`pyraya`](https://pypi.org/project/pyraya/) and
 [`romanalfaz`](https://pypi.org/project/romanalfaz/). This repository is the
-application: the window, the file tree, projects, preferences, and dictionaries.
+application: the window, the file tree, folder sessions, preferences, and
+dictionaries.
 
 ### Requirements
 

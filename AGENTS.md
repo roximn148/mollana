@@ -10,8 +10,8 @@ It is a Python/PySide6 desktop application (alpha) in a `src/` layout.
 The editor widget and the transliteration engine are separate PyPI packages: `pyraya`
 (`PyRaya`) and `romanalfaz` (`RomanAlfaz`, `Vocabulary`). They began here and are now the
 canonical implementations. This repository is the **application shell**: window, file tree,
-projects, preferences, dictionaries, theming, packaging. Editor or transliteration behavior
-belongs upstream; do not reimplement it here.
+folder sessions, preferences, dictionaries, theming, packaging. Editor or transliteration
+behavior belongs upstream; do not reimplement it here.
 
 ## Layers
 
@@ -20,13 +20,13 @@ belongs upstream; do not reimplement it here.
 | Layer    | Holds                                                        | May import        |
 | -------- | ------------------------------------------------------------ | ----------------- |
 | `ui`     | `MainWindow`, explorer, editor tabs, theme, resources        | `editor`, `infra` |
-| `editor` | documents, sessions, projects, dictionaries, recent files     | `infra`           |
+| `editor` | documents, sessions, folders, dictionaries, recent files     | `infra`           |
 | `infra`  | identity (`meta`), `paths`, `logging`, `settings`             | stdlib + PyPI     |
 
 - `editor` **never** imports PySide6. It is driveable from a headless test; the tab layer
   translates between these types and widgets.
 - `infra` never imports `editor` or `ui`.
-- `MainWindow` wires and hosts; it does not own document, project, or transliteration logic.
+- `MainWindow` wires and hosts; it does not own document, folder, or transliteration logic.
 
 ## Repository layout
 
@@ -36,9 +36,9 @@ src/mollana/
 ├── __main__.py             # python -m mollana
 ├── app.py                  # RApplication + main(); the composition root
 ├── editor/
-│   ├── document.py         # identity, dirty flag, encoding/newline; never the text
-│   ├── session.py          # open documents + active index; optional Project
-│   ├── project.py          # .mollana/workspace.toml — deliberate conversion
+│   ├── document.py         # identity, untitled flag, dirty flag, encoding/newline; never the text
+│   ├── session.py          # open documents + active index; optional Folder
+│   ├── folder.py           # .mollana/workspace.toml — the live session record
 │   ├── dictionaries.py     # user dictionary store + catalogue
 │   └── recent.py           # bounded MRU list
 ├── infra/
@@ -165,13 +165,16 @@ follow it explicitly, in order:
 
 | State                  | Location                                              |
 | ---------------------- | ----------------------------------------------------- |
-| Project manifest       | `<project>/.mollana/workspace.toml`                   |
-| Preferences, session   | `platformdirs` config dir (`preferences.toml`, …)     |
-| Dictionaries, logs, recovery | `platformdirs` data dir (`dictionaries/`, `.log`) |
+| Folder session manifest  | `<folder>/.mollana/workspace.toml`                    |
+| Untitled recovery buffers | `<folder>/.mollana/recovery/<document-id>.txt`      |
+| Preferences, recent lists | `platformdirs` config dir (`preferences.toml`, …)   |
+| Dictionaries, logs       | `platformdirs` data dir (`dictionaries/`, `.log`)    |
 
-A folder is a project **only** when that manifest exists; nothing writes into a folder that
-has not been deliberately converted. The manifest never names the active dictionary — that
-is one global, per-process choice stored in the dictionary catalogue.
+A folder carries a session **only** after the user has opened it as a folder; opening
+one is the sole action that creates its `.mollana` folder, and nothing Mollana writes
+inside a user's folder lives in that one `.mollana` — manifest plus recovery buffers.
+The manifest never names the active dictionary — that is one global, per-process choice
+stored in the dictionary catalogue.
 
 ## Definition of done
 
@@ -280,8 +283,6 @@ is one global, per-process choice stored in the dictionary catalogue.
 
 Deliberately left for later; do not treat these as missing pieces of a finished feature:
 
-- Session restore for ad-hoc folders (keyed `_default`), alongside the project manifest.
-- Manifest curation UI (adding/removing declared documents).
 - Dictionary management dialog; v1 ships the store and default only.
 - Code signing for the frozen EXE and installer.
 - Rewriting `docs/` for the PyRaya editor.

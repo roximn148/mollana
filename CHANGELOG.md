@@ -66,6 +66,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `[Appearances]` section's `FontFamily` takes any installed font family
   (empty uses the recommended font) and `FontSize` any point size (zero uses
   the recommended size); the choice applies to every document.
+- Open a folder as a work unit (File menu: Open Folder, Close Folder, Recent
+  Folders), and Mollana remembers your workspace inside it: the files you had
+  open, in their tab order, the file you were working in, and the position of
+  your caret. Closing the folder — or the app — saves the session, and
+  reopening the folder restores it exactly.
+- Work that was never saved survives: a document you started without saving is
+  written into the folder's private `.mollana` folder as you go, and comes
+  back when you reopen it. Saving it under a real name keeps the file and
+  drops the private copy.
+- On a read-only folder where the session cannot be saved, Mollana warns once
+  instead of failing silently.
 
 ### Changed
 
