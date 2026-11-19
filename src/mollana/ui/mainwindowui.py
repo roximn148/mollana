@@ -177,7 +177,7 @@ class MainWindowUi:
             window,
             "actionCloseFolder",
             "Close F&older",
-            iconName="close-folder",
+            iconName="close-tab",
             tooltip="Close the folder and keep its session for next time",
         )
         self.actionSave = _makeAction(
@@ -195,13 +195,6 @@ class MainWindowUi:
             iconName="save-file-as",
             shortcut="Ctrl+Shift+S",
             tooltip="Save the active document under another path",
-        )
-        self.actionCloseTab = _makeAction(
-            window,
-            "actionCloseTab",
-            "&Close Tab",
-            iconName="close-tab",
-            shortcut="Ctrl+W",
         )
         self.actionQuit = _makeAction(
             window,
@@ -405,13 +398,12 @@ class MainWindowUi:
 
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
-        self.menuFile.addSeparator()
+        self.fileSectionSeparator = self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionOpenFolder)
         self.menuFile.addAction(self.actionCloseFolder)
-        self.menuFile.addSeparator()
+        self.folderSectionSeparator = self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionSave)
         self.menuFile.addAction(self.actionSaveAs)
-        self.menuFile.addAction(self.actionCloseTab)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionQuit)
 

@@ -91,12 +91,11 @@ class MainWindow(QMainWindow):
 
         self.recentFoldersMenu = QMenu(RECENT_FOLDERS_TITLE, self)
         self.recentFoldersMenu.menuAction().setIcon(icon("open-folder"))
-        self.ui.menuFile.insertMenu(self.ui.actionSave, self.recentFoldersMenu)
+        self.ui.menuFile.insertMenu(self.ui.folderSectionSeparator, self.recentFoldersMenu)
 
         self.recentMenu = QMenu(RECENT_FILES_TITLE, self)
         self.recentMenu.menuAction().setIcon(icon("recent-files"))
-        self.ui.menuFile.insertMenu(self.ui.actionSave, self.recentMenu)
-        self.ui.menuFile.insertSeparator(self.ui.actionSave)
+        self.ui.menuFile.insertMenu(self.ui.fileSectionSeparator, self.recentMenu)
 
         self._connectActions()
         self._rebuildRecentFoldersMenu()
@@ -115,7 +114,6 @@ class MainWindow(QMainWindow):
         ui.actionCloseFolder.triggered.connect(self.onCloseFolder)
         ui.actionSave.triggered.connect(self.onSave)
         ui.actionSaveAs.triggered.connect(self.onSaveAs)
-        ui.actionCloseTab.triggered.connect(self.onCloseTab)
         ui.actionQuit.triggered.connect(self.close)
         ui.actionAbout.triggered.connect(self.onAbout)
 
@@ -425,11 +423,6 @@ class MainWindow(QMainWindow):
         ]
         folder.reorder(ordered)
         self._saveFolder()
-
-    # **************************************************************************
-    def onCloseTab(self) -> None:
-        """Close the tab the user asked to close."""
-        self.onTabCloseRequested(self.ui.tbwEditors.currentIndex())
 
     # **************************************************************************
     def onTabCloseRequested(self, index: int) -> None:
