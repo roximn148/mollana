@@ -14,6 +14,7 @@ module has to reach for a global application object.
 # ******************************************************************************
 import sys
 
+from PySide6.QtCore import QLocale
 from PySide6.QtWidgets import QApplication
 
 from mollana.editor.dictionaries import DictionaryStore
@@ -45,6 +46,7 @@ def main() -> int:
     Returns:
         The event loop's exit code; ``0`` on a clean exit.
     """
+    QLocale.setDefault(QLocale(QLocale.Language.Urdu, QLocale.Country.Pakistan))
     app = RApplication(sys.argv)
     app.setQuitOnLastWindowClosed(True)
 

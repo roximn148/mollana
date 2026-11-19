@@ -106,6 +106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Assist mode pauses while the find bar is open and resumes when it closes.
 - The editor's typeface now applies its localized letter forms (the 'locl'
   OpenType feature), pairing the font's Urdu forms with the Urdu locale.
+- The application now runs with Urdu (Pakistan) as its default locale, so
+  dates, numbers, and text sorting follow Urdu conventions throughout.
 
 ### Fixed
 
