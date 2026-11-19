@@ -61,11 +61,10 @@ class Session:
         return [document for document in self._documents if document.dirty]
 
     # **************************************************************************
-    def add(self, document: Document, activate: bool = True) -> Document:
-        """Append ``document`` and optionally make it active."""
+    def add(self, document: Document) -> Document:
+        """Append ``document`` and make it active."""
         self._documents.append(document)
-        if activate or self._activeIndex < 0:
-            self._activeIndex = len(self._documents) - 1
+        self._activeIndex = len(self._documents) - 1
         return document
 
     # **************************************************************************

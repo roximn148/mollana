@@ -36,6 +36,7 @@ class StubMain:
     RecentFiles: list[Path] = field(default_factory=list)
     RecentFolders: list[Path] = field(default_factory=list)
     RecentMaxCount: int = 10
+    RecentFoldersMaxCount: int = 10
     AutoSaveInterval: int = 5
 
 
@@ -471,3 +472,160 @@ def test_anUnwritableFolderWarnsOnlyOnce(
 
     assert len(warnings) == 1
     _cleanClose(window)
+
+
+# ******************************************************************************
+def test_savingAsMovesTheRecord(
+    qapp: QApplication, tmp_path: Path, workingDirectory: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "work"
+    root.mkdir()
+    (root / "a.txt").write_text("a", encoding="utf-8")
+
+    window = _window(tmp_path)
+    window.openFolder(root)
+    window.openPath(root / "a.txt")
+
+    target = root / "b.txt"
+    monkeypatch.setattr(
+        "mollana.ui.mainwindow.QFileDialog.getSaveFileName",
+        staticmethod(lambda *args, **kwargs: (str(target), "")),
+    )
+    assert window.onSaveAs() is True
+
+    assert _manifestSession(root)["open"] == ["b.txt"]
+    _cleanClose(window)
+
+
+# ******************************************************************************
+def test_aRestoredBufferKeepsItsRecoveryIdentity(
+    qapp: QApplication, tmp_path: Path, workingDirectory: None
+) -> None:
+    root = tmp_path / "work"
+    root.mkdir()
+    recovery = root / MANIFEST_DIRNAME / RECOVERY_DIRNAME / "abc123.txt"
+    recovery.parent.mkdir(parents=True)
+    recovery.write_text("draft", encoding="utf-8")
+    folder = Folder.create(root)
+    folder.record(".mollana/recovery/abc123.txt", title="Untitled 3")
+    folder.save()
+
+    window = _window(tmp_path)
+    window.openFolder(root)
+    document = window.session.active
+    assert document is not None
+    assert document.id == "abc123"
+
+    editor = window.ui.tbwEditors.editorFor(document.id)
+    assert editor is not None
+    editor.setPlainText("draft, edited")
+    document.dirty = True
+    window.saveRecovery()
+
+    session = _manifestSession(root)
+    assert session["open"] == [".mollana/recovery/abc123.txt"]
+    assert recovery.read_text(encoding="utf-8") == "draft, edited"
+    _cleanClose(window)
+
+
+# ******************************************************************************
+def test_closingANonActiveDirtyUntitledTabSavesTheRightDocument(
+    qapp: QApplication,
+    tmp_path: Path,
+    workingDirectory: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = tmp_path / "work"
+    root.mkdir()
+    (root / "a.txt").write_text("a", encoding="utf-8")
+
+    window = _window(tmp_path)
+    window.openFolder(root)
+    window.onNew()
+    draft = window.session.active
+    assert draft is not None
+    editor = window.ui.tbwEditors.editorFor(draft.id)
+    assert editor is not None
+    editor.setPlainText("draft text")
+    draft.dirty = True
+    window.openPath(root / "a.txt")
+    assert window.session.active is not draft
+
+    target = root / "kept.txt"
+    monkeypatch.setattr(
+        "mollana.ui.mainwindow.QFileDialog.getSaveFileName",
+        staticmethod(lambda *args, **kwargs: (str(target), "")),
+    )
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        staticmethod(lambda *args, **kwargs: QMessageBox.StandardButton.Save),
+    )
+
+    window.onTabCloseRequested(0)
+
+    assert target.read_text(encoding="utf-8") == "draft text"
+    assert [document.displayName for document in window.session.documents] == ["a.txt"]
+    assert _manifestSession(root)["open"] == ["a.txt"]
+    _cleanClose(window)
+
+
+# ******************************************************************************
+def test_aCancelledCloseKeepsTheActiveTab(
+    qapp: QApplication, tmp_path: Path, workingDirectory: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "work"
+    root.mkdir()
+    (root / "a.txt").write_text("a", encoding="utf-8")
+    (root / "b.txt").write_text("b", encoding="utf-8")
+
+    window = _window(tmp_path)
+    window.openFolder(root)
+    window.openPath(root / "a.txt")
+    second = window.openPath(root / "b.txt")
+    assert second is not None
+    window.selectDocument(second)
+    for document in window.session.documents:
+        document.dirty = True
+
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        staticmethod(lambda *args, **kwargs: QMessageBox.StandardButton.Cancel),
+    )
+
+    assert window.closeFolder() is False
+    assert window.session.active is not None
+    assert window.session.active.displayName == "b.txt"
+    assert window.folder is not None
+    _cleanClose(window)
+
+
+# ******************************************************************************
+def test_aCancelledAppCloseKeepsTheActiveTab(
+    qapp: QApplication, tmp_path: Path, workingDirectory: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "work"
+    root.mkdir()
+    (root / "a.txt").write_text("a", encoding="utf-8")
+    (root / "b.txt").write_text("b", encoding="utf-8")
+
+    window = _window(tmp_path)
+    window.openFolder(root)
+    window.openPath(root / "a.txt")
+    second = window.openPath(root / "b.txt")
+    assert second is not None
+    window.selectDocument(second)
+    for document in window.session.documents:
+        document.dirty = True
+
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        staticmethod(lambda *args, **kwargs: QMessageBox.StandardButton.Cancel),
+    )
+
+    window.close()
+    assert window.session.active is not None
+    assert window.session.active.displayName == "b.txt"
+    assert window.folder is not None

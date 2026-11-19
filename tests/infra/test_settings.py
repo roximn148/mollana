@@ -44,6 +44,7 @@ def test_loaderCreatesMissingFile(tmp_path: Path) -> None:
     assert source.tomlFile.is_file()
     assert isinstance(config["Main"], MainConfig)
     assert config["Main"].RecentMaxCount == 10
+    assert config["Main"].RecentFoldersMaxCount == 10
 
 
 # ******************************************************************************

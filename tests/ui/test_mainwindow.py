@@ -47,6 +47,7 @@ class StubMain:
     RecentFiles: list[Path] = field(default_factory=list)
     RecentFolders: list[Path] = field(default_factory=list)
     RecentMaxCount: int = 10
+    RecentFoldersMaxCount: int = 10
     AutoSaveInterval: int = 5
 
 
@@ -258,6 +259,7 @@ class StubMain:
     RecentFiles = []
     RecentFolders = []
     RecentMaxCount = 10
+    RecentFoldersMaxCount = 10
     AutoSaveInterval = 5
 
 

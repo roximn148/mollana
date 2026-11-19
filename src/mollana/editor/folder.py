@@ -134,7 +134,10 @@ class Folder:
 
         entries: list[OpenFile] = []
         seen: set[str] = set()
-        for raw in session.get("open", []):
+        openList = session.get("open", [])
+        if not isinstance(openList, list):
+            openList = []
+        for raw in openList:
             if not isinstance(raw, str):
                 continue
             relative = cls._normalise(raw)
@@ -142,9 +145,7 @@ class Folder:
                 continue
             seen.add(relative)
             title = titles.get(PurePosixPath(relative).stem)
-            entries.append(
-                OpenFile(path=relative, title=title if isinstance(title, str) else None)
-            )
+            entries.append(OpenFile(path=relative, title=title if isinstance(title, str) else None))
 
         active = session.get("active")
         activeText = cls._normalise(active) if isinstance(active, str) else None
@@ -226,6 +227,18 @@ class Folder:
         byPath = {entry.path: entry for entry in self.openFiles}
         ordered = [byPath.pop(path) for path in paths if path in byPath]
         self.openFiles = ordered + list(byPath.values())
+
+    # **************************************************************************
+    def move(self, old: str, new: str) -> None:
+        """Rename ``old`` to ``new``, keeping its position and active status."""
+        if old == new:
+            return
+        for entry in self.openFiles:
+            if entry.path == old:
+                entry.path = new
+                if self.active == old:
+                    self.active = new
+                return
 
     # **************************************************************************
     def setActive(self, path: str, caret: int = 0, scroll: int = 0) -> None:

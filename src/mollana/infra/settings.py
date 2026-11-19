@@ -70,6 +70,11 @@ class MainConfig(BaseModel):
         default_factory=list,
         description="List of recent files",
     )
+    RecentFoldersMaxCount: PositiveInt = Field(
+        default=10,
+        le=25,
+        description="Maximum number of recent folders to keep track of [1 - 25]. Default is 10",
+    )
     RecentFolders: list[DirectoryPath] = Field(
         default_factory=list,
         description="List of recent folders",

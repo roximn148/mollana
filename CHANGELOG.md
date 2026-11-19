@@ -70,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Folders), and Mollana remembers your workspace inside it: the files you had
   open, in their tab order, the file you were working in, and the position of
   your caret. Closing the folder — or the app — saves the session, and
-  reopening the folder restores it exactly.
+  reopening the folder puts you back where you left off.
 - Work that was never saved survives: a document you started without saving is
   written into the folder's private `.mollana` folder as you go, and comes
   back when you reopen it. Saving it under a real name keeps the file and

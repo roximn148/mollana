@@ -86,7 +86,7 @@ class MainWindow(QMainWindow):
         )
         self.recentFolders = RecentFolders(
             paths=self.settings.Main.RecentFolders,
-            limit=self.settings.Main.RecentMaxCount,
+            limit=self.settings.Main.RecentFoldersMaxCount,
         )
 
         self.recentFoldersMenu = QMenu(RECENT_FOLDERS_TITLE, self)
@@ -331,9 +331,9 @@ class MainWindow(QMainWindow):
         self.saveDocument(document)
 
     # **************************************************************************
-    def onSaveAs(self) -> bool:
-        """Save the active document under a new path. Returns True when saved."""
-        document = self.session.active
+    def onSaveAs(self, document: Document | None = None) -> bool:
+        """Save a document under a new path. Returns True when saved."""
+        document = document if document is not None else self.session.active
         if document is None:
             return False
         if document.isUntitled:
@@ -341,7 +341,7 @@ class MainWindow(QMainWindow):
             base = folder.root if folder is not None else Path.home()
             suggested = str(base / f"{document.displayName}.txt")
         else:
-            suggested = str(document.path) if document.path else document.displayName
+            suggested = str(document.path)
         fileName, _ = QFileDialog.getSaveFileName(self, "Save As", suggested, FILE_FILTER)
         if not fileName:
             return False
@@ -354,6 +354,7 @@ class MainWindow(QMainWindow):
         if editor is None:
             return False
         wasUntitled = document.isUntitled
+        oldRelative = self._relativeOf(document)
         try:
             written = document.save(editor.toPlainText(), path)
         except (OSError, ValueError) as error:
@@ -367,6 +368,15 @@ class MainWindow(QMainWindow):
         if wasUntitled:
             # The buffer now has a real home, so its recovery copy is obsolete.
             self._dropRecovery(document)
+        folder = self.session.folder
+        if oldRelative is not None and folder is not None:
+            # The record still names the old path; the file itself was moved.
+            newRelative = self._relativeOf(document)
+            if newRelative is None:
+                folder.forget(oldRelative)
+            else:
+                folder.move(oldRelative, newRelative)
+            self._saveFolder()
         self._record(document)
         self.statusBar().showMessage(f"Saved {written}", 4000)
         return True
@@ -452,7 +462,7 @@ class MainWindow(QMainWindow):
         if answer == QMessageBox.StandardButton.Cancel:
             return False
         if answer == QMessageBox.StandardButton.Save:
-            return self.onSaveAs() if document.isUntitled else self.saveDocument(document)
+            return self.onSaveAs(document) if document.isUntitled else self.saveDocument(document)
         return True
 
     # **************************************************************************
@@ -484,15 +494,12 @@ class MainWindow(QMainWindow):
             return
 
         self._folderWarned = False
-        if Folder.isFolder(root):
-            folder = Folder.open(root)
-        else:
-            try:
-                folder = Folder.create(root)
-            except OSError as error:
-                self.log.warning(f"Cannot start a session in {root}: {error}")
-                folder = Folder(root=root)
-                self._reportFolderError(error)
+        try:
+            folder = Folder.open(root) if Folder.isFolder(root) else Folder.create(root)
+        except (FileNotFoundError, OSError) as error:
+            self.log.warning(f"Cannot start a session in {root}: {error}")
+            folder = Folder(root=root)
+            self._reportFolderError(error, root)
 
         self.session.folder = folder
         self.ui.trvExplorer.setRoot(root)
@@ -517,13 +524,16 @@ class MainWindow(QMainWindow):
 
         # Walking the tabs changes the active one; the record must keep the
         # file the user last looked at, not whichever tab was walked last.
+        activeId = self._activeDocumentId
         self._closing = True
+        cancelled = False
         try:
             for document in list(self.session.documents):
                 self.selectDocument(document)
                 wasUntitled = document.isUntitled
                 if not self.confirmClose(document):
-                    return False
+                    cancelled = True
+                    break
                 if wasUntitled and document.isUntitled:
                     # Discarded outright, so its recovery copy is dead weight.
                     self._dropRecovery(document)
@@ -531,6 +541,11 @@ class MainWindow(QMainWindow):
                 self.session.close(document.id)
         finally:
             self._closing = False
+        if cancelled:
+            previous = self.session.find(activeId) if activeId else None
+            if previous is not None:
+                self.selectDocument(previous)
+            return False
 
         self._syncFolder()
         self._leaveWorkingDirectory()
@@ -578,6 +593,7 @@ class MainWindow(QMainWindow):
             return None
         try:
             document = Document.fromPath(path)
+            document.id = path.stem
             document.untitled = True
             document.title = title or "Untitled"
             text = document.read()
@@ -710,18 +726,22 @@ class MainWindow(QMainWindow):
             self._reportFolderError(error)
 
     # **************************************************************************
-    def _reportFolderError(self, error: OSError) -> None:
+    def _reportFolderError(self, error: OSError, root: Path | None = None) -> None:
         """Warn once that this folder cannot record its session."""
         folder = self.session.folder
-        root = str(folder.root) if folder is not None else "this folder"
-        self.log.warning(f"Cannot save the session in {root}: {error}")
+        rootName = (
+            str(root)
+            if root is not None
+            else (str(folder.root) if folder is not None else "this folder")
+        )
+        self.log.warning(f"Cannot save the session in {rootName}: {error}")
         if self._folderWarned:
             return
         self._folderWarned = True
         QMessageBox.warning(
             self,
             "Folder",
-            f"Mollana cannot save this folder's session in {root}:\n{error}\n\n"
+            f"Mollana cannot save this folder's session in {rootName}:\n{error}\n\n"
             "Files still open and save normally, but the open set will not be restored.",
         )
 
@@ -975,9 +995,13 @@ class MainWindow(QMainWindow):
                 event.ignore()
                 return
         else:
+            activeId = self._activeDocumentId
             for document in self.session.dirtyDocuments:
                 self.selectDocument(document)
                 if not self.confirmClose(document):
+                    previous = self.session.find(activeId) if activeId else None
+                    if previous is not None:
+                        self.selectDocument(previous)
                     event.ignore()
                     return
 

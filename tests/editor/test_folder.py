@@ -204,3 +204,39 @@ def test_recoveredEntriesKeepTheirDisplayTitle(tmp_path: Path) -> None:
     reopened = Folder.open(tmp_path)
     assert reopened.openFiles[0].title == "Untitled 3"
     assert reopened.openFiles[0].recovered is True
+
+
+# ******************************************************************************
+def test_moveKeepsPositionAndActiveStatus(tmp_path: Path) -> None:
+    folder = Folder.create(tmp_path)
+    folder.record("a.txt")
+    folder.record("b.txt")
+    folder.record("c.txt")
+    folder.setActive("b.txt", caret=3, scroll=1)
+
+    folder.move("b.txt", "renamed.txt")
+
+    assert [entry.path for entry in folder.openFiles] == ["a.txt", "renamed.txt", "c.txt"]
+    assert folder.active == "renamed.txt"
+    assert folder.caret == 3
+    assert folder.scroll == 1
+
+    folder.move("a.txt", "a.txt")
+    assert [entry.path for entry in folder.openFiles] == ["a.txt", "renamed.txt", "c.txt"]
+
+    folder.move("gone.txt", "nowhere.txt")
+    assert [entry.path for entry in folder.openFiles] == ["a.txt", "renamed.txt", "c.txt"]
+
+
+# ******************************************************************************
+def test_aNonListOpenValueOpensAnEmptySession(tmp_path: Path) -> None:
+    folder = Folder.create(tmp_path)
+    folder.record("a.txt")
+    folder.save()
+    manifest = _manifest(tmp_path)
+    text = manifest.read_text(encoding="utf-8")
+    manifest.write_text(text.replace('open = ["a.txt"]', 'open = "a.txt"'), encoding="utf-8")
+    assert Folder.open(tmp_path).openFiles == []
+
+    manifest.write_text(text.replace('open = ["a.txt"]', "open = 42"), encoding="utf-8")
+    assert Folder.open(tmp_path).openFiles == []

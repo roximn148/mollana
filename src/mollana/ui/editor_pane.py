@@ -51,7 +51,7 @@ class EditorPane(QTabWidget):
         self._findWidgets[document.id] = FindWidget(editor)
 
         index = self.addTab(editor, document.displayName)
-        self.setTabToolTip(index, str(document.path) if document.path else "Untitled")
+        self.setTabToolTip(index, str(document.path) if not document.isUntitled else "Untitled")
         self.setCurrentIndex(index)
         return editor
 
