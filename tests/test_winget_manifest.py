@@ -39,7 +39,7 @@ def _loadModule():
 def test_projectVersionReadsPyproject() -> None:
     module = _loadModule()
 
-    assert module.projectVersion() == "0.2.0a1"
+    assert module.projectVersion() == "0.2.0a2"
 
 
 def test_sha256MatchesHashlib(tmp_path: Path) -> None:
@@ -53,18 +53,18 @@ def test_sha256MatchesHashlib(tmp_path: Path) -> None:
 def test_renderManifestNamesTheThreeFiles() -> None:
     module = _loadModule()
 
-    rendered = module.renderManifest("0.2.0a1", SHA, DATE)
+    rendered = module.renderManifest("0.2.0a2", SHA, DATE)
     assert tuple(sorted(rendered)) == tuple(sorted(EXPECTED_FILES))
 
 
 def test_versionFileDeclaresPackageIdentityAndSchema() -> None:
     module = _loadModule()
-    rendered = module.renderManifest("0.2.0a1", SHA, DATE)
+    rendered = module.renderManifest("0.2.0a2", SHA, DATE)
     version = rendered[f"{IDENTIFIER}.yaml"]
 
     for expected in (
         f"PackageIdentifier: {IDENTIFIER}",
-        "PackageVersion: 0.2.0a1",
+        "PackageVersion: 0.2.0a2",
         "DefaultLocale: en-US",
         "ManifestType: version",
         "ManifestVersion: 1.28.0",
@@ -75,7 +75,7 @@ def test_versionFileDeclaresPackageIdentityAndSchema() -> None:
 
 def test_localeFileCarriesPublisherLicenseAndUrls() -> None:
     module = _loadModule()
-    rendered = module.renderManifest("0.2.0a1", SHA, DATE)
+    rendered = module.renderManifest("0.2.0a2", SHA, DATE)
     locale = rendered[f"{IDENTIFIER}.locale.en-US.yaml"]
 
     for expected in (
@@ -84,7 +84,7 @@ def test_localeFileCarriesPublisherLicenseAndUrls() -> None:
         "Publisher: RoXimn",
         "License: MIT",
         "https://github.com/roximn148/mollana",
-        "releases/tag/v0.2.0a1",
+        "releases/tag/v0.2.0a2",
         f"ReleaseDate: {DATE}",
         "ManifestType: defaultLocale",
         "ManifestVersion: 1.28.0",
@@ -94,11 +94,11 @@ def test_localeFileCarriesPublisherLicenseAndUrls() -> None:
 
 def test_installerFileCarriesSha256AndAssetUrl() -> None:
     module = _loadModule()
-    rendered = module.renderManifest("0.2.0a1", SHA, DATE)
+    rendered = module.renderManifest("0.2.0a2", SHA, DATE)
     installer = rendered[f"{IDENTIFIER}.installer.yaml"]
 
     assert f"InstallerSha256: {SHA}" in installer
-    assert "Mollana-0.2.0a1-win64-setup.exe" in installer
+    assert "Mollana-0.2.0a2-win64-setup.exe" in installer
     assert "Architecture: x64" in installer
     assert "InstallerType: inno" in installer
     assert "/CURRENTUSER" in installer  # silent installs otherwise hang on the Install Mode dialog

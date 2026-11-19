@@ -7,8 +7,8 @@
     <img src="https://img.shields.io/github/license/roximn148/mollana" alt="MIT License" /></a>
   <a href="https://github.com/roximn148/mollana/blob/main/pyproject.toml" alt="Python 3.13">
     <img src="https://img.shields.io/badge/python-3.13-3776ab" alt="Python 3.13" /></a>
-  <a href="https://github.com/roximn148/mollana/releases" alt="Version 0.2.0a1">
-    <img src="https://img.shields.io/badge/version-0.2.0a1-orange" alt="Version 0.2.0a1" /></a>
+  <a href="https://github.com/roximn148/mollana/releases" alt="Version 0.2.0a2">
+    <img src="https://img.shields.io/badge/version-0.2.0a2-orange" alt="Version 0.2.0a2" /></a>
   <a href="https://github.com/roximn148/mollana/releases" alt="Status: Alpha">
     <img src="https://img.shields.io/badge/status-alpha-orange" alt="Status: Alpha" /></a>
   <a href="https://github.com/roximn148/mollana/releases" alt="Platform: Windows">
@@ -27,7 +27,7 @@ Mollana is a desktop, Urdu-first, plain text editor. It streamlines Arabic-scrip
 Status
 ------
 
-It is an open-source project in its alpha phase (version 0.2.0a1), free under the MIT license. You can download it from [GitHub](https://github.com/roximn148/mollana).
+It is an open-source project in its alpha phase (version 0.2.0a2), free under the MIT license. You can download it from [GitHub](https://github.com/roximn148/mollana).
 
 Rationale
 ---------

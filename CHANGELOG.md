@@ -7,12 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- The find bar no longer disappears under the line-number gutter: resizing
-  the window or toggling the gutter while the bar is open used to let the
-  gutter paint over the bar's right end. The bar now climbs back above
-  PyRaya's gutter whenever the editor resizes or the gutter moves.
+## [0.2.0a2] - 2026-11-20
 
 ### Added
 
@@ -24,19 +19,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   envelopes the selection with that pair, on by default and toggled from the
   Format menu. The choice is remembered in `preferences.toml`
   (`[Editor] AutoEnveloping`) for the next run.
-- Find and replace: a find widget over the active editor (Ctrl+F, Ctrl+H) with
-  match count, case and whole-word toggles, replace, and replace-all. The bar
-  hangs from the editor's top-left corner beside the vertical scrollbar — the
-  scrollbar runs down the editor's left edge in this right-to-left editor, and
-  the bar's margin widens by its width whenever it is on screen — has rounded
-  corners, a reddish close button, and its controls use the interface font,
-  while its fields keep the editor's typeface. It stays hidden until an action
-  opens it, and an active selection seeds the query on every trigger — open or
-  not — and is searched immediately. Find Next (F3) and Find Previous
-  (Shift+F3) sit in the Edit menu after Find and step through the matches in
-  both directions. Ctrl+H opens the replace row the first time; while that
-  row is showing it is the Replace button itself, replacing the current match
-  and stepping to the next with every press.
+- Find and replace: a find bar over the active editor (Ctrl+F) with a match
+  count, case and whole-word toggles, find next and previous (F3 / Shift+F3 in
+  the Edit menu), and a replace row (Ctrl+H) with Replace and Replace All. The
+  bar hangs from the editor's top-left corner beside the left-edge scrollbar,
+  stays above the line-number gutter when the window resizes or the gutter
+  moves, and widens its margin while on screen. It has rounded corners, a
+  reddish close button, borders drawn in full, a match count pinned at four
+  digits (0/0 with no matches) so the bar never reflows, interface-font
+  controls and editor-typeface fields. It stays hidden until an action opens
+  it, and an active selection seeds the query on every trigger — open or not —
+  and is searched immediately; a search with no matches clears the previous
+  highlight. While a find field has focus, the on-screen keyboard types into
+  it rather than the document. Ctrl+H opens the replace row, expanding the bar
+  to its full two-row height; the whole-word toggle is labelled "Word", the
+  Replace buttons are as tall as the field and use the Edit menu's replace
+  glyph, and Replace steps to the next match after the replaced text, wrapping
+  past the end. Assist hints pause while the bar is open.
 - Edit and Format toolbars above the document, mirroring their menus: the
   Edit toolbar carries Undo, Redo, Cut, Copy, Paste, and Select All; the
   Format toolbar carries Word Wrap, Spell Checker, Assist Mode, and Auto
@@ -44,15 +43,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the menu entries do.
 - A dockable on-screen Urdu alphabet keyboard (bottom dock, hidden at start;
   toggled from the View menu or with F2) whose keys type into whatever field
-  or editor holds the caret.
-- The Add Word dialog shows the on-screen keyboard when it was open, hides it
-  otherwise, and F2 toggles it there. Inside the dialog the keyboard is
+  or editor holds the caret, including past the transliteration overlay.
+- The Add Word dialog borrows that keyboard when it was open and hides it
+  otherwise, with F2 toggling it there. Inside the dialog the keyboard is
   compact (smaller keys, tighter spacing, symbol control keys whose tooltips
   name them) and the dialog stays centered as the keyboard appears or
-  disappears.
-- The Add Word dialog's word field and roman preview now use the editor's
-  typeface, the preview spans the dialog right-aligned, and OK/Cancel stand
-  as tall as the keyboard's keys.
+  disappears. Its word field and roman preview use the editor's typeface, the
+  preview spans the dialog right-aligned, and OK/Cancel stand as tall as the
+  keyboard's keys.
 - Learned words are saved to the active dictionary every `AutoSaveInterval`
   minutes (default 5) while the app runs, as well as on close.
 - The status bar shows a spell check icon and an assist mode icon at its
@@ -70,13 +68,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Folders), and Mollana remembers your workspace inside it: the files you had
   open, in their tab order, the file you were working in, and the position of
   your caret. Closing the folder — or the app — saves the session, and
-  reopening the folder puts you back where you left off.
+  reopening the folder puts you back where you left off. On a read-only folder
+  where the session cannot be saved, Mollana warns once instead of failing
+  silently.
 - Work that was never saved survives: a document you started without saving is
   written into the folder's private `.mollana` folder as you go, and comes
   back when you reopen it. Saving it under a real name keeps the file and
   drops the private copy.
-- On a read-only folder where the session cannot be saved, Mollana warns once
-  instead of failing silently.
 
 ### Changed
 
@@ -84,26 +82,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The file explorer is now a dock panel that can sit on the left or right edge,
   be closed, and be reopened from the new View menu, where it stays hidden
   until opened; the document tabs fill the central area.
-- The spell checker and assist mode entries in the Format menu now show the
-  same icons as their status bar indicators.
-- Every menu entry now shows an icon, including the recent files list.
 - The File menu separates the file and folder workflows into two sections:
   New, Open, and Recent Files come first, followed by Open Folder, Close
   Folder, and Recent Folders. The Close Tab entry is gone — tabs still close
   with their × button — and Close Folder now carries the × icon.
-- The recent file entries show a document icon, their Clear Recent entry a
-  clear icon, and the View menu's Urdu Keyboard entry a keyboard icon.
+- Every menu entry now shows an icon, including the recent files list. The
+  spell checker and assist mode entries use the same icons as their status bar
+  indicators, recent file entries use a document icon, Clear Recent a clear
+  icon, and the View menu's Urdu Keyboard entry a keyboard icon.
 - The menu, toolbar, and status-bar icons are now vector icons drawn in the
   active theme's colours, so they pick up the theme instead of carrying a
   fixed palette.
 - The Light and HighContrast themes now have palettes of their own, and every
   theme is drawn by the same style: the whole window follows the theme chosen
   in `preferences.toml`, including the on-screen keyboard and the tooltips,
-  instead of inheriting the Windows look.
-- The editor's text, region tint, spell-check underline, and suggestion list
-  now follow the active theme, so the Dark and HighContrast themes render the
-  document with their own colours instead of the fixed light palette.
-- Assist mode pauses while the find bar is open and resumes when it closes.
+  instead of inheriting the Windows look. The editor's text, region tint,
+  spell-check underline, and suggestion list follow the active theme too, so
+  the Dark and HighContrast themes render the document with their own colours
+  instead of the fixed light palette.
 - The editor's typeface now applies its localized letter forms (the 'locl'
   OpenType feature), pairing the font's Urdu forms with the Urdu locale.
 - The application now runs with Urdu (Pakistan) as its default locale, so
@@ -111,44 +107,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- The on-screen keyboard types into the find bar's fields in place, rather
-  than into the document behind them, while a find field holds focus.
-- The search field keeps its width: the find bar shows its match count as
-  current/total (0/0 with no matches) at a pinned four-digit width instead
-  of reflowing the bar with every count.
-- A search with no matches no longer leaves the last found text highlighted
-  in the document.
-- The find bar's right and bottom borders are drawn in full instead of
-  being clipped away.
-- Opening replace over an open find bar (Ctrl+F, then Ctrl+H) now grows the
-  bar to its full two-row height instead of squeezing both rows into the
-  one-row bar.
-- The whole-word toggle reads "Word", and the Replace and Replace All
-  buttons are as tall as the replace field beside them.
-- The find bar's replace-row toggle now shows the same replace glyph as the
-  Edit menu's Replace action instead of appearing unmarked.
-- Replacing the current match now moves the highlight to the next target
-  after the replaced text instead of jumping back to the document's first
-  match, wrapping to the start past the end.
-- The Recent Files menu keeps its order between sessions instead of
-  shuffling on every restart.
+- The Recent Files menu keeps its order between sessions instead of shuffling
+  on every restart.
 - Turning the spell checker off (F5) now applies to documents opened
   afterwards too; a new document used to come back with spell check on while
   the Format menu still showed it off.
-- Opening a file is fast again: the dictionary restored at startup is now
-  installed in one step instead of rebuilding the lookup index for every
-  stored word, which could freeze the first open for seconds.
+- Opening a file is fast: the dictionary restored at startup is installed in
+  one step, so the first open no longer stalls while the lookup index is
+  rebuilt for every stored word.
 - Learned words now survive closing the app: the active dictionary is loaded at
   startup, and closing merges this session's words into the file instead of
   replacing it with only the new ones.
-- Cancelling the Add Word dialog from the `+ [..]` row now leaves the document
+- Cancelling the Add Word dialog from the `+ [..]` row leaves the document
   exactly as it was: no roman text, no separator, no undo step.
 - The right-click menu now acts on the word you clicked rather than wherever
   the caret was last left.
 - Dictionary suggestions for `ملیں` and `شاید` are corrected, and the
   misspelling `شائد` is no longer treated as a known word.
-- The About box's Oxygen Icons credit now links to the project's home page
-  instead of the old GitHub repository.
+- The About box now credits Phosphor Icons under the MIT License instead of
+  Oxygen Icons under the LGPL, linking to the Phosphor project rather than the
+  old KDE repository.
 
 ## [0.2.0a1] - 2026-11-06
 

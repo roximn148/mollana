@@ -1,6 +1,6 @@
 [project]
 name = "mollana"
-version = "0.2.0a1"
+version = "0.2.0a2"
 description = "Urdu Roman-script transliterated Unicode text editor"
 
 readme = "README.md"
