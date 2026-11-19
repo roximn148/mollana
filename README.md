@@ -43,12 +43,38 @@ Mollana stands for مولانا; the spelling is my personal transliteration cho
 Features
 --------
 
-* Type in Roman letters and read in Urdu. As you type, Mollana shows the word you meant. Press a space, a period, or any key that ends a word, and it lands on the page.
-* Urdu text as it appears in print: paragraphs flow right to left in a Nastaliq/Naskh font.
-* Mollana underlines misspelled words against a built-in dictionary of Urdu words, and it can learn any word it does not know.
-* Open several files at once in tabs, and browse any folder from the file panel.
-* Open a folder and Mollana remembers your workspace: the files you had open, the tab you were working in, and even where your caret was. Closing and reopening the folder puts you exactly back where you left off, and unsaved drafts survive a crash.
-* Switch between a dark theme and a light theme.
+### Urdu-first editing
+
+* Type in Roman letters and read in Urdu. As you type, Mollana shows the word you meant; press a space, a period, or any key that ends a word and it lands on the page.
+* Urdu text as it appears in print: paragraphs flow right to left in a Nastaliq/Naskh typeface with localized Urdu letter forms, under the Urdu (Pakistan) locale.
+* Find and replace with match counts, case and whole-word matching, find next and previous (F3 / Shift+F3), and a replace row (Ctrl+H) with Replace and Replace All.
+* Auto Enveloping wraps a selection in matching quotes, brackets or guillemets as you type the opening one.
+* Optional line numbers in Eastern Arabic digits, and word wrap.
+
+### Writing aids
+
+* Misspelled words are underlined against a built-in Urdu dictionary. Learn any word Mollana does not know into a named user dictionary; learned words are saved automatically as you work and survive restarts.
+* Assist Mode (F6) shows roman hints under the word being edited.
+* A dockable on-screen Urdu alphabet keyboard (F2) types into whichever field or editor has the caret, including the find bar and the Add Word dialog.
+* The right-click menu acts on the word you clicked.
+
+### Files and workspaces
+
+* Open several files at once in tabs, with a file explorer that docks on either edge or hides entirely.
+* Open a folder and Mollana remembers your workspace: the open files, their tab order, the active tab and the caret position. Closing and reopening the folder puts you back where you left off.
+* Unsaved drafts survive a crash — they are kept in the folder's private `.mollana` folder until you save them under a real name.
+* Recent-files and recent-folders lists, and a one-time warning when a folder is read-only and the session cannot be saved.
+
+### Appearance and preferences
+
+* Light, Dark and HighContrast themes colour the whole window — menus, toolbars, editor, keyboard and tooltips — with vector icons tinted to match.
+* Edit and Format toolbars mirror their menus, and status-bar indicators show and toggle spell checking and Assist Mode.
+* Set the editor's font family and size in `preferences.toml`.
+
+### Installation
+
+* A per-user Windows installer that needs no administrator rights, with an optional all-users install from the wizard. The uninstaller can also remove your preferences, dictionaries and logs, if you ask it to.
+* Runs from any working directory.
 
 Developer Section
 -----------------
