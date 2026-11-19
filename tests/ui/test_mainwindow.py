@@ -45,6 +45,7 @@ class StubMain:
 
     LogLevel: str = "DEBUG"
     RecentFiles: list[Path] = field(default_factory=list)
+    RecentFolders: list[Path] = field(default_factory=list)
     RecentMaxCount: int = 10
     AutoSaveInterval: int = 5
 
@@ -155,8 +156,7 @@ EXPECTED_ACTIONS: dict[str, tuple[str, str, bool, bool]] = {
     "actionNew": ("&New", "Ctrl+N", False, False),
     "actionOpen": ("&Open", "Ctrl+O", False, False),
     "actionOpenFolder": ("Open F&older", "Ctrl+Shift+O", False, False),
-    "actionNewProject": ("New &Project", "", False, False),
-    "actionOpenProject": ("Open Pro&ject", "", False, False),
+    "actionCloseFolder": ("Close F&older", "", False, False),
     "actionSave": ("&Save", "Ctrl+S", False, False),
     "actionSaveAs": ("Save &As", "Ctrl+Shift+S", False, False),
     "actionCloseTab": ("&Close Tab", "Ctrl+W", False, False),
@@ -183,9 +183,8 @@ EXPECTED_ACTIONS: dict[str, tuple[str, str, bool, bool]] = {
 EXPECTED_TOOLTIPS: dict[str, str] = {
     "actionNew": "Create a new document",
     "actionOpen": "Open a text file",
-    "actionOpenFolder": "Browse a folder without making it a project",
-    "actionNewProject": "Convert a folder into a Mollana project",
-    "actionOpenProject": "Open a folder that is already a project",
+    "actionOpenFolder": "Open a folder and restore what was open in it",
+    "actionCloseFolder": "Close the folder and keep its session for next time",
     "actionSave": "Save the active document",
     "actionSaveAs": "Save the active document under another path",
     "actionSpellChecker": "Underline words the dictionary does not know",
@@ -200,8 +199,7 @@ ICON_NAMES: dict[str, str] = {
     "actionNew": "new-file",
     "actionOpen": "open-file",
     "actionOpenFolder": "open-folder",
-    "actionNewProject": "new-folder",
-    "actionOpenProject": "open-project",
+    "actionCloseFolder": "close-folder",
     "actionSave": "save-file",
     "actionSaveAs": "save-file-as",
     "actionCloseTab": "close-tab",
@@ -250,6 +248,7 @@ sys.meta_path.insert(0, BlockGeneratedModules())
 
 from PySide6.QtWidgets import QApplication
 from mollana.editor.dictionaries import DictionaryStore
+from mollana.editor.folder import MANIFEST_DIRNAME, MANIFEST_FILENAME
 from mollana.editor.session import Session
 from mollana.ui.mainwindow import MainWindow
 
@@ -257,6 +256,7 @@ from mollana.ui.mainwindow import MainWindow
 class StubMain:
     LogLevel = "DEBUG"
     RecentFiles = []
+    RecentFolders = []
     RecentMaxCount = 10
     AutoSaveInterval = 5
 
@@ -454,16 +454,17 @@ def test_menusAndToolbarKeepTheirContract(qapp: QApplication, tmp_path: Path) ->
     assert _menuEntries(window.ui.menuFile) == [
         "actionNew",
         "actionOpen",
-        "actionOpenFolder",
         "-",
-        "actionNewProject",
-        "actionOpenProject",
+        "actionOpenFolder",
+        "actionCloseFolder",
+        "-",
+        "Recent Folders",
+        "Recent Files",
         "-",
         "actionSave",
         "actionSaveAs",
         "actionCloseTab",
         "-",
-        "Recent Files",
         "actionQuit",
     ]
     assert _menuEntries(window.ui.menuEdit) == [

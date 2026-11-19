@@ -13,6 +13,7 @@ what keeps :mod:`mollana.editor` free of Qt.
 
 # ******************************************************************************
 from pyraya import PyRaya
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QPlainTextEdit, QTabWidget
 
 from mollana.editor.document import Document
@@ -27,6 +28,9 @@ DOCUMENT_ID_PROPERTY: str = "documentId"
 class EditorPane(QTabWidget):
     """Tabs of Urdu editors, keyed by document identifier."""
 
+    tabMoved = Signal(int, int)
+    """Re-emitted from the tab bar: a tab was dragged from one index to another."""
+
     # **************************************************************************
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -34,6 +38,7 @@ class EditorPane(QTabWidget):
         self.setMovable(True)
         self.setDocumentMode(True)
         self._findWidgets: dict[str, FindWidget] = {}
+        self.tabBar().tabMoved.connect(self.tabMoved)
 
     # **************************************************************************
     def bind(self, document: Document, text: str = "") -> PyRaya:

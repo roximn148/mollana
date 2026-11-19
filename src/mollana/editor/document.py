@@ -40,11 +40,22 @@ class Document:
     encoding: str = DEFAULT_ENCODING
     newline: str = DEFAULT_NEWLINE
     dirty: bool = False
+    untitled: bool = False
+    """True for a buffer the user has never given a path of its own.
+
+    A restored buffer reads from its recovery file, so ``path`` is set, but it
+    stays untitled: saving it must always ask for a real destination.
+    """
+
+    title: str = "Untitled"
+    """Display name shown on the tab while the document is untitled."""
 
     # **************************************************************************
     @property
     def displayName(self) -> str:
-        """Name shown on the tab: the file name, or ``Untitled`` when unsaved."""
+        """Name shown on the tab: the file name, or its untitled title."""
+        if self.isUntitled:
+            return self.title or "Untitled"
         if self.path is None:
             return "Untitled"
         return self.path.name or str(self.path)
@@ -52,8 +63,8 @@ class Document:
     # **************************************************************************
     @property
     def isUntitled(self) -> bool:
-        """True while the document has no path on disk."""
-        return self.path is None
+        """True while the document has no path of its own on disk."""
+        return self.untitled or self.path is None
 
     # **************************************************************************
     @classmethod
@@ -93,6 +104,8 @@ class Document:
         target = Path(path) if path is not None else self.path
         if target is None:
             raise ValueError("Cannot save an untitled document without a path.")
+        if path is None and self.untitled:
+            raise ValueError("Cannot overwrite an untitled document's recovery copy.")
 
         payload = text.replace("\r\n", "\n")
         if self.newline != "\n":
@@ -100,6 +113,8 @@ class Document:
 
         target.write_text(payload, encoding=self.encoding, newline="")
         self.path = target
+        self.untitled = False
+        self.title = target.name or str(target)
         self.dirty = False
         return target
 

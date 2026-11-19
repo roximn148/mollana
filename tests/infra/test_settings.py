@@ -30,7 +30,8 @@ def test_createdDocumentCarriesEveryField() -> None:
     assert set(tdoc["Main"].keys()) == set(MainConfig.model_fields)
     assert set(tdoc["Appearances"].keys()) == set(AppearancesConfig.model_fields)
     assert set(tdoc["Editor"].keys()) == set(EditorConfig.model_fields)
-    assert 'ProjectBaseDirectory = "."' in tdoc.as_string()
+    assert "RecentFolders = []" in tdoc.as_string()
+    assert "ProjectBaseDirectory" not in tdoc.as_string()
 
 
 # ******************************************************************************
@@ -73,6 +74,39 @@ def test_loaderDropsRecentFilesThatNoLongerExist(tmp_path: Path) -> None:
     TomlLoader.populate_config(config, source)
 
     assert config["Main"].RecentFiles == [present]
+
+
+# ******************************************************************************
+def test_loaderDropsRecentFoldersThatNoLongerExist(tmp_path: Path) -> None:
+    present = tmp_path / "present"
+    present.mkdir()
+    missing = tmp_path / "missing"
+
+    source = TomlSource(tomlFile=tmp_path / CONFIG_FILENAME)
+    source.tomlFile.write_text(
+        f'[Main]\nRecentFolders = ["{missing.as_posix()}", "{present.as_posix()}"]\n',
+        encoding="utf-8",
+    )
+    config: dict = {}
+
+    TomlLoader.populate_config(config, source)
+
+    assert config["Main"].RecentFolders == [present]
+
+
+# ******************************************************************************
+def test_saveWritesTheRecentFolders(tmp_path: Path) -> None:
+    folder = tmp_path / "recent"
+    folder.mkdir()
+
+    source = TomlSource(tomlFile=tmp_path / CONFIG_FILENAME)
+    with RSettings.change_config_sources(source):
+        settings = RSettings()
+        settings.Main.RecentFolders = [folder]
+        settings.save()
+
+    data = tomllib.loads(source.tomlFile.read_text(encoding="utf-8"))
+    assert data["Main"]["RecentFolders"] == [str(folder)]
 
 
 # ******************************************************************************

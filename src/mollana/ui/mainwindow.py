@@ -6,12 +6,13 @@
 
 """The main window: menus and tab wiring, and nothing else.
 
-Every decision about documents, projects, and dictionaries belongs to
+Every decision about documents, folders, and dictionaries belongs to
 :mod:`mollana.editor`; every decision about the buffer belongs to PyRaya. This
 class translates user intent into calls on those two and reports back.
 """
 
 # ******************************************************************************
+import os
 from pathlib import Path
 
 from pyraya import PyRaya
@@ -21,8 +22,8 @@ from romanalfaz.engine import Vocabulary
 
 from mollana.editor.dictionaries import DictionaryStore
 from mollana.editor.document import Document
-from mollana.editor.project import Project
-from mollana.editor.recent import RecentFiles
+from mollana.editor.folder import RECOVERY_DIRNAME, Folder
+from mollana.editor.recent import RecentFiles, RecentFolders
 from mollana.editor.session import Session
 from mollana.infra.logging import getLogger
 from mollana.infra.meta import Rx
@@ -36,7 +37,9 @@ from mollana.ui.theme import icon
 FILE_FILTER: str = "Text files (*.txt *.md *.tex *.csv *.json *.toml);;All files (*)"
 """Filter offered by the open and save dialogs."""
 
-RECENT_MENU_TITLE: str = "Recent Files"
+RECENT_FILES_TITLE: str = "Recent Files"
+
+RECENT_FOLDERS_TITLE: str = "Recent Folders"
 
 
 # ******************************************************************************
@@ -64,25 +67,39 @@ class MainWindow(QMainWindow):
         )
         self._dictionaryLoaded = False
         self._savedDictionaryWords: dict[str, int] = {}
+        self._activeDocumentId: str | None = None
+        self._folderWarned = False
+        self._restoring = False
+        self._closing = False
         # Seed the toggle states before wiring: the handlers persist on change,
         # and a startup sync must not write the file back unchanged.
         self.ui.actionLineNumbers.setChecked(self.settings.Editor.LineNumbers)
         self.ui.actionAutoEnveloping.setChecked(self.settings.Editor.AutoEnveloping)
         self.autoSaveTimer = QTimer(self)
         self.autoSaveTimer.setInterval(self.settings.Main.AutoSaveInterval * 60_000)
-        self.autoSaveTimer.timeout.connect(self.flushDictionaries)
+        self.autoSaveTimer.timeout.connect(self.onAutoSave)
         self.autoSaveTimer.start()
 
         self.recent = RecentFiles(
             paths=self.settings.Main.RecentFiles,
             limit=self.settings.Main.RecentMaxCount,
         )
+        self.recentFolders = RecentFolders(
+            paths=self.settings.Main.RecentFolders,
+            limit=self.settings.Main.RecentMaxCount,
+        )
 
-        self.recentMenu = QMenu(RECENT_MENU_TITLE, self)
+        self.recentFoldersMenu = QMenu(RECENT_FOLDERS_TITLE, self)
+        self.recentFoldersMenu.menuAction().setIcon(icon("open-folder"))
+        self.ui.menuFile.insertMenu(self.ui.actionSave, self.recentFoldersMenu)
+
+        self.recentMenu = QMenu(RECENT_FILES_TITLE, self)
         self.recentMenu.menuAction().setIcon(icon("recent-files"))
-        self.ui.menuFile.insertMenu(self.ui.actionQuit, self.recentMenu)
+        self.ui.menuFile.insertMenu(self.ui.actionSave, self.recentMenu)
+        self.ui.menuFile.insertSeparator(self.ui.actionSave)
 
         self._connectActions()
+        self._rebuildRecentFoldersMenu()
         self._rebuildRecentMenu()
         self._updateTitle()
 
@@ -95,8 +112,7 @@ class MainWindow(QMainWindow):
         ui.actionNew.triggered.connect(self.onNew)
         ui.actionOpen.triggered.connect(self.onOpen)
         ui.actionOpenFolder.triggered.connect(self.onOpenFolder)
-        ui.actionNewProject.triggered.connect(self.onNewProject)
-        ui.actionOpenProject.triggered.connect(self.onOpenProject)
+        ui.actionCloseFolder.triggered.connect(self.onCloseFolder)
         ui.actionSave.triggered.connect(self.onSave)
         ui.actionSaveAs.triggered.connect(self.onSaveAs)
         ui.actionCloseTab.triggered.connect(self.onCloseTab)
@@ -125,6 +141,7 @@ class MainWindow(QMainWindow):
 
         ui.tbwEditors.tabCloseRequested.connect(self.onTabCloseRequested)
         ui.tbwEditors.currentChanged.connect(self.onTabChanged)
+        ui.tbwEditors.tabMoved.connect(self.onTabMoved)
         ui.trvExplorer.fileActivated.connect(self.onFileActivated)
 
     # **************************************************************************
@@ -133,6 +150,7 @@ class MainWindow(QMainWindow):
     def openDocument(self, document: Document, text: str = "") -> Document:
         """Add ``document`` to the session and open its tab."""
         self.session.add(document)
+        self._record(document)
         editor = self.ui.tbwEditors.bind(document, text)
         editor.setFontFamily(self._editorTypeface[0])
         editor.setFontSize(self._editorTypeface[1])
@@ -285,12 +303,16 @@ class MainWindow(QMainWindow):
 
     # **************************************************************************
     def onOpenFolder(self) -> None:
-        """Browse a folder without converting it into a project."""
+        """Ask for a folder and open its last session."""
         folder = QFileDialog.getExistingDirectory(self, "Open Folder")
         if not folder:
             return
-        self.ui.trvExplorer.setRoot(folder)
-        self.statusBar().showMessage(f"Browsing {folder}", 4000)
+        self.openFolder(Path(folder))
+
+    # **************************************************************************
+    def onCloseFolder(self) -> None:
+        """Close the folder's tabs, keeping its session for next time."""
+        self.closeFolder()
 
     # **************************************************************************
     def onFileActivated(self, path: str) -> None:
@@ -299,26 +321,31 @@ class MainWindow(QMainWindow):
 
     # **************************************************************************
     def onSave(self) -> None:
-        """Save the active document in place."""
+        """Save the active document in place, or ask where a new one goes."""
         document = self.session.active
         if document is None:
             return
-        if document.path is None:
+        if document.isUntitled:
             self.onSaveAs()
             return
         self.saveDocument(document)
 
     # **************************************************************************
-    def onSaveAs(self) -> None:
-        """Save the active document under a new path."""
+    def onSaveAs(self) -> bool:
+        """Save the active document under a new path. Returns True when saved."""
         document = self.session.active
         if document is None:
-            return
-        suggested = str(document.path) if document.path else document.displayName
+            return False
+        if document.isUntitled:
+            folder = self.session.folder
+            base = folder.root if folder is not None else Path.home()
+            suggested = str(base / f"{document.displayName}.txt")
+        else:
+            suggested = str(document.path) if document.path else document.displayName
         fileName, _ = QFileDialog.getSaveFileName(self, "Save As", suggested, FILE_FILTER)
         if not fileName:
-            return
-        self.saveDocument(document, Path(fileName))
+            return False
+        return self.saveDocument(document, Path(fileName))
 
     # **************************************************************************
     def saveDocument(self, document: Document, path: Path | None = None) -> bool:
@@ -326,6 +353,7 @@ class MainWindow(QMainWindow):
         editor = self.ui.tbwEditors.editorFor(document.id)
         if editor is None:
             return False
+        wasUntitled = document.isUntitled
         try:
             written = document.save(editor.toPlainText(), path)
         except (OSError, ValueError) as error:
@@ -336,6 +364,10 @@ class MainWindow(QMainWindow):
         self._updateTitle()
         self.recent.add(written)
         self._rebuildRecentMenu()
+        if wasUntitled:
+            # The buffer now has a real home, so its recovery copy is obsolete.
+            self._dropRecovery(document)
+        self._record(document)
         self.statusBar().showMessage(f"Saved {written}", 4000)
         return True
 
@@ -351,10 +383,38 @@ class MainWindow(QMainWindow):
 
     # **************************************************************************
     def onTabChanged(self, index: int) -> None:
-        """Keep the session's active index in step with the tab bar."""
+        """Track the active tab and remember where the caret was on the old one."""
+        incoming: Document | None = None
         if index >= 0:
-            self.session.activeIndex = index
+            documentId = self.ui.tbwEditors.documentIdAt(index)
+            incoming = self.session.find(documentId) if documentId else None
+
+        previous = self.session.find(self._activeDocumentId) if self._activeDocumentId else None
+        if previous is not None and previous is not incoming:
+            self._capturePosition(previous)
+
+        if incoming is not None:
+            self.session.activeIndex = self.session.indexOf(incoming.id)
+            self._activeDocumentId = incoming.id
+            self._capturePosition(incoming)
+            if not (self._restoring or self._closing):
+                self._saveFolder()
         self._updateTitle()
+
+    # **************************************************************************
+    def onTabMoved(self, fromIndex: int, toIndex: int) -> None:
+        """Keep the recorded session in the same order as the visible tabs."""
+        self.session.move(fromIndex, toIndex)
+        folder = self.session.folder
+        if folder is None:
+            return
+        ordered = [
+            relative
+            for position in range(self.ui.tbwEditors.count())
+            if (relative := self._relativeOfDocumentAt(position)) is not None
+        ]
+        folder.reorder(ordered)
+        self._saveFolder()
 
     # **************************************************************************
     def onCloseTab(self) -> None:
@@ -373,9 +433,7 @@ class MainWindow(QMainWindow):
         if not self.confirmClose(document):
             return
 
-        self.ui.tbwEditors.removeDocument(document.id)
-        self.session.close(document.id)
-        self._updateTitle()
+        self._discardTab(document)
 
     # **************************************************************************
     def confirmClose(self, document: Document) -> bool:
@@ -394,56 +452,346 @@ class MainWindow(QMainWindow):
         if answer == QMessageBox.StandardButton.Cancel:
             return False
         if answer == QMessageBox.StandardButton.Save:
-            return self.saveDocument(document)
+            return self.onSaveAs() if document.isUntitled else self.saveDocument(document)
         return True
 
     # **************************************************************************
-    # Projects
+    # Folder sessions
     # **************************************************************************
-    def onNewProject(self) -> None:
-        """Convert a chosen folder into a project."""
-        folder = QFileDialog.getExistingDirectory(self, "Choose a folder to convert into a project")
-        if not folder:
-            return
-        root = Path(folder)
-        if Project.isProject(root):
-            QMessageBox.information(self, "New Project", f"{root} is already a project.")
-            self.openProject(root)
-            return
-        self.openProject(root, create=True)
+    @property
+    def folder(self) -> Folder | None:
+        """The folder whose session is attached, or ``None``."""
+        return self.session.folder
 
     # **************************************************************************
-    def onOpenProject(self) -> None:
-        """Open a folder that already declares itself a project."""
-        folder = QFileDialog.getExistingDirectory(self, "Open Project")
-        if not folder:
-            return
-        root = Path(folder)
-        if not Project.isProject(root):
-            QMessageBox.warning(
-                self,
-                "Open Project",
-                f"{root} is not a project.\nUse File > New Project to convert it.",
-            )
-            return
-        self.openProject(root)
+    def openFolder(self, root: Path) -> None:
+        """Open ``root``, restoring the session it recorded last time.
 
-    # **************************************************************************
-    def openProject(self, root: Path, create: bool = False) -> None:
-        """Attach a project to the session and open its declared documents."""
-        try:
-            project = Project.create(root) if create else Project.open(root)
-        except (OSError, ValueError) as error:
-            QMessageBox.warning(self, "Project", f"Cannot open {root}:\n{error}")
+        Opening a folder is a deliberate claim that this folder is one work
+        unit, so it is the one action that creates ``.mollana/workspace.toml``.
+        The previous folder is synced and closed first, with the usual prompts.
+        """
+        root = Path(root)
+        if not root.is_dir():
+            QMessageBox.warning(self, "Open Folder", f"{root} is not a folder.")
             return
 
-        self.session.project = project
-        self.ui.trvExplorer.setRoot(project.root)
-        for path in project.documentPaths:
-            if path.is_file():
-                self.openPath(path)
+        current = self.session.folder
+        if current is not None and current.root.resolve() == root.resolve():
+            self.ui.trvExplorer.setRoot(root)
+            return
+        if not self.closeFolder():
+            return
+
+        self._folderWarned = False
+        if Folder.isFolder(root):
+            folder = Folder.open(root)
+        else:
+            try:
+                folder = Folder.create(root)
+            except OSError as error:
+                self.log.warning(f"Cannot start a session in {root}: {error}")
+                folder = Folder(root=root)
+                self._reportFolderError(error)
+
+        self.session.folder = folder
+        self.ui.trvExplorer.setRoot(root)
+        self._enterWorkingDirectory(root)
+        self._restoreSession(folder)
+        self.recentFolders.add(root)
+        self._rebuildRecentFoldersMenu()
         self._updateTitle()
-        self.statusBar().showMessage(f"Project {project.name}", 4000)
+        self.statusBar().showMessage(f"Folder {root.name}", 4000)
+
+    # **************************************************************************
+    def closeFolder(self) -> bool:
+        """Close the folder's tabs and detach it, keeping its session.
+
+        Returns:
+            ``True`` when the folder was closed or none was open, ``False``
+            when a close prompt was cancelled.
+        """
+        folder = self.session.folder
+        if folder is None:
+            return True
+
+        # Walking the tabs changes the active one; the record must keep the
+        # file the user last looked at, not whichever tab was walked last.
+        self._closing = True
+        try:
+            for document in list(self.session.documents):
+                self.selectDocument(document)
+                wasUntitled = document.isUntitled
+                if not self.confirmClose(document):
+                    return False
+                if wasUntitled and document.isUntitled:
+                    # Discarded outright, so its recovery copy is dead weight.
+                    self._dropRecovery(document)
+                self.ui.tbwEditors.removeDocument(document.id)
+                self.session.close(document.id)
+        finally:
+            self._closing = False
+
+        self._syncFolder()
+        self._leaveWorkingDirectory()
+        self.session.folder = None
+        self._activeDocumentId = None
+        self.ui.trvExplorer.setRoot(None)
+        self._updateTitle()
+        return True
+
+    # **************************************************************************
+    def _restoreSession(self, folder: Folder) -> None:
+        """Open the files ``folder`` recorded, forgiving missing ones."""
+        # Restoring must not write back over the very record it is reading:
+        # opening each tab would otherwise overwrite the saved caret with 0.
+        self._restoring = True
+        try:
+            self._replaySession(folder)
+        finally:
+            self._restoring = False
+
+    # **************************************************************************
+    def _replaySession(self, folder: Folder) -> None:
+        """The restore itself, inside the ``_restoring`` guard."""
+        for entry in folder.openFiles:
+            path = folder.root / entry.path
+            if entry.recovered:
+                self._restoreRecovered(path, entry.title)
+            elif path.is_file():
+                self.openPath(path)
+            else:
+                self.log.info(f"Skipping missing session file: {path}")
+
+        document = self._documentForRelative(folder.active) if folder.active is not None else None
+        if document is None:
+            document = self.session.documents[0] if self.session.documents else None
+        if document is not None:
+            self.selectDocument(document)
+            self._restorePosition(document, folder.caret, folder.scroll)
+        self._pruneRecovery(folder)
+
+    # **************************************************************************
+    def _restoreRecovered(self, path: Path, title: str | None) -> Document | None:
+        """Reopen an auto-saved untitled buffer from its recovery file."""
+        if not path.is_file():
+            return None
+        try:
+            document = Document.fromPath(path)
+            document.untitled = True
+            document.title = title or "Untitled"
+            text = document.read()
+        except (OSError, UnicodeDecodeError) as error:
+            self.log.warning(f"Cannot restore {path}: {error}")
+            return None
+        return self.openDocument(document, text)
+
+    # **************************************************************************
+    def _restorePosition(self, document: Document, caret: int, scroll: int) -> None:
+        """Put the caret and the vertical scrollbar back where they were."""
+        editor = self.ui.tbwEditors.editorFor(document.id)
+        if editor is None:
+            return
+        length = len(editor.toPlainText())
+        cursor = editor.textCursor()
+        cursor.setPosition(max(0, min(caret, length)))
+        editor.setTextCursor(cursor)
+        editor.verticalScrollBar().setValue(max(0, scroll))
+
+    # **************************************************************************
+    def _documentForRelative(self, relative: str) -> Document | None:
+        """Return the open document recorded under ``relative``, or ``None``."""
+        for document in self.session.documents:
+            if self._relativeOf(document) == relative:
+                return document
+        return None
+
+    # **************************************************************************
+    def _relativeOf(self, document: Document | None) -> str | None:
+        """Return ``document``'s recorded path, or ``None`` when unrecorded."""
+        folder = self.session.folder
+        if folder is None or document is None or document.path is None:
+            return None
+        return folder.relativePath(document.path)
+
+    # **************************************************************************
+    def _relativeOfDocumentAt(self, index: int) -> str | None:
+        """Return the recorded path of the tab at ``index``, or ``None``."""
+        documentId = self.ui.tbwEditors.documentIdAt(index)
+        return self._relativeOf(self.session.find(documentId)) if documentId else None
+
+    # **************************************************************************
+    def _record(self, document: Document) -> None:
+        """Record an open file in the folder's session, live."""
+        folder = self.session.folder
+        if folder is None or self._restoring:
+            return
+        relative = self._relativeOf(document)
+        if relative is None:
+            return
+        title = document.title if document.isUntitled else None
+        if folder.record(relative, title=title) is not None:
+            self._saveFolder()
+
+    # **************************************************************************
+    def _capturePosition(self, document: Document) -> None:
+        """Remember ``document``'s caret and scroll on the folder's active record."""
+        folder = self.session.folder
+        if folder is None or self._restoring or self._closing:
+            return
+        relative = self._relativeOf(document)
+        if relative is None:
+            return
+        editor = self.ui.tbwEditors.editorFor(document.id)
+        if editor is None:
+            return
+        folder.setActive(
+            relative,
+            caret=editor.textCursor().position(),
+            scroll=editor.verticalScrollBar().value(),
+        )
+
+    # **************************************************************************
+    def _discardTab(self, document: Document) -> None:
+        """Remove a tab and forget it in the folder's session."""
+        self._dropRecovery(document)
+        folder = self.session.folder
+        relative = self._relativeOf(document)
+        if folder is not None and relative is not None:
+            folder.forget(relative)
+            self._saveFolder()
+        self.ui.tbwEditors.removeDocument(document.id)
+        self.session.close(document.id)
+        if self._activeDocumentId == document.id:
+            self._activeDocumentId = None
+        self._updateTitle()
+
+    # **************************************************************************
+    def _dropRecovery(self, document: Document) -> None:
+        """Forget an untitled buffer's recovery record, then delete its file.
+
+        The record goes first on purpose: a crash in between leaves an orphan
+        file the next open prunes, never a record pointing at missing text.
+        """
+        folder = self.session.folder
+        if folder is None:
+            return
+        path = folder.recoveryPath(document.id)
+        relative = folder.relativePath(path)
+        if relative is None or all(entry.path != relative for entry in folder.openFiles):
+            return
+        folder.forget(relative)
+        self._saveFolder()
+        try:
+            path.unlink(missing_ok=True)
+        except OSError as error:
+            self.log.warning(f"Cannot remove recovery file {path}: {error}")
+
+    # **************************************************************************
+    def _syncFolder(self) -> None:
+        """Reconcile the session with what is open, then write it."""
+        folder = self.session.folder
+        if folder is None:
+            return
+        for entry in list(folder.openFiles):
+            if not (folder.root / entry.path).is_file():
+                folder.forget(entry.path)
+        self._saveFolder()
+
+    # **************************************************************************
+    def _saveFolder(self) -> None:
+        """Write the session, warning once per folder when the write fails."""
+        folder = self.session.folder
+        if folder is None:
+            return
+        try:
+            folder.save()
+        except OSError as error:
+            self._reportFolderError(error)
+
+    # **************************************************************************
+    def _reportFolderError(self, error: OSError) -> None:
+        """Warn once that this folder cannot record its session."""
+        folder = self.session.folder
+        root = str(folder.root) if folder is not None else "this folder"
+        self.log.warning(f"Cannot save the session in {root}: {error}")
+        if self._folderWarned:
+            return
+        self._folderWarned = True
+        QMessageBox.warning(
+            self,
+            "Folder",
+            f"Mollana cannot save this folder's session in {root}:\n{error}\n\n"
+            "Files still open and save normally, but the open set will not be restored.",
+        )
+
+    # **************************************************************************
+    def _pruneRecovery(self, folder: Folder) -> None:
+        """Delete recovery files that no session record claims."""
+        recorded = {entry.path for entry in folder.openFiles if entry.recovered}
+        recoveryDir = folder.manifestPath.parent / RECOVERY_DIRNAME
+        if not recoveryDir.is_dir():
+            return
+        for path in recoveryDir.iterdir():
+            relative = folder.relativePath(path)
+            if relative is None or relative in recorded:
+                continue
+            try:
+                path.unlink()
+            except OSError as error:
+                self.log.warning(f"Cannot prune recovery file {path}: {error}")
+
+    # **************************************************************************
+    def saveRecovery(self) -> None:
+        """Auto-save every dirty untitled buffer into the folder's recovery folder."""
+        folder = self.session.folder
+        if folder is None:
+            return
+        for document in self.session.documents:
+            if not document.isUntitled or not document.dirty:
+                continue
+            editor = self.ui.tbwEditors.editorFor(document.id)
+            if editor is None:
+                continue
+            path = folder.recoveryPath(document.id)
+            try:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                temporary = path.with_name(path.name + ".tmp")
+                temporary.write_text(editor.toPlainText(), encoding="utf-8", newline="")
+                os.replace(temporary, path)
+            except OSError as error:
+                self._reportFolderError(error)
+                continue
+            relative = folder.relativePath(path)
+            if relative is not None:
+                folder.record(relative, title=document.title or "Untitled")
+                self._saveFolder()
+
+    # **************************************************************************
+    def onAutoSave(self) -> None:
+        """The periodic save: learned words plus untitled recovery buffers."""
+        self.flushDictionaries()
+        self.saveRecovery()
+
+    # **************************************************************************
+    def _enterWorkingDirectory(self, root: Path) -> None:
+        """Make ``root`` the process working directory."""
+        try:
+            os.chdir(root)
+        except OSError as error:
+            self.log.warning(f"Cannot enter {root}: {error}")
+
+    # **************************************************************************
+    def _leaveWorkingDirectory(self) -> None:
+        """Move out of the folder so Windows will let it be renamed or deleted."""
+        try:
+            os.chdir(Path.home())
+        except OSError as error:
+            self.log.warning(f"Cannot leave the folder: {error}")
+            try:
+                os.chdir(Path.home().anchor or ".")
+            except OSError:
+                pass
 
     # **************************************************************************
     # View and edit
@@ -504,16 +852,35 @@ class MainWindow(QMainWindow):
     # Chrome
     # **************************************************************************
     def _updateTitle(self) -> None:
-        """Compose the window title from the project and active document."""
+        """Compose the window title from the folder and the active document."""
         parts = [Rx.ApplicationTitle]
-        if self.session.project is not None:
-            parts.append(self.session.project.name)
+        folder = self.session.folder
+        if folder is not None:
+            parts.append(folder.root.name)
         document = self.session.active
         if document is not None:
             marker = "*" if document.dirty else ""
             parts.append(f"{marker}{document.displayName}")
         self.setWindowTitle(" - ".join(parts))
         self.refreshEditorStatus()
+
+    # **************************************************************************
+    def _rebuildRecentFoldersMenu(self) -> None:
+        """Rebuild the recent-folders submenu from the current list."""
+        self.recentFoldersMenu.clear()
+        roots = self.recentFolders.existing()
+        if not roots:
+            empty = self.recentFoldersMenu.addAction("No recent folders")
+            empty.setEnabled(False)
+            return
+        folderIcon = icon("open-folder")
+        for root in roots:
+            action = self.recentFoldersMenu.addAction(str(root))
+            action.setIcon(folderIcon)
+            action.triggered.connect(lambda checked=False, target=root: self.openFolder(target))
+        self.recentFoldersMenu.addSeparator()
+        clear = self.recentFoldersMenu.addAction("Clear Recent", self.onClearRecentFolders)
+        clear.setIcon(icon("clear-recent"))
 
     # **************************************************************************
     def _rebuildRecentMenu(self) -> None:
@@ -535,9 +902,15 @@ class MainWindow(QMainWindow):
 
     # **************************************************************************
     def onClearRecent(self) -> None:
-        """Forget every recent path."""
+        """Forget every recent file."""
         self.recent.clear()
         self._rebuildRecentMenu()
+
+    # **************************************************************************
+    def onClearRecentFolders(self) -> None:
+        """Forget every recent folder."""
+        self.recentFolders.clear()
+        self._rebuildRecentFoldersMenu()
 
     # **************************************************************************
     def onAbout(self) -> None:
@@ -595,14 +968,21 @@ class MainWindow(QMainWindow):
 
     # **************************************************************************
     def closeEvent(self, event) -> None:
-        """Offer to save unsaved documents, persist state, then close."""
-        for document in self.session.dirtyDocuments:
-            self.selectDocument(document)
-            if not self.confirmClose(document):
+        """Offer to save unsaved documents, sync the folder, then close."""
+        if self.session.folder is not None:
+            self.saveRecovery()
+            if not self.closeFolder():
                 event.ignore()
                 return
+        else:
+            for document in self.session.dirtyDocuments:
+                self.selectDocument(document)
+                if not self.confirmClose(document):
+                    event.ignore()
+                    return
 
         self.settings.Main.RecentFiles = [Path(path) for path in self.recent.paths]
+        self.settings.Main.RecentFolders = [Path(path) for path in self.recentFolders.paths]
         self.settings.save()
         self.autoSaveTimer.stop()
         self.flushDictionaries()

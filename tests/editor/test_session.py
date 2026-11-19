@@ -7,7 +7,10 @@
 """Session bookkeeping: open documents, active index, clean removal."""
 
 # ******************************************************************************
+from pathlib import Path
+
 from mollana.editor.document import Document
+from mollana.editor.folder import Folder
 from mollana.editor.session import Session
 
 
@@ -88,6 +91,28 @@ def test_findReturnsNoneForUnknownId() -> None:
     session = Session()
     assert session.find("missing") is None
     assert session.indexOf("missing") == -1
+
+
+# ******************************************************************************
+def test_sessionAttachesToAFolder(tmp_path: Path) -> None:
+    folder = Folder.create(tmp_path)
+    assert Session(folder).folder is folder
+    assert Session().folder is None
+
+
+# ******************************************************************************
+def test_moveReordersTabsAndKeepsTheActiveDocument() -> None:
+    session = Session()
+    first = session.add(Document())
+    second = session.add(Document())
+    third = session.add(Document())
+    session.activeIndex = 0
+
+    session.move(0, 2)
+
+    assert session.documents == [second, third, first]
+    assert session.active is first
+    assert session.activeIndex == 2
 
 
 # ******************************************************************************

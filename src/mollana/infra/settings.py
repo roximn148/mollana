@@ -61,10 +61,6 @@ class MainConfig(BaseModel):
         default=Themes.Light,
         description=f"Application theme ({'|'.join(Themes)}). Default is Light",
     )
-    ProjectBaseDirectory: DirectoryPath = Field(
-        default=Path("."),
-        description="Default base directory in which project folders are created",
-    )
     RecentMaxCount: PositiveInt = Field(
         default=10,
         le=25,
@@ -73,6 +69,10 @@ class MainConfig(BaseModel):
     RecentFiles: list[FilePath] = Field(
         default_factory=list,
         description="List of recent files",
+    )
+    RecentFolders: list[DirectoryPath] = Field(
+        default_factory=list,
+        description="List of recent folders",
     )
     AutoSaveInterval: PositiveInt = Field(
         default=5, description="Interval in minutes for autosave. Default is 5"
@@ -263,33 +263,36 @@ class TomlLoader(Loader):
     def _repairMainSection(
         cls, mainTable: dict[str, Any], error: ValidationError, log: logging.Logger
     ) -> MainConfig:
-        """Reset invalid values, drop stale recent files, and validate again."""
+        """Reset invalid values, drop stale recent paths, and validate again."""
         log.warning(f'{error.error_count()} error(s) found in preferences "Main" section')
 
-        recentValues = mainTable.get("RecentFiles", [])
-        recentFiles = dict(enumerate(recentValues)) if isinstance(recentValues, list) else {}
-        recentFilesChanged = False
+        recentLists: dict[str, dict[int, object]] = {}
+        for fieldName in ("RecentFiles", "RecentFolders"):
+            values = mainTable.get(fieldName, [])
+            recentLists[fieldName] = dict(enumerate(values)) if isinstance(values, list) else {}
+        recentChanged: set[str] = set()
 
         for detail in error.errors():
             location = detail["loc"]
             field = str(location[0]) if location else ""
             log.warning(f'{field}="{detail["input"]}": {detail["msg"]}')
 
-            if field == "RecentFiles":
-                recentFilesChanged = True
+            if field in recentLists:
+                recentChanged.add(field)
                 index = location[1] if len(location) > 1 else None
-                if detail["type"] == "path_not_file" and isinstance(index, int):
-                    log.debug(f"Removing file[{index}]:{detail['input']} value of {field}")
-                    recentFiles.pop(index, None)
+                stale = detail["type"] in {"path_not_file", "path_not_directory"}
+                if stale and isinstance(index, int):
+                    log.debug(f"Removing {field}[{index}]: {detail['input']}")
+                    recentLists[field].pop(index, None)
                 else:
-                    recentFiles = {}
+                    recentLists[field] = {}
             elif field in MainConfig.model_fields:
                 log.debug(f'Resetting {field}="{detail["input"]}" to default')
                 fieldInfo = MainConfig.model_fields[field]
                 mainTable[field] = fieldInfo.get_default(call_default_factory=True)
 
-        if recentFilesChanged:
-            mainTable["RecentFiles"] = list(recentFiles.values())
+        for fieldName in recentChanged:
+            mainTable[fieldName] = list(recentLists[fieldName].values())
 
         return MainConfig.model_validate(mainTable)
 

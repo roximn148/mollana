@@ -6,7 +6,7 @@
 
 """The store of user dictionaries.
 
-Dictionaries live in application data, never in a project. One is active for the
+Dictionaries live in application data, never in a user's folder. One is active for the
 whole process; the widget's shared dictionary is that one.
 
 Two different merges exist and they are not interchangeable:

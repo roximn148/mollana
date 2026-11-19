@@ -64,3 +64,13 @@ class RecentFiles:
 
 
 # ******************************************************************************
+class RecentFolders(RecentFiles):
+    """Most-recent-first list of folder paths."""
+
+    # **************************************************************************
+    def existing(self) -> list[Path]:
+        """The folders that still exist on disk, most recent first."""
+        return [path for path in self._paths if path.is_dir()]
+
+
+# ******************************************************************************

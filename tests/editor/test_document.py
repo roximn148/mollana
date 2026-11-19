@@ -68,3 +68,45 @@ def test_saveClearsDirtyAndAdoptsPath(tmp_path: Path) -> None:
 
 
 # ******************************************************************************
+def test_recoveredDocumentKeepsItsTitleAndUntitledState(tmp_path: Path) -> None:
+    """A restored buffer reads from its recovery file but is still untitled."""
+    recovery = tmp_path / "abc123.txt"
+    recovery.write_text("draft", encoding="utf-8")
+
+    document = Document.fromPath(recovery)
+    document.untitled = True
+    document.title = "Untitled 3"
+
+    assert document.isUntitled
+    assert document.displayName == "Untitled 3"
+    assert document.read() == "draft"
+
+
+# ******************************************************************************
+def test_savingARecoveredDocumentWithoutAPathIsRejected(tmp_path: Path) -> None:
+    """Ctrl+S must never overwrite the recovery copy the user cannot see."""
+    recovery = tmp_path / "abc123.txt"
+    recovery.write_text("draft", encoding="utf-8")
+    document = Document(path=recovery, untitled=True, title="Untitled 1")
+
+    with pytest.raises(ValueError):
+        document.save("changed")
+
+    assert recovery.read_text(encoding="utf-8") == "draft"
+
+
+# ******************************************************************************
+def test_savingARecoveredDocumentToARealPathAdoptsIt(tmp_path: Path) -> None:
+    recovery = tmp_path / "abc123.txt"
+    recovery.write_text("draft", encoding="utf-8")
+    document = Document(path=recovery, untitled=True, title="Untitled 1")
+
+    target = tmp_path / "real.txt"
+    document.save("saved", target)
+
+    assert document.path == target
+    assert document.isUntitled is False
+    assert document.displayName == "real.txt"
+
+
+# ******************************************************************************

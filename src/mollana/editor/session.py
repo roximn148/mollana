@@ -6,25 +6,25 @@
 
 """The set of documents currently open, and which one is active.
 
-A session always exists; a project is optional and merely attaches to it. The
+A session always exists; a folder is optional and merely attaches to it. The
 session holds no widgets and emits no signals: the tab layer reads the list
 after each change and rebuilds what it needs.
 """
 
 # ******************************************************************************
 from mollana.editor.document import Document
-from mollana.editor.project import Project
+from mollana.editor.folder import Folder
 
 
 # ******************************************************************************
 class Session:
-    """Open documents plus the active index, optionally attached to a project."""
+    """Open documents plus the active index, optionally attached to a folder."""
 
     # **************************************************************************
-    def __init__(self, project: Project | None = None) -> None:
+    def __init__(self, folder: Folder | None = None) -> None:
         self._documents: list[Document] = []
         self._activeIndex: int = -1
-        self.project = project
+        self.folder = folder
 
     # **************************************************************************
     @property
@@ -98,6 +98,19 @@ class Session:
         elif index == self._activeIndex:
             self._activeIndex = min(index, len(self._documents) - 1)
         return document
+
+    # **************************************************************************
+    def move(self, fromIndex: int, toIndex: int) -> None:
+        """Move the tab at ``fromIndex`` to ``toIndex``, keeping the active one."""
+        if not self._documents:
+            return
+        active = self.active
+        source = max(0, min(fromIndex, len(self._documents) - 1))
+        target = max(0, min(toIndex, len(self._documents) - 1))
+        document = self._documents.pop(source)
+        self._documents.insert(target, document)
+        if active is not None:
+            self._activeIndex = self.indexOf(active.id)
 
     # **************************************************************************
     def clear(self) -> None:

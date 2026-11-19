@@ -6,9 +6,8 @@
 
 """A file tree over any folder.
 
-The same widget serves both modes: in a project it shows the project root, and
-ad-hoc it shows whichever folder the user is browsing. It never decides
-anything about projects.
+The widget shows whichever folder the user opened and never decides anything
+about sessions; it only lists what is there.
 """
 
 # ******************************************************************************

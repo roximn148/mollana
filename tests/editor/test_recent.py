@@ -9,7 +9,7 @@
 # ******************************************************************************
 from pathlib import Path
 
-from mollana.editor.recent import RecentFiles
+from mollana.editor.recent import RecentFiles, RecentFolders
 
 
 # ******************************************************************************
@@ -61,6 +61,24 @@ def test_existingDropsMissingFiles(tmp_path: Path) -> None:
     present.write_text("x", encoding="utf-8")
     recent = RecentFiles([present, tmp_path / "gone.txt"])
     assert recent.existing() == [present]
+
+
+# ******************************************************************************
+def test_recentFoldersExistenceChecksDirectories(tmp_path: Path) -> None:
+    present = tmp_path / "present"
+    present.mkdir()
+    aFile = tmp_path / "file.txt"
+    aFile.write_text("x", encoding="utf-8")
+    recent = RecentFolders([present, aFile, tmp_path / "gone"])
+    assert recent.existing() == [present]
+
+
+# ******************************************************************************
+def test_recentFoldersOrderAndLimit(tmp_path: Path) -> None:
+    recent = RecentFolders(limit=2)
+    for name in ("a", "b", "c"):
+        recent.add(tmp_path / name)
+    assert recent.paths == [tmp_path / "c", tmp_path / "b"]
 
 
 # ******************************************************************************

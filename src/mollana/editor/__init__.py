@@ -4,7 +4,7 @@
 # LICENSE.txt file in the root directory of this source tree.
 # ******************************************************************************
 
-"""Editor domain: documents, sessions, projects, dictionaries, recent files.
+"""Editor domain: documents, sessions, folders, dictionaries, recent files.
 
 Nothing here imports PySide6. Every type is driveable from a headless test, and
 the tab layer in :mod:`mollana.ui` translates between these types and widgets.

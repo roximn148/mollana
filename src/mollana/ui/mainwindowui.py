@@ -171,21 +171,14 @@ class MainWindowUi:
             "Open F&older",
             iconName="open-folder",
             shortcut="Ctrl+Shift+O",
-            tooltip="Browse a folder without making it a project",
+            tooltip="Open a folder and restore what was open in it",
         )
-        self.actionNewProject = _makeAction(
+        self.actionCloseFolder = _makeAction(
             window,
-            "actionNewProject",
-            "New &Project",
-            iconName="new-folder",
-            tooltip="Convert a folder into a Mollana project",
-        )
-        self.actionOpenProject = _makeAction(
-            window,
-            "actionOpenProject",
-            "Open Pro&ject",
-            iconName="open-project",
-            tooltip="Open a folder that is already a project",
+            "actionCloseFolder",
+            "Close F&older",
+            iconName="close-folder",
+            tooltip="Close the folder and keep its session for next time",
         )
         self.actionSave = _makeAction(
             window,
@@ -412,10 +405,9 @@ class MainWindowUi:
 
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
-        self.menuFile.addAction(self.actionOpenFolder)
         self.menuFile.addSeparator()
-        self.menuFile.addAction(self.actionNewProject)
-        self.menuFile.addAction(self.actionOpenProject)
+        self.menuFile.addAction(self.actionOpenFolder)
+        self.menuFile.addAction(self.actionCloseFolder)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionSave)
         self.menuFile.addAction(self.actionSaveAs)
