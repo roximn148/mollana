@@ -10,8 +10,7 @@ PyInstaller embeds input mtimes in the archive table of contents and in the
 ``.pyc`` headers it compiles, and a freshly created venv (or a CI checkout)
 carries "now" mtimes that differ from a local one. Pinning every input mtime
 to a fixed epoch makes ``dist/Mollana`` byte-identical across machines and
-across repeated builds, so the installer SHA is stable and the committed
-winget manifest's ``InstallerSha256`` can be verified against a rebuild.
+across repeated builds, so the installer SHA is stable.
 
 Run before ``pyinstaller`` (and again before Inno Setup) from
 ``scripts/generate-win-setup.bat``.

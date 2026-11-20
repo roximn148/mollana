@@ -2,10 +2,9 @@
 #
 # Triggered by pushing a `v*` tag, or manually from the Actions tab. The release
 # version always comes from pyproject.toml; the tag or the manual `version` input
-# must agree with it, so the installer filename, the committed winget manifest,
-# and the Release can never drift apart. The atomic release commit (version bump
-# + dated CHANGELOG section + generated winget manifest) is the human step that
-# makes these agree; see the release checklist in AGENTS.md.
+# must agree with it, so the installer filename and the Release can never drift
+# apart. The atomic release commit (version bump + dated CHANGELOG section) is
+# the human step that makes these agree; see the release checklist in AGENTS.md.
 name: Windows release
 
 on:
@@ -65,37 +64,20 @@ jobs:
         run: uv run pytest
 
       - name: Install Inno Setup
-        # Pinned: the installer bytes depend on the Inno Setup version, and the
-        # winget manifest's InstallerSha256 is generated with the pinned version.
-        # --source winget keeps the msstore source out of it; without the
-        # agreement flags winget stops at a Y/N prompt and the runner cannot
-        # answer it.
-        run: winget install -e --id JRSoftware.InnoSetup --version 6.7.3 --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity
+        # Pinned: the installer bytes depend on the Inno Setup version, so the
+        # release always uses 6.7.3. Download it directly from the pinned
+        # release asset so the build depends on no package manager.
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe" -OutFile "$env:RUNNER_TEMP\innosetup.exe"
+          $process = Start-Process -FilePath "$env:RUNNER_TEMP\innosetup.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Inno Setup install failed with $($process.ExitCode)" }
 
       - name: Build the application and installer
         shell: pwsh
         run: |
           & "scripts\generate-win-setup.bat"
           if ($LASTEXITCODE -ne 0) { throw "generate-win-setup.bat failed" }
-
-      - name: Record the built file hashes
-        # Reproducibility debugging aid: the manifest check below compares one
-        # sha256 for the whole installer, which says nothing about *what*
-        # differs when a workstation and the runner disagree.
-        shell: pwsh
-        run: |
-          Get-ChildItem dist\Mollana -Recurse -File | Sort-Object FullName | ForEach-Object {
-            $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
-            "{0}  {1}" -f $h.Substring(0, 16), $_.FullName.Replace("$PWD\dist\Mollana\", "")
-          }
-
-      - name: Check the committed winget manifest
-        run: uv run python scripts/winget_manifest.py --check
-
-      - name: Validate the winget manifest schema
-        # The committed manifests must stay schema-valid so the winget-pkgs
-        # submission PR passes its validation pipeline untouched.
-        run: winget validate --manifest "winget/RoXimn.Mollana/$($env:VERSION)"
 
       - name: Smoke test the frozen application
         shell: pwsh

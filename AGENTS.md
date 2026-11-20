@@ -58,11 +58,9 @@ src/mollana/
     └── resources/images/   # Phosphor SVG icons, the brand PNG, and the installer .ico
 tests/                      # pytest; conftest sets QT_QPA_PLATFORM=offscreen
 scripts/generate-win-setup.bat  # PyInstaller -> Inno Setup
-scripts/winget_manifest.py  # winget-pkgs manifest generator + --check
 mollana.spec                # PyInstaller definition (onedir + version resource)
 installer/mollana.iss       # Inno Setup 6 per-user installer
 .github/workflows/windows-release.yml  # tag push -> build, verify, publish Release
-winget/                     # committed winget-pkgs manifests (RoXimn.Mollana/<version>/)
 docs/                       # legacy user guide (describes the pilot)
 ```
 
@@ -108,7 +106,7 @@ fresh clone needs no code generation before `uv run mollana` or `uv run pytest`.
   changes with no user effect get none. Release announcements need no entry; they land when
   `[Unreleased]` moves to a version.
 - Commit messages follow Conventional Commits — <type>(<scope>): <summary>, one line, imperative. Types: feat, fix, refactor, perf, style, test, docs, build, chore, revert, plus this project's deps (dependency bumps and pins) and ver (a release's version bump and bookkeeping, kept as ver: <version>).
-- <scope> names the module or subsystem: ui, editor, infra (the three layers), build (packaging: mollana.spec, Inno Setup, scripts/), winget (manifests), ci (release workflow), tests, docs, deps.
+- <scope> names the module or subsystem: ui, editor, infra (the three layers), build (packaging: mollana.spec, Inno Setup, scripts/), ci (release workflow), tests, docs, deps.
 - `uv.lock` is regenerated with `uv lock`, never hand-edited.
 
 ### Version
@@ -143,23 +141,9 @@ follow it explicitly, in order:
    `CHANGELOG.md` section + README `Alpha, …` line, in one commit (rule above).
 3. **Build + verify** — `scripts\generate-win-setup.bat`; then install per-user,
    launch, and uninstall `dist\Mollana-<version>-win64-setup.exe`.
-4. **Winget manifest** — `uv run python scripts/winget_manifest.py --date <date>
-   --sha256 <hash>` writes `winget/RoXimn.Mollana/<version>/`. The `<hash>` is the
-   installer sha256 **the runner builds**, not the workstation's: tag once, read the
-   hash CI reports, then record and re-tag (or ask for it in a `workflow_dispatch`
-   run). Validate the set with `winget validate --manifest
-   winget/RoXimn.Mollana/<version>` (the directory — see the gotcha below), review
-   the three files (version, sha256, date, asset URL), and commit. The manifest is
-   not part of the PyInstaller bundle, so it cannot change installer bytes.
-5. **Tag + push** — clean tree, then `git tag vX.Y.Z` and `git push --tags`;
-   CI rebuilds, asserts the manifest sha256 matches, validates the manifest schema,
-   smoke-tests, and publishes the Release with notes from the changelog section.
-6. **Winget community submission** (manual) — fork `microsoft/winget-pkgs`, copy
-   `winget/RoXimn.Mollana/<version>/` to `manifests/r/RoXimn/Mollana/<version>/`,
-   and open one PR per version, titled `Adding RoXimn.Mollana version <version>`.
-   The winget pipelines validate the PR and a maintainer merges it; respond to
-   their bot comments. First-time submitters also sign the Microsoft CLA when the
-   bot asks.
+4. **Tag + push** — clean tree, then `git tag vX.Y.Z` and `git push --tags`;
+   CI rebuilds, smoke-tests, and publishes the Release with notes from the
+   changelog section.
 
 ### State tiers
 
@@ -221,44 +205,24 @@ stored in the dictionary catalogue.
   `PrivilegesRequiredOverridesAllowed=dialog` also raises the "Select Setup Install Mode"
   prompt in silent mode, scripted installs must pass `/SILENT /CURRENTUSER`; without it
   the setup waits forever on a dialog nobody can click.
-- Inno Setup 6 is not preinstalled on GitHub runners; the release workflow installs it
-  with `winget install -e --id JRSoftware.InnoSetup --version 6.7.3 --source winget
-  --accept-source-agreements --accept-package-agreements --disable-interactivity` — the
-  version is pinned because the installer bytes depend on it (see the reproducibility
-  gotcha below), and the flags are required because an unattended runner cannot answer
-  winget's source-agreement prompt. `generate-win-setup.bat` locates ISCC itself, so no
+- Inno Setup 6 is not preinstalled on GitHub runners; the release workflow downloads
+  the pinned `innosetup-6.7.3.exe` from the jrsoftware/issrc release and installs it
+  silently. The version is pinned because the installer bytes depend on it (see the
+  reproducibility gotcha below). `generate-win-setup.bat` locates ISCC itself, so no
   PATH refresh is needed.
-- The winget manifests are **not** part of the PyInstaller bundle; the release workflow
-  runs `scripts/winget_manifest.py --check` after building and fails when the committed
-  manifest's sha256 does not match the freshly built installer.
-- The winget manifest set is validated as a whole, and three rules come out of that:
-  every file must end with its `ManifestType` footer (`version`, `defaultLocale`,
-  `installer`) plus the `$schema` header comment, or winget misreads the file as a
-  singleton manifest and rejects the set; a field such as `ReleaseDate` may appear in
-  only one file of the set (the locale file here) or the assembled manifest fails with
-  "Duplicate field"; and validation must target the **directory**
-  (`winget validate --manifest winget/RoXimn.Mollana/<version>`) — pointing the
-  command at the version *file* reports a misleading "multi file manifest is
-  incomplete" even when the set is valid.
-- The installer build is **reproducible on a given machine**, and the manifest's
-  `InstallerSha256` depends on it. `generate-win-setup.bat` sets `SOURCE_DATE_EPOCH`
-  (PyInstaller stamps
-  the EXE's PE header with the build time unless it is set) and `PYTHONHASHSEED` (the
-  module-graph traversal that orders `base_library.zip` is hash-seed dependent; the
-  PYZ is sorted for reproducible builds, the zip is not), and
-  `scripts/normalize-mtimes.py` pins mtimes before PyInstaller and Inno Setup (Inno
-  embeds the packed files' mtimes). The Python patch version is pinned in
-  `.python-version` and the Inno version in the workflow; a new Python or Inno release
-  changes the bytes and requires regenerating the manifest. The bundle must also not
-  depend on the build host: `mollana.spec` drops `api-ms-win-*.dll` because PyInstaller
-  copies whichever API sets the build machine exposes, and Windows editions differ —
-  that one difference alone made a runner build and a workstation build disagree; it
-  also drops `ucrtbase.dll`, pins OpenSSL to the analysed interpreter, and ships only
-  `METADATA` from the dist-info (the rest records the checkout path and cache
-  timestamps). Even so, a Windows 11 workstation and the Server runner still differ in
-  some interpreter files, so **the committed `InstallerSha256` is the runner's build**,
-  recorded with `scripts/winget_manifest.py --sha256 <hash> --date <date>` from the
-  hash in a tag-push run; `--check` is therefore a CI gate, and can disagree locally.
+- The installer build is **reproducible on a given machine**. `generate-win-setup.bat`
+  sets `SOURCE_DATE_EPOCH` (PyInstaller stamps the EXE's PE header with the build time
+  unless it is set) and `PYTHONHASHSEED` (the module-graph traversal that orders
+  `base_library.zip` is hash-seed dependent; the PYZ is sorted for reproducible builds,
+  the zip is not), and `scripts/normalize-mtimes.py` pins mtimes before PyInstaller and
+  Inno Setup (Inno embeds the packed files' mtimes). The Python patch version is pinned
+  in `.python-version` and the Inno version in the workflow; a new Python or Inno
+  release changes the bytes. The bundle must also not depend on the build host:
+  `mollana.spec` drops `api-ms-win-*.dll` because PyInstaller copies whichever API sets
+  the build machine exposes, and Windows editions differ — that one difference alone
+  made a runner build and a workstation build disagree; it also drops `ucrtbase.dll`,
+  pins OpenSSL to the analysed interpreter, and ships only `METADATA` from the
+  dist-info (the rest records the checkout path and cache timestamps).
 - Logging is `mollana.infra.logging.getLogger`, not an attribute of `QApplication`. A plain
   `QApplication` in a test is fine.
 - `PyRaya`'s shared `localDictionary()` starts empty in every process. `MainWindow`

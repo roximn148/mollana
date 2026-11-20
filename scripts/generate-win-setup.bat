@@ -18,8 +18,7 @@ if not exist "%ISCC%" (
 :: Reproducible build: PyInstaller stamps the EXE's PE header with the current
 :: build time unless SOURCE_DATE_EPOCH is set, and the module graph traversal
 :: (which orders base_library.zip's entries) is hash-seed dependent, so pin
-:: PYTHONHASHSEED. Both values must stay in sync with the winget manifest's
-:: InstallerSha256, which is generated from a build with these settings.
+:: PYTHONHASHSEED. Both values are pinned so a rebuild produces the same bytes.
 set "SOURCE_DATE_EPOCH=1700000000"
 set "PYTHONHASHSEED=42"
 
